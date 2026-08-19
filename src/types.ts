@@ -1,0 +1,243 @@
+export type Tenant = {
+  id: string;
+  object: 'tenant';
+  name: string;
+  slug: string;
+  status: 'active' | 'suspended' | 'closed';
+  created_at: string;
+  updated_at: string;
+};
+
+export type User = {
+  id: string;
+  email: string;
+  display_name: string;
+  status: string;
+  email_verified_at?: string;
+  created_at: string;
+};
+
+export type IdentityProfile = {
+  object: 'identity';
+  user: User;
+  tenant: Tenant;
+  role: 'owner' | 'member' | 'billing';
+};
+
+export type APIKey = {
+  id: string;
+  object: 'api_key';
+  name: string;
+  prefix: string;
+  status: 'active' | 'revoked' | 'expired';
+  secret_available: boolean;
+  expires_at?: string;
+  last_used_at?: string;
+  revoked_at?: string;
+  created_at: string;
+};
+
+export type CreatedAPIKey = APIKey & {
+  key: string;
+};
+
+export type APIKeySecret = {
+  object: 'api_key_secret';
+  id: string;
+  key: string;
+};
+
+export type AdminProfile = {
+  object: 'administrator';
+  email: string;
+  status: string;
+  last_login_at?: string;
+};
+
+export type Generation = {
+  id: string;
+  modality: 'image' | 'video';
+  operation: string;
+  model: string;
+  status: string;
+  billing_status: string;
+  quote_amount?: number;
+  final_amount?: number;
+  currency?: string;
+  parameters?: Record<string, unknown>;
+  prompt?: string;
+  // Only administrator views carry the upstream binding that served the job.
+  binding_alias?: string;
+  inputs?: GenerationInput[];
+  progress: number;
+  created_at: string;
+  updated_at: string;
+};
+
+export type GenerationInput = {
+  asset_id: string;
+  role: string;
+  url: string;
+  mime_type: string;
+  size_bytes: number;
+};
+
+export type ModelBilling = {
+  mode: 'free' | 'per_request' | 'per_output_second';
+  currency: string;
+  unit_price: number;
+  unit_scale: number;
+  minimum_charge: number;
+  rates: ModelBillingRate[];
+};
+
+export type ModelBillingRate = {
+  label: string;
+  dimensions: Record<string, string>;
+  unit_price: number;
+  unit_scale: number;
+  minimum_charge: number;
+};
+
+export type PublicModel = {
+  id: string;
+  object: 'model';
+  display_name: string;
+  modality: 'image' | 'video';
+  operations: string[];
+  provider: string;
+  parameters: Record<string, unknown>;
+  request_form?: RequestForm;
+  billing: ModelBilling;
+};
+
+export type AdminModel = PublicModel & {
+  upstream_model: string;
+  endpoint?: string;
+  status: 'active' | 'inactive';
+  protocol_profile?: unknown;
+  profile_customized: boolean;
+  bindings: ModelBinding[];
+  api_key_configured: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FormParameter = {
+  name: string;
+  pointer: string;
+  type: 'string' | 'integer' | 'boolean';
+  required?: boolean;
+  enum?: string[];
+  minimum?: number;
+  maximum?: number;
+  default?: unknown;
+};
+
+export type FormMedia = {
+  type: string;
+  field: string;
+  url_field: string;
+  mime_prefix: string;
+  roles?: string[];
+  default_role?: string;
+};
+
+export type FormContent = {
+  pointer: string;
+  text_type: string;
+  text_field: string;
+  media?: FormMedia[];
+};
+
+export type FormInput = {
+  pointer: string;
+  name: string;
+  mime_prefix: string;
+  array?: boolean;
+};
+
+// RequestForm describes how to build this model's own native request. It is
+// derived from the protocol profile the administrator stored.
+export type RequestForm = {
+  method: string;
+  path: string;
+  model: string;
+  prompt: { pointer?: string; max_runes?: number; content?: FormContent };
+  inputs?: FormInput[];
+  parameters?: FormParameter[];
+};
+
+export type ModelBinding = {
+  alias: string;
+  endpoint: string;
+  status: 'active' | 'inactive';
+  weight: number;
+  api_key_configured: boolean;
+};
+
+export type ProtocolPreset = {
+  name: string;
+  display_name: string;
+  model_id: string;
+  upstream_model: string;
+  endpoint: string;
+  modality: string;
+  profile: unknown;
+};
+
+export type Asset = {
+  id: string;
+  mime_type: string;
+  sha256: string;
+  size_bytes: number;
+};
+
+export type Artifact = {
+  id: string;
+  generation_id: string;
+  role: string;
+  url: string;
+  mime_type: string;
+  sha256: string;
+  size_bytes: number;
+  created_at: string;
+};
+
+export type ProviderIO = {
+  id: string;
+  generation_id: string;
+  attempt_id: string;
+  phase: string;
+  request: unknown;
+  response?: unknown;
+  http_status?: number;
+  occurred_at: string;
+};
+
+export type AdminOverview = {
+  tenant_count: number;
+  active_tenant_count: number;
+  user_count: number;
+  generation_count: number;
+  queued_count: number;
+  failed_count: number;
+};
+
+export type AdminTenant = Tenant & {
+  member_count: number;
+  generation_count: number;
+  last_activity_at?: string;
+};
+
+export type AdminUser = User & {
+  object: 'user';
+  email_verified_at?: string;
+  tenant: Tenant;
+  role: string;
+  member_count: number;
+  generation_count: number;
+  api_key_count: number;
+  last_activity_at?: string;
+  last_seen_at?: string;
+};
