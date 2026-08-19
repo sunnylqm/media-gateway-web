@@ -11,7 +11,7 @@
 - [x] Added environment-based gateway URL configuration and a local Vite proxy.
 - [x] Updated the client for credentialed CORS and cross-origin CSRF response headers.
 - [x] Installed dependencies and passed TypeScript plus the Vite production build.
-- [ ] Publish the standalone Git repository to `sunnylqm` on GitHub.
+- [ ] Publish the standalone Git repository to `sunnylqm` on GitHub. Blocked because `gh` is authenticated as `wuqingCap`, which cannot create repositories for `sunnylqm`; the local SSH identity is already `sunnylqm` and the target remote is preconfigured.
 
 ## Compatibility notes
 
