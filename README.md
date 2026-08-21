@@ -19,7 +19,8 @@ VITE_GATEWAY_PROXY=false
 
 ## Features
 
-- Tenant sign-in, email verification, generation composer, job history, artifacts, and API-key management.
+- Tenant sign-in, email verification, job history, artifacts, and API-key management.
+- A generation composer built from each model's published request form: start and end frames, multi-reference images, video, and audio, parameter controls that follow the declared shape, and the gateway's own price estimate.
 - Administrator sign-in, overview, accounts, tenant status, model/binding configuration, billing, and generation audit views.
 - Credentialed cross-origin sessions with CSRF tokens retained only in the active browser tab.
 - Responsive console shell using shadcn/ui-compatible primitives and Radix accessibility behavior.

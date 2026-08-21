@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Dialog, Select } from 'radix-ui';
-import { Activity, Boxes, Check, Copy, Eye, EyeOff, FileUp, KeyRound, ListFilter, Plus, Sparkles, Trash2, X } from 'lucide-react';
+import { Dialog } from 'radix-ui';
+import { Activity, Boxes, Check, Copy, Eye, EyeOff, KeyRound, Plus, Sparkles, Trash2, X } from 'lucide-react';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router';
 import { APIError, api } from '../api';
+import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { formatDate } from '../format';
-import type { APIKey, APIKeySecret, Artifact, CreatedAPIKey, FormParameter, Generation, IdentityProfile, PublicModel } from '../types';
+import { modelPathSlug } from '../lib/requestForm';
+import type { APIKey, APIKeySecret, Artifact, CreatedAPIKey, Generation, IdentityProfile, PublicModel } from '../types';
 
 type GenerationList = { data: Generation[] };
 
@@ -18,17 +20,9 @@ export function TenantConsole() {
   const [models, setModels] = useState<PublicModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [prompt, setPrompt] = useState('');
-  const [modality, setModality] = useState<'image' | 'video'>('video');
-  const [model, setModel] = useState('');
-  const [parameters, setParameters] = useState<Record<string, string>>({});
-  const [inputFile, setInputFile] = useState<File | null>(null);
-  const [inputRole, setInputRole] = useState('');
   const [selected, setSelected] = useState<Generation | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
-  const [creating, setCreating] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,10 +34,7 @@ export function TenantConsole() {
       setProfile(identity);
       setGenerations(jobs.data);
       const publicModels = catalog.data.filter((item) => item.provider !== 'development');
-      setModels(publicModels);
-      setModel((current) => publicModels.some((item) => item.id === current)
-        ? current
-        : (publicModels.find((item) => item.modality === 'video') ?? publicModels[0])?.id ?? '');
+      setModels((current) => JSON.stringify(current) === JSON.stringify(publicModels) ? current : publicModels);
     } catch (reason) {
       if (reason instanceof APIError && reason.status === 401) {
         navigate('/app/login', { replace: true });
@@ -58,88 +49,10 @@ export function TenantConsole() {
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
-    if (models.some((item) => item.id === model && item.modality === modality)) return;
-    setModel(models.find((item) => item.modality === modality)?.id ?? '');
-  }, [modality, model, models]);
-
-  // Each model publishes its own parameters, so the form resets to that
-  // model's declared defaults rather than carrying values across models.
-  useEffect(() => {
-    const form = models.find((item) => item.id === model)?.request_form;
-    setParameters(Object.fromEntries((form?.parameters ?? []).map((parameter) => [
-      parameter.name, defaultParameterValue(parameter),
-    ])));
-    setInputFile(null);
-  }, [model, models]);
-
-  useEffect(() => {
     if (!generations.some((item) => ['queued', 'submitting', 'submitted', 'in_progress'].includes(item.status))) return;
     const timer = window.setInterval(() => { void load(); }, 2_000);
     return () => window.clearInterval(timer);
   }, [generations, load]);
-
-  async function createGeneration(event: FormEvent) {
-    event.preventDefault();
-    setCreating(true);
-    setError('');
-    try {
-      const configuredModel = models.find((item) => item.id === model);
-      if (!configuredModel) throw new Error('Select an active model');
-      const form = configuredModel.request_form;
-      if (!form) throw new Error('This model does not publish a request form');
-
-      const body: Record<string, unknown> = {};
-      setPointer(body, form.model, model);
-      const reference = inputFile ? { file: inputFile, url: await fileDataURL(inputFile) } : null;
-
-      if (form.prompt.content) {
-        const content = form.prompt.content;
-        const items: Array<Record<string, unknown>> = [
-          { type: content.text_type, [content.text_field]: prompt },
-        ];
-        if (reference) {
-          const media = mediaFor(content.media ?? [], reference.file.type);
-          if (!media) throw new Error('This model does not accept that reference file type');
-          items.push({
-            type: media.type,
-            [media.field]: { [media.url_field]: reference.url },
-            ...(inputRole ? { role: inputRole } : {}),
-          });
-        }
-        setPointer(body, content.pointer, items);
-      } else {
-        setPointer(body, form.prompt.pointer ?? '/prompt', prompt);
-        if (reference) {
-          const slot = (form.inputs ?? []).find((input) => reference.file.type.startsWith(input.mime_prefix));
-          if (!slot) throw new Error('This model does not accept that reference file type');
-          setPointer(body, slot.pointer, slot.array ? [reference.url] : reference.url);
-        }
-      }
-
-      for (const parameter of form.parameters ?? []) {
-        const raw = parameters[parameter.name] ?? '';
-        if (raw === '') {
-          if (parameter.required) throw new Error(`${formatParameterLabel(parameter.name)} is required`);
-          continue;
-        }
-        setPointer(body, parameter.pointer, coerceParameter(parameter, raw));
-      }
-
-      await api(`/${modelPathSlug(model)}${form.path}`, {
-        method: form.method || 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify(body),
-      });
-      setPrompt('');
-      setInputFile(null);
-      setDialogOpen(false);
-      await load();
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to create generation');
-    } finally {
-      setCreating(false);
-    }
-  }
 
   async function openDetails(generation: Generation) {
     setSelected(generation);
@@ -170,103 +83,8 @@ export function TenantConsole() {
     completed: generations.filter((item) => item.status === 'completed').length,
     failed: generations.filter((item) => ['failed', 'submission_unknown'].includes(item.status)).length,
   }), [generations]);
-  const availableModels = useMemo(() => models.filter((item) => item.modality === modality), [models, modality]);
-  const selectedModel = useMemo(() => models.find((item) => item.id === model), [models, model]);
-  // The reference picker only offers what the model's own request form accepts.
-  const referenceAccept = useMemo(() => {
-    const form = selectedModel?.request_form;
-    const prefixes = form?.prompt.content
-      ? (form.prompt.content.media ?? []).map((media) => media.mime_prefix)
-      : (form?.inputs ?? []).map((input) => input.mime_prefix);
-    return [...new Set(prefixes)].map((prefix) => `${prefix}*`).join(',');
-  }, [selectedModel]);
-  // The role vocabulary depends on the media type, so it only exists once a
-  // file has been chosen.
-  const referenceRoles = useMemo(() => {
-    if (!inputFile) return [];
-    const media = selectedModel?.request_form?.prompt.content?.media ?? [];
-    const matched = media.find((entry) => inputFile.type.startsWith(entry.mime_prefix));
-    if (!matched) return [];
-    return matched.default_role
-      ? [matched.default_role, ...(matched.roles ?? []).filter((role) => role !== matched.default_role)]
-      : (matched.roles ?? []);
-  }, [selectedModel, inputFile]);
-
-  // A reference role only exists for the media type actually chosen, so the
-  // selection follows the picked file rather than the previous model.
-  useEffect(() => {
-    if (referenceRoles.includes(inputRole)) return;
-    setInputRole(referenceRoles[0] ?? '');
-  }, [referenceRoles, inputRole]);
-
   if (loading) return <LoadingScreen />;
   if (!profile) return null;
-
-  const actions = (
-    <Dialog.Root open={dialogOpen} onOpenChange={setDialogOpen}>
-      <Dialog.Trigger className="button primary"><Plus size={16} /> New generation</Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog-content">
-          <div className="dialog-heading"><div><Dialog.Title>New generation</Dialog.Title><Dialog.Description>Send the selected provider's native request through the gateway.</Dialog.Description></div><Dialog.Close className="icon-button"><X size={18} /></Dialog.Close></div>
-          <form onSubmit={createGeneration} className="dialog-form">
-            <label className="field"><span className="field-label">Modality</span>
-              <Select.Root value={modality} onValueChange={(value) => {
-                const next = value as 'image' | 'video';
-                setModality(next);
-              }}>
-                <Select.Trigger className="select-trigger"><Select.Value /><Select.Icon><ListFilter size={15} /></Select.Icon></Select.Trigger>
-                <Select.Portal><Select.Content className="select-content" position="popper"><Select.Viewport>
-                  <Select.Item className="select-item" value="image"><Select.ItemText>Image</Select.ItemText></Select.Item>
-                  <Select.Item className="select-item" value="video"><Select.ItemText>Video</Select.ItemText></Select.Item>
-                </Select.Viewport></Select.Content></Select.Portal>
-              </Select.Root>
-            </label>
-            <label className="field"><span className="field-label">Model</span>
-              <Select.Root value={model} onValueChange={setModel}>
-                <Select.Trigger className="select-trigger"><Select.Value /><Select.Icon><ListFilter size={15} /></Select.Icon></Select.Trigger>
-                <Select.Portal><Select.Content className="select-content" position="popper"><Select.Viewport>
-                  {availableModels.map((item) => <Select.Item className="select-item" value={item.id} key={item.id}><Select.ItemText>{item.display_name}</Select.ItemText></Select.Item>)}
-                </Select.Viewport></Select.Content></Select.Portal>
-              </Select.Root>
-            </label>
-            <label className="field"><span className="field-label">Prompt</span><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe the output you need…" required /></label>
-            {(selectedModel?.request_form?.parameters ?? []).length > 0 && <div className="field-grid three">
-              {(selectedModel?.request_form?.parameters ?? []).map((parameter) => <label className="field" key={parameter.name}>
-                <span className="field-label">{formatParameterLabel(parameter.name)}</span>
-                {parameter.enum?.length
-                  ? <select value={parameters[parameter.name] ?? ''} onChange={(event) => setParameters((current) => ({ ...current, [parameter.name]: event.target.value }))}>
-                      {!parameter.required && <option value="">Provider default</option>}
-                      {parameter.enum.map((option) => <option key={option} value={option}>{option}</option>)}
-                    </select>
-                  : parameter.type === 'boolean'
-                    ? <select value={parameters[parameter.name] ?? ''} onChange={(event) => setParameters((current) => ({ ...current, [parameter.name]: event.target.value }))}>
-                        {!parameter.required && <option value="">Provider default</option>}
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
-                      </select>
-                    : <input
-                        type={parameter.type === 'integer' ? 'number' : 'text'}
-                        min={parameter.minimum} max={parameter.maximum}
-                        required={parameter.required}
-                        value={parameters[parameter.name] ?? ''}
-                        onChange={(event) => setParameters((current) => ({ ...current, [parameter.name]: event.target.value }))}
-                      />}
-              </label>)}
-            </div>}
-            {referenceAccept && <div className="upload-row">
-              <label className="file-picker"><FileUp size={17} /><span>{inputFile ? inputFile.name : 'Optional reference file'}</span><input type="file" accept={referenceAccept} onChange={(event) => setInputFile(event.target.files?.[0] ?? null)} /></label>
-              {inputFile && referenceRoles.length > 1 && <select value={inputRole} onChange={(event) => setInputRole(event.target.value)}>
-                {referenceRoles.map((role) => <option key={role} value={role}>{formatParameterLabel(role)}</option>)}
-              </select>}
-            </div>}
-            {!availableModels.length && <div className="warning-box"><span>No active {modality} model is configured.</span></div>}
-            <div className="dialog-actions"><Dialog.Close className="button secondary" type="button">Cancel</Dialog.Close><button className="button primary" disabled={creating || !model}>{creating ? 'Submitting…' : 'Create generation'}</button></div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
 
   return (
     <Shell
@@ -278,7 +96,9 @@ export function TenantConsole() {
       ]}
       title="Your workspace"
       description={`Signed in as ${profile.user.email}`}
-      actions={location.pathname === '/app/api-keys' ? undefined : actions}
+      actions={location.pathname === '/app/api-keys'
+        ? undefined
+        : <GenerationComposer models={models} onCreated={load} />}
       onLogout={() => void logout()}
     >
       {error && <div className="banner-error" role="alert">{error}</div>}
@@ -424,56 +244,3 @@ function Metric({ label, value, note, tone = 'blue' }: { label: string; value: n
 }
 
 function LoadingScreen() { return <div className="loading-screen"><span className="loader" /><b>Preparing your workspace</b></div>; }
-function modelPathSlug(value: string) { return value.trim().toLowerCase(); }
-
-// setPointer writes value at an RFC 6901 pointer, creating the objects and
-// arrays the path implies. It mirrors the gateway's own pointer writer.
-function setPointer(target: Record<string, unknown>, pointer: string, value: unknown) {
-  const tokens = pointer.replace(/^\//, '').split('/')
-    .map((token) => token.replace(/~1/g, '/').replace(/~0/g, '~'));
-  let node = target as Record<string, unknown>;
-  for (let index = 0; index < tokens.length - 1; index += 1) {
-    const key = tokens[index];
-    const childIsArray = /^\d+$/.test(tokens[index + 1]);
-    const child = node[key];
-    if (typeof child !== 'object' || child === null || Array.isArray(child) !== childIsArray) {
-      node[key] = childIsArray ? [] : {};
-    }
-    node = node[key] as Record<string, unknown>;
-  }
-  node[tokens[tokens.length - 1]] = value;
-}
-
-function coerceParameter(parameter: FormParameter, raw: string): unknown {
-  if (parameter.type === 'integer') {
-    const value = Number(raw);
-    if (!Number.isInteger(value)) throw new Error(`${formatParameterLabel(parameter.name)} must be a whole number`);
-    return value;
-  }
-  if (parameter.type === 'boolean') return raw === 'true';
-  return raw;
-}
-
-function defaultParameterValue(parameter: FormParameter): string {
-  if (parameter.default !== undefined && parameter.default !== null) return String(parameter.default);
-  if (!parameter.required) return '';
-  if (parameter.enum?.length) return parameter.enum[0];
-  if (parameter.minimum !== undefined) return String(parameter.minimum);
-  return '';
-}
-
-function mediaFor(media: { type: string; field: string; url_field: string; mime_prefix: string }[], mimeType: string) {
-  return media.find((entry) => mimeType.startsWith(entry.mime_prefix));
-}
-
-function formatParameterLabel(name: string) {
-  return name.replaceAll('_', ' ').replace(/^./, (character) => character.toUpperCase());
-}
-function fileDataURL(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => typeof reader.result === 'string' ? resolve(reader.result) : reject(new Error('Unable to read reference file'));
-    reader.onerror = () => reject(reader.error ?? new Error('Unable to read reference file'));
-    reader.readAsDataURL(file);
-  });
-}
