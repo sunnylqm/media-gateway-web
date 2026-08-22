@@ -27,6 +27,15 @@ Per-media reference ceilings — nine images, three videos, three audio clips, f
 
 The reference console's output count (one, two, or four clips) and its generation groups have no gateway API behind them, so neither control is shown.
 
+## 2026-08-22 · Language support
+
+- [x] Added a typed message catalog with English and Simplified Chinese, covering every tenant, administrator, composer, and dialog string.
+- [x] Followed the browser's language on a first visit, and kept an explicit choice in `localStorage` along with `<html lang>` and the document title.
+- [x] Put the switch where each surface already carries account controls: a toggle on the sign-in pages, a `Language` group in the console profile menu.
+- [x] Routed dates, byte sizes, and currency through the active locale, and replaced compact byte notation, which reads as `420万 B` in Chinese and `1.5BB` in English.
+- [x] Translated gateway vocabulary — job statuses, media roles, request-form parameter names — through a term map that falls back to the value the API returned.
+- [x] Held table cells and buttons to one line, since Chinese wraps between any two characters where English wrapped between words.
+
 ## Compatibility notes
 
 The route structure remains `/app/*` for tenants and `/admin/*` for administrators. API paths and response types remain unchanged, so the standalone console can be introduced without migrating backend data.

@@ -1,17 +1,34 @@
+import { intlLocale, term } from './i18n';
+
 export function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  return new Intl.DateTimeFormat(intlLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
 }
 
 export function formatDay(value: string) {
-  return new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(value));
+  return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(new Date(value));
 }
 
+const byteUnits = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'] as const;
+
+// The unit is chosen here rather than left to compact notation, which counts a
+// file in 万 and 亿 for Chinese and in billions of bytes for English.
 export function formatBytes(value: number) {
-  return new Intl.NumberFormat(undefined, { notation: 'compact', style: 'unit', unit: 'byte', unitDisplay: 'narrow' }).format(value);
+  let size = value;
+  let unit = 0;
+  while (size >= 1000 && unit < byteUnits.length - 1) {
+    size /= 1000;
+    unit += 1;
+  }
+  return new Intl.NumberFormat(intlLocale(), {
+    style: 'unit',
+    unit: byteUnits[unit],
+    unitDisplay: 'narrow',
+    maximumFractionDigits: unit > 0 && size < 10 ? 1 : 0,
+  }).format(size);
 }
 
 export function formatParameterName(value: string) {
-  return value.replaceAll('_', ' ');
+  return term(value) ?? value.replaceAll('_', ' ');
 }
 
 export function formatParameterValue(value: unknown) {
@@ -19,9 +36,17 @@ export function formatParameterValue(value: unknown) {
   return JSON.stringify(value);
 }
 
+// Statuses arrive as gateway vocabulary. A locale that has a word for one uses
+// it; anything else keeps the value the API sent, spaced for reading.
+export function formatStatus(value: string) {
+  return term(value) ?? value.replaceAll('_', ' ');
+}
+
 const acronyms = new Set(['ai', 'aigc', 'api', 'id', 'url', 'fps', 'hd', 'sd', 'cfg']);
 
 export function formatLabel(value: string) {
+  const translated = term(value);
+  if (translated) return translated;
   return value.split('_')
     .map((word, index) => {
       if (acronyms.has(word.toLowerCase())) return word.toUpperCase();
@@ -34,7 +59,7 @@ export function formatLabel(value: string) {
 // locale's own fraction digits for that currency rather than a fixed 100.
 export function formatAmount(minorUnits: number, currency: string) {
   try {
-    const formatter = new Intl.NumberFormat(undefined, { style: 'currency', currency });
+    const formatter = new Intl.NumberFormat(intlLocale(), { style: 'currency', currency });
     const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
     return formatter.format(minorUnits / 10 ** digits);
   } catch {

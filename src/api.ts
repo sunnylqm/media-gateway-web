@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 type ErrorEnvelope = {
   error?: {
     code?: string;
@@ -63,7 +65,7 @@ export async function api<T>(
     throw new APIError(
       response.status,
       payload.error?.code ?? 'request_failed',
-      payload.error?.message ?? `Request failed with HTTP ${response.status}`,
+      payload.error?.message ?? t('api.requestFailed', { status: response.status }),
     );
   }
   if (response.status === 204) return undefined as T;

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { api } from '../api';
 import { AuthShell } from '../components/AuthShell';
 import { Field, FormError } from '../components/Form';
+import { useI18n } from '../i18n';
 import type { IdentityProfile } from '../types';
 
 type LoginResponse = {
@@ -19,6 +20,7 @@ type EmailVerificationRequired = {
 };
 
 export function TenantLogin() {
+  const { t } = useI18n();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -59,7 +61,7 @@ export function TenantLogin() {
       }
       navigate('/app', { replace: true });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to continue');
+      setError(reason instanceof Error ? reason.message : t('login.errorContinue'));
     } finally {
       setBusy(false);
     }
@@ -80,7 +82,7 @@ export function TenantLogin() {
       }
       navigate('/app', { replace: true });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to resend the code');
+      setError(reason instanceof Error ? reason.message : t('login.errorResend'));
     } finally {
       setBusy(false);
     }
@@ -95,25 +97,25 @@ export function TenantLogin() {
 
   return (
     <AuthShell
-      eyebrow="Media workspace"
-      title={verification ? 'Verify your email' : 'Sign in or create an account'}
+      eyebrow={t('login.eyebrow')}
+      title={t(verification ? 'login.verifyTitle' : 'login.title')}
       description={verification
-        ? `Enter the eight-digit code sent to ${verification.email}.`
-        : 'Enter your email and password. If the email is new, your account will be created automatically.'}
+        ? t('login.verifyDescription', { email: verification.email })
+        : t('login.description')}
     >
       <form className="auth-form" onSubmit={submit}>
         {verification ? <>
           <div className="verification-target"><MailCheck size={18} /><span>{verification.email}</span></div>
-          <Field label="Verification code" type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{8}" minLength={8} maxLength={8} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))} autoFocus required />
+          <Field label={t('login.code')} type="text" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{8}" minLength={8} maxLength={8} value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 8))} autoFocus required />
         </> : <>
-          <Field label="Email" type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-          <Field label="Password" type="password" autoComplete="current-password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} hint="Use at least 12 characters." required />
+          <Field label={t('login.email')} type="email" autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+          <Field label={t('login.password')} type="password" autoComplete="current-password" minLength={12} value={password} onChange={(event) => setPassword(event.target.value)} hint={t('login.passwordHint')} required />
         </>}
         <FormError>{error}</FormError>
-        <button className="button primary wide" disabled={busy || (Boolean(verification) && code.length !== 8)}>{busy ? 'Continuing…' : <>{verification ? 'Verify email' : 'Continue'} <ArrowRight size={17} /></>}</button>
+        <button className="button primary wide" disabled={busy || (Boolean(verification) && code.length !== 8)}>{busy ? t('login.continuing') : <>{t(verification ? 'login.verify' : 'login.continue')} <ArrowRight size={17} /></>}</button>
         {verification && <div className="verification-actions">
-          <button type="button" className="button secondary" onClick={() => void resend()} disabled={busy || resendIn > 0}><RotateCw size={15} />{resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}</button>
-          <button type="button" className="auth-link-button" onClick={changeEmail} disabled={busy}><ArrowLeft size={14} />Use another email</button>
+          <button type="button" className="button secondary" onClick={() => void resend()} disabled={busy || resendIn > 0}><RotateCw size={15} />{resendIn > 0 ? t('login.resendIn', { seconds: resendIn }) : t('login.resend')}</button>
+          <button type="button" className="auth-link-button" onClick={changeEmail} disabled={busy}><ArrowLeft size={14} />{t('login.changeEmail')}</button>
         </div>}
       </form>
     </AuthShell>

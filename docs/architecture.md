@@ -17,3 +17,8 @@ For a cross-site production deployment, serve both origins over HTTPS and enable
 - `src/components/ui`: shadcn/ui-compatible accessible primitives.
 - `src/api.ts`: typed request, credential, CSRF, and error handling.
 - `src/types.ts`: API contracts shared throughout the console.
+- `src/i18n`: locale state, message dictionaries, and the gateway vocabulary map.
+
+## Localization
+
+`LocaleProvider` holds the active locale in React state and in module state, because `src/format.ts` and `src/api.ts` translate outside the component tree. `src/i18n/en.ts` defines the key set; every other dictionary is typed as `Record<MessageKey, string>`, so an untranslated key is a build error rather than an English string in a Chinese console. Dates, byte sizes, and currency follow the same locale through `Intl`.

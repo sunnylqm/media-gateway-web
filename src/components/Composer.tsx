@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { api } from '../api';
 import { formatAmount, formatBytes, formatLabel } from '../format';
+import { useI18n } from '../i18n';
 import {
   acceptAttribute, buildRequestBody, defaultParameterValue, estimateAmount, mediaKind, mediaSlots,
   modelPathSlug, slotAccepts, type MediaKind, type MediaSlot,
@@ -48,6 +49,7 @@ export function GenerationComposer({ models, onCreated }: {
   models: PublicModel[];
   onCreated: () => Promise<void> | void;
 }) {
+  const { t, locale } = useI18n();
   const [open, setOpen] = useState(false);
   const [modality, setModality] = useState<'image' | 'video'>('video');
   const [model, setModel] = useState('');
@@ -64,7 +66,8 @@ export function GenerationComposer({ models, onCreated }: {
   );
   const selectedModel = useMemo(() => models.find((item) => item.id === model), [models, model]);
   const form = selectedModel?.request_form;
-  const slots = useMemo(() => mediaSlots(form), [form]);
+  // Slot labels come out of the form itself, so they are rebuilt on a locale change.
+  const slots = useMemo(() => mediaSlots(form), [form, locale]);
   const slotByID = useMemo(() => new Map(slots.map((slot) => [slot.id, slot])), [slots]);
   const frameSlots = useMemo(() => slots.filter((slot) => slot.group === 'frame'), [slots]);
   const referenceSlots = useMemo(() => slots.filter((slot) => slot.group === 'reference'), [slots]);
@@ -119,7 +122,7 @@ export function GenerationComposer({ models, onCreated }: {
         ? { ...item, status: 'ready', url: `asset://${asset.id}`, message: undefined }
         : item));
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : 'The upload failed';
+      const message = reason instanceof Error ? reason.message : t('composer.errorUpload');
       setAttachments((current) => current.map((item) => item.key === attachment.key
         ? { ...item, status: 'error', message }
         : item));
@@ -147,14 +150,14 @@ export function GenerationComposer({ models, onCreated }: {
     for (const file of files) {
       const slot = candidates.find((item) => slotAccepts(item, file.type));
       if (!slot) {
-        rejected = `${file.name} is not a media type this model accepts`;
+        rejected = t('composer.errorMediaType', { name: file.name });
         continue;
       }
       if (slot.group === 'reference') {
         const kind = mediaKind(slot.mimePrefix);
         const remaining = room.get(kind) ?? referenceLimits[kind].count;
         if (remaining <= 0) {
-          rejected = `At most ${referenceLimits[kind].count} ${kind} references`;
+          rejected = t('composer.errorMediaCount', { count: referenceLimits[kind].count, kind: t(`modality.${kind}`) });
           continue;
         }
         room.set(kind, remaining - 1);
@@ -213,17 +216,17 @@ export function GenerationComposer({ models, onCreated }: {
   const uploadFailed = activeAttachments.some((item) => item.status === 'error');
   const estimate = selectedModel ? estimateAmount(selectedModel.billing, parameters) : null;
   const currency = selectedModel?.billing.currency ?? '';
-  const price = estimate === null || !currency ? '' : estimate === 0 ? 'Free' : formatAmount(estimate, currency);
+  const price = estimate === null || !currency ? '' : estimate === 0 ? t('composer.free') : formatAmount(estimate, currency);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
     setError('');
     if (!form) {
-      setError('This model does not publish a request form');
+      setError(t('composer.errorNoForm'));
       return;
     }
     if (uploading || uploadFailed) {
-      setError(uploading ? 'Wait for every upload to finish' : 'Remove or retry the failed upload');
+      setError(t(uploading ? 'composer.errorUploading' : 'composer.errorUploadFailed'));
       return;
     }
     setCreating(true);
@@ -242,7 +245,7 @@ export function GenerationComposer({ models, onCreated }: {
       setOpen(false);
       await onCreated();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Unable to create generation');
+      setError(reason instanceof Error ? reason.message : t('composer.errorCreate'));
     } finally {
       setCreating(false);
     }
@@ -258,10 +261,8 @@ export function GenerationComposer({ models, onCreated }: {
   const mediaSections = <>
     {frameSlots.length > 0 && panel('frame', <>
       <div className="section-heading">
-        <b>Images</b>
-        <small>{frameSlots.length > 1
-          ? 'Set the first and last frame to control how the clip starts and ends.'
-          : 'Set the first frame to control how the clip starts.'}</small>
+        <b>{t('composer.frames')}</b>
+        <small>{t(frameSlots.length > 1 ? 'composer.framesBoth' : 'composer.framesFirst')}</small>
       </div>
       <div className="frame-grid">
         {frameSlots.map((slot) => <FrameCard
@@ -276,7 +277,7 @@ export function GenerationComposer({ models, onCreated }: {
     </>)}
     {referenceSlots.length > 0 && panel('reference', <>
       <div className="section-heading">
-        <b>Reference material</b>
+        <b>{t('composer.references')}</b>
         <div className="counter-row">
           {referenceKinds.map((kind) => <Counter key={kind} kind={kind} attachments={references} />)}
         </div>
@@ -299,14 +300,14 @@ export function GenerationComposer({ models, onCreated }: {
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(''); }}>
-      <Dialog.Trigger className="button primary"><Plus size={16} /> New generation</Dialog.Trigger>
+      <Dialog.Trigger className="button primary"><Plus size={16} /> {t('composer.open')}</Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
         <Dialog.Content className="dialog-content composer-dialog" aria-describedby={undefined}>
           <div className="dialog-heading">
             <div>
-              <Dialog.Title>New generation</Dialog.Title>
-              <Dialog.Description>Send the selected provider's native request through the gateway.</Dialog.Description>
+              <Dialog.Title>{t('composer.title')}</Dialog.Title>
+              <Dialog.Description>{t('composer.description')}</Dialog.Description>
             </div>
             <Dialog.Close className="icon-button"><X size={18} /></Dialog.Close>
           </div>
@@ -314,14 +315,14 @@ export function GenerationComposer({ models, onCreated }: {
             <div className="composer-body">
               <div className="composer-models">
                 <label className="field">
-                  <span className="field-label">Modality</span>
+                  <span className="field-label">{t('composer.modality')}</span>
                   <Picker value={modality} onChange={(value) => setModality(value as 'image' | 'video')} options={[
-                    { value: 'image', label: 'Image' },
-                    { value: 'video', label: 'Video' },
+                    { value: 'image', label: t('modality.image') },
+                    { value: 'video', label: t('modality.video') },
                   ]} />
                 </label>
                 <label className="field">
-                  <span className="field-label">Model</span>
+                  <span className="field-label">{t('composer.model')}</span>
                   <Picker
                     value={model}
                     onChange={setModel}
@@ -331,27 +332,28 @@ export function GenerationComposer({ models, onCreated }: {
               </div>
 
               <Tabs.Root value={mode} onValueChange={(value) => setMode(value as Mode)} className="composer-tabs">
-                {tabbed && <Tabs.List className="mode-tabs" aria-label="Reference mode">
+                {tabbed && <Tabs.List className="mode-tabs" aria-label={t('composer.modeAria')}>
                   <Tabs.Trigger className="mode-tab" value="frame">
-                    Text / image to video{countBadge(attachments, slotByID, 'frame')}
+                    {t('composer.tabFrame')}{countBadge(attachments, slotByID, 'frame')}
                   </Tabs.Trigger>
                   <Tabs.Trigger className="mode-tab" value="reference">
-                    Multi-reference{countBadge(attachments, slotByID, 'reference')}
+                    {t('composer.tabReference')}{countBadge(attachments, slotByID, 'reference')}
                   </Tabs.Trigger>
                 </Tabs.List>}
                 {tabbed && attachments.length > activeAttachments.length && <p className="tab-note">
-                  The other tab holds {attachments.length - activeAttachments.length} file
-                  {attachments.length - activeAttachments.length > 1 ? 's' : ''} this request will not include.
+                  {t(attachments.length - activeAttachments.length > 1 ? 'composer.tabNoteMany' : 'composer.tabNoteOne', {
+                    count: attachments.length - activeAttachments.length,
+                  })}
                 </p>}
 
                 <div className="field composer-prompt">
-                  <span className="field-label">Prompt</span>
+                  <span className="field-label">{t('composer.prompt')}</span>
                   <div className="prompt-box">
                     <textarea
                       required
                       value={prompt}
                       onChange={(event) => setPrompt(event.target.value)}
-                      placeholder="Describe the shot: subject, action, camera, lighting…"
+                      placeholder={t('composer.promptPlaceholder')}
                     />
                     <span className={promptTooLong ? 'prompt-count over' : 'prompt-count'}>
                       {promptLength}{maxRunes > 0 ? ` / ${maxRunes}` : ''}
@@ -372,21 +374,21 @@ export function GenerationComposer({ models, onCreated }: {
               </div>}
 
               {!availableModels.length && (
-                <div className="warning-box"><span>No active {modality} model is configured.</span></div>
+                <div className="warning-box"><span>{t('composer.noModel', { modality: t(`modality.${modality}`) })}</span></div>
               )}
               {selectedModel && !form && (
-                <div className="warning-box"><span>This model does not publish a request form.</span></div>
+                <div className="warning-box"><span>{t('composer.noForm')}</span></div>
               )}
               {error && <div className="form-error" role="alert">{error}</div>}
             </div>
 
             <div className="composer-footer">
               {selectedModel?.billing.mode === 'per_output_second' && <small className="footer-note">
-                Estimated from the requested length. The final charge follows the delivered output.
+                {t('composer.estimateNote')}
               </small>}
               <button className="button primary create-button" disabled={creating || !model || !form || promptTooLong || uploading}>
                 <Send size={15} />
-                {creating ? 'Submitting…' : `Create generation${price ? ` (${price})` : ''}`}
+                {creating ? t('composer.submitting') : price ? t('composer.submitPriced', { price }) : t('composer.submit')}
               </button>
             </div>
           </form>
@@ -414,6 +416,7 @@ function Counter({ kind, attachments }: { kind: MediaKind; attachments: Attachme
 }
 
 function Dropzone({ accept, onFiles }: { accept: string; onFiles: (files: File[]) => void }) {
+  const { t } = useI18n();
   const [over, setOver] = useState(false);
   return <label
     className={over ? 'dropzone over' : 'dropzone'}
@@ -426,7 +429,7 @@ function Dropzone({ accept, onFiles }: { accept: string; onFiles: (files: File[]
     }}
   >
     <Plus size={17} />
-    <span>Click or drop images, video, or audio</span>
+    <span>{t('composer.dropzone')}</span>
     <input type="file" accept={accept} multiple onChange={(event) => {
       onFiles([...(event.target.files ?? [])]);
       event.target.value = '';
@@ -441,6 +444,7 @@ function FrameCard({ slot, attachment, onAttach, onDetach, onRetry }: {
   onDetach: (key: string) => void;
   onRetry: (attachment: Attachment) => void;
 }) {
+  const { t } = useI18n();
   const [over, setOver] = useState(false);
   if (attachment) {
     return <figure className="frame-card filled">
@@ -463,7 +467,7 @@ function FrameCard({ slot, attachment, onAttach, onDetach, onRetry }: {
   >
     {kindIcon[mediaKind(slot.mimePrefix)]}
     <b>{slot.label}</b>
-    <small>Click or drop</small>
+    <small>{t('composer.frameHint')}</small>
     <input type="file" accept={`${slot.mimePrefix}*`} onChange={(event) => {
       onAttach([...(event.target.files ?? [])]);
       event.target.value = '';
@@ -480,12 +484,13 @@ function ReferenceCard({ index, attachment, slot, roles, onRole, onDetach, onRet
   onDetach: () => void;
   onRetry: () => void;
 }) {
+  const { t } = useI18n();
   return <figure className="reference-card">
     <span className="reference-index">{index}</span>
     <MediaPreview attachment={attachment} />
     <figcaption>
       {roles.length > 1
-        ? <select value={slot.id} onChange={(event) => onRole(event.target.value)} aria-label={`Role for ${attachment.file.name}`}>
+        ? <select value={slot.id} onChange={(event) => onRole(event.target.value)} aria-label={t('composer.roleAria', { name: attachment.file.name })}>
             {roles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
           </select>
         : <div>
@@ -502,10 +507,11 @@ function AttachmentActions({ attachment, onDetach, onRetry }: {
   onDetach: () => void;
   onRetry: () => void;
 }) {
+  const { t } = useI18n();
   return <div className="attachment-actions">
-    {attachment.status === 'uploading' && <span className="loader small" aria-label="Uploading" />}
-    {attachment.status === 'error' && <button type="button" className="row-action" title={attachment.message} onClick={onRetry} aria-label="Retry upload"><RotateCw size={13} /></button>}
-    <button type="button" className="row-action" onClick={onDetach} aria-label={`Remove ${attachment.file.name}`}><Trash2 size={13} /></button>
+    {attachment.status === 'uploading' && <span className="loader small" aria-label={t('composer.uploadingAria')} />}
+    {attachment.status === 'error' && <button type="button" className="row-action" title={attachment.message} onClick={onRetry} aria-label={t('composer.retryAria')}><RotateCw size={13} /></button>}
+    <button type="button" className="row-action" onClick={onDetach} aria-label={t('composer.removeAria', { name: attachment.file.name })}><Trash2 size={13} /></button>
   </div>;
 }
 
@@ -528,9 +534,10 @@ function ParameterTile({ parameter, value, onChange }: {
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { t } = useI18n();
   const label = formatLabel(parameter.name);
   const options = parameter.type === 'boolean'
-    ? [{ value: 'true', label: 'On' }, { value: 'false', label: 'Off' }]
+    ? [{ value: 'true', label: t('composer.on') }, { value: 'false', label: t('composer.off') }]
     : (parameter.enum ?? []).map((option) => ({ value: option, label: option }));
   const chips = options.length > 0 && options.length <= 8 && options.every((option) => option.label.length <= 10);
   const ranged = parameter.type === 'integer'
@@ -538,7 +545,7 @@ function ParameterTile({ parameter, value, onChange }: {
     && parameter.maximum > parameter.minimum;
 
   if (chips) {
-    const choices = parameter.required ? options : [{ value: '', label: 'Auto' }, ...options];
+    const choices = parameter.required ? options : [{ value: '', label: t('composer.auto') }, ...options];
     return <div className={choices.length > 3 ? 'parameter-tile wide' : 'parameter-tile'}>
       <span className="tile-label">{label}</span>
       <div className="segmented compact" role="radiogroup" aria-label={label}>
@@ -574,7 +581,7 @@ function ParameterTile({ parameter, value, onChange }: {
         </Slider.Root>
         <div className="slider-scale">
           <small>{formatQuantity(parameter.name, minimum)}</small>
-          <b>{value === '' ? 'Auto' : formatQuantity(parameter.name, current)}</b>
+          <b>{value === '' ? t('composer.auto') : formatQuantity(parameter.name, current)}</b>
           <small>{formatQuantity(parameter.name, maximum)}</small>
         </div>
       </div>
@@ -585,7 +592,7 @@ function ParameterTile({ parameter, value, onChange }: {
     return <div className="parameter-tile">
       <span className="tile-label">{label}</span>
       <select value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
-        {!parameter.required && <option value="">Provider default</option>}
+        {!parameter.required && <option value="">{t('composer.providerDefault')}</option>}
         {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
       </select>
     </div>;

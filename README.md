@@ -24,6 +24,7 @@ VITE_GATEWAY_PROXY=false
 - Administrator sign-in, overview, accounts, tenant status, model/binding configuration, billing, and generation audit views.
 - Credentialed cross-origin sessions with CSRF tokens retained only in the active browser tab.
 - Responsive console shell using shadcn/ui-compatible primitives and Radix accessibility behavior.
+- English and Simplified Chinese throughout, chosen from the browser's own languages and switchable from the sign-in page or the profile menu.
 
 ## Commands
 
@@ -32,5 +33,11 @@ bun run dev
 bun run build
 bun run lint
 ```
+
+## Language
+
+The console ships English (`en`) and Simplified Chinese (`zh`). A first visit follows the browser's language list; the choice made from the toggle on the sign-in page or from `Language` in the profile menu is kept in `localStorage` and also sets `<html lang>`, dates, numbers, and currency.
+
+To add a locale, copy `src/i18n/zh.ts`, translate every entry, and register it in `dictionaries` and `locales` in `src/i18n/index.tsx`. `src/i18n/en.ts` is the key set every other locale is typed against, so a missing translation fails `bun run build`. Vocabulary that comes from the gateway rather than from this app — job statuses, media roles, request-form parameter names — is translated in `src/i18n/terms.ts`, where an unknown term keeps the value the API returned.
 
 See [progress.md](docs/progress.md) for the migration record and [architecture.md](docs/architecture.md) for integration details.

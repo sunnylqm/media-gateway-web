@@ -4,7 +4,9 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ChevronDown, CircleUserRound, LogOut, Settings } from 'lucide-react';
 import { NavLink } from 'react-router';
+import { useI18n } from '@/i18n';
 import { Brand } from './Brand';
+import { LanguageMenuGroup } from './LanguageSwitch';
 
 export type NavigationItem = {
   label: string;
@@ -33,13 +35,14 @@ export function Shell({
   onLogout: () => void;
   children: ReactNode;
 }) {
+  const { t } = useI18n();
   const initials = identity.slice(0, 2).toUpperCase();
   return (
     <div className="shell">
       <aside className="sidebar">
         <Brand />
-        <div className="workspace-label">{admin ? 'System control' : 'Workspace'}</div>
-        <nav className="sidebar-nav" aria-label="Primary navigation">
+        <div className="workspace-label">{admin ? t('shell.systemControl') : t('shell.workspace')}</div>
+        <nav className="sidebar-nav" aria-label={t('shell.navigationAria')}>
           {navigation.map((item) => (
             <Tooltip key={item.to}>
               <TooltipTrigger asChild>
@@ -56,15 +59,17 @@ export function Shell({
           <DropdownMenu.Root>
             <DropdownMenu.Trigger className="profile-trigger">
               <Avatar.Root className="avatar"><Avatar.Fallback>{initials}</Avatar.Fallback></Avatar.Root>
-              <span className="profile-copy"><b>{identity}</b><small>{admin ? 'Administrator' : 'Account'}</small></span>
+              <span className="profile-copy"><b>{identity}</b><small>{admin ? t('shell.administrator') : t('shell.account')}</small></span>
               <ChevronDown size={15} />
             </DropdownMenu.Trigger>
             <DropdownMenu.Portal>
               <DropdownMenu.Content className="menu" side="top" align="start" sideOffset={8}>
-                <DropdownMenu.Item className="menu-item" disabled><CircleUserRound size={15} /> Profile</DropdownMenu.Item>
-                <DropdownMenu.Item className="menu-item" disabled><Settings size={15} /> Settings</DropdownMenu.Item>
+                <DropdownMenu.Item className="menu-item" disabled><CircleUserRound size={15} /> {t('shell.profile')}</DropdownMenu.Item>
+                <DropdownMenu.Item className="menu-item" disabled><Settings size={15} /> {t('shell.settings')}</DropdownMenu.Item>
                 <DropdownMenu.Separator className="menu-separator" />
-                <DropdownMenu.Item className="menu-item danger" onSelect={onLogout}><LogOut size={15} /> Sign out</DropdownMenu.Item>
+                <LanguageMenuGroup />
+                <DropdownMenu.Separator className="menu-separator" />
+                <DropdownMenu.Item className="menu-item danger" onSelect={onLogout}><LogOut size={15} /> {t('shell.signOut')}</DropdownMenu.Item>
               </DropdownMenu.Content>
             </DropdownMenu.Portal>
           </DropdownMenu.Root>
@@ -72,7 +77,7 @@ export function Shell({
       </aside>
       <main className="content">
         <header className="page-header">
-          <div><span className="eyebrow">{admin ? 'Administration' : 'Media workspace'}</span><h1>{title}</h1><p>{description}</p></div>
+          <div><span className="eyebrow">{admin ? t('shell.administration') : t('shell.mediaWorkspace')}</span><h1>{title}</h1><p>{description}</p></div>
           {actions && <div className="page-actions">{actions}</div>}
         </header>
         {children}

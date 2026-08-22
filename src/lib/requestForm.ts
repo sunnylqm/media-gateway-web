@@ -1,4 +1,5 @@
 import { formatLabel } from '../format';
+import { t } from '../i18n';
 import type { FormInput, FormParameter, ModelBilling, RequestForm } from '../types';
 
 // A media slot is one place a model's own request accepts a file. It is derived
@@ -84,7 +85,7 @@ export function buildRequestBody(
   for (const parameter of form.parameters ?? []) {
     const raw = parameters[parameter.name] ?? '';
     if (raw === '') {
-      if (parameter.required) throw new Error(`${formatLabel(parameter.name)} is required`);
+      if (parameter.required) throw new Error(t('form.required', { label: formatLabel(parameter.name) }));
       continue;
     }
     setPointer(body, parameter.pointer, coerceParameter(parameter, raw));
@@ -103,7 +104,7 @@ export function defaultParameterValue(parameter: FormParameter): string {
 export function coerceParameter(parameter: FormParameter, raw: string): unknown {
   if (parameter.type === 'integer') {
     const value = Number(raw);
-    if (!Number.isInteger(value)) throw new Error(`${formatLabel(parameter.name)} must be a whole number`);
+    if (!Number.isInteger(value)) throw new Error(t('form.integer', { label: formatLabel(parameter.name) }));
     return value;
   }
   if (parameter.type === 'boolean') return raw === 'true';
