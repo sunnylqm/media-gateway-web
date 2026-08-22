@@ -18,5 +18,9 @@ export function Field({
 
 export function FormError({ children }: { children?: ReactNode }) {
   if (!children) return null;
-  return <div className="form-error" role="alert">{children}</div>;
+  return (
+    <div className="form-error" role="alert">
+      {children}
+    </div>
+  );
 }

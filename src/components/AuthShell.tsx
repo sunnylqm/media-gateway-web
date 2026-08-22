@@ -25,13 +25,24 @@ export function AuthShell({
           <p>{t('auth.storyBody')}</p>
         </div>
         <div className="signal-card" aria-hidden="true">
-          <div className="signal-row"><span>{t('auth.signalGateway')}</span><b>{t('auth.signalOperational')}</b></div>
-          <div className="signal-track"><i /></div>
-          <div className="signal-meta"><span>{t('auth.signalImage')}</span><span>{t('auth.signalVideo')}</span><span>{t('auth.signalAudit')}</span></div>
+          <div className="signal-row">
+            <span>{t('auth.signalGateway')}</span>
+            <b>{t('auth.signalOperational')}</b>
+          </div>
+          <div className="signal-track">
+            <i />
+          </div>
+          <div className="signal-meta">
+            <span>{t('auth.signalImage')}</span>
+            <span>{t('auth.signalVideo')}</span>
+            <span>{t('auth.signalAudit')}</span>
+          </div>
         </div>
       </section>
       <section className="auth-panel">
-        <div className="auth-language"><LanguageToggle /></div>
+        <div className="auth-language">
+          <LanguageToggle />
+        </div>
         <div className="auth-card">
           <span className="eyebrow">{eyebrow}</span>
           <h2>{title}</h2>

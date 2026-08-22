@@ -26,11 +26,23 @@ export function LanguageMenuGroup() {
   const { locale, setLocale, t } = useI18n();
   return (
     <>
-      <DropdownMenu.Label className="menu-label"><Languages size={14} />{t('language.label')}</DropdownMenu.Label>
-      <DropdownMenu.RadioGroup value={locale} onValueChange={(value) => setLocale(value as typeof locale)}>
+      <DropdownMenu.Label className="menu-label">
+        <Languages size={14} />
+        {t('language.label')}
+      </DropdownMenu.Label>
+      <DropdownMenu.RadioGroup
+        value={locale}
+        onValueChange={(value) => setLocale(value as typeof locale)}
+      >
         {locales.map((option) => (
-          <DropdownMenu.RadioItem className="menu-item" key={option} value={option}>
-            <span className="menu-check">{option === locale && <Check size={14} />}</span>
+          <DropdownMenu.RadioItem
+            className="menu-item"
+            key={option}
+            value={option}
+          >
+            <span className="menu-check">
+              {option === locale && <Check size={14} />}
+            </span>
             {t(option === 'zh' ? 'language.zh' : 'language.en')}
           </DropdownMenu.RadioItem>
         ))}

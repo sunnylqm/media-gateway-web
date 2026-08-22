@@ -30,8 +30,11 @@ function cookie(name: string): string {
   return '';
 }
 
-const gatewayURL = (import.meta.env.VITE_GATEWAY_URL ?? '').replace(/\/$/, '');
-const csrfStorageKey = (admin: boolean) => admin ? 'media_gateway_admin_csrf' : 'media_gateway_csrf';
+const gatewayURL = (
+  import.meta.env.VITE_GATEWAY_URL ?? 'https://sg.cresc.dev'
+).replace(/\/$/, '');
+const csrfStorageKey = (admin: boolean) =>
+  admin ? 'media_gateway_admin_csrf' : 'media_gateway_csrf';
 
 export async function api<T>(
   path: string,
@@ -39,13 +42,19 @@ export async function api<T>(
   admin = false,
 ): Promise<T> {
   const headers = new Headers(init.headers);
-  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type')) {
+  if (
+    init.body &&
+    !(init.body instanceof FormData) &&
+    !headers.has('Content-Type')
+  ) {
     headers.set('Content-Type', 'application/json');
   }
   const method = (init.method ?? 'GET').toUpperCase();
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    const csrf = cookie(admin ? 'media_gateway_admin_csrf' : 'media_gateway_csrf') ||
-      sessionStorage.getItem(csrfStorageKey(admin)) || '';
+    const csrf =
+      cookie(admin ? 'media_gateway_admin_csrf' : 'media_gateway_csrf') ||
+      sessionStorage.getItem(csrfStorageKey(admin)) ||
+      '';
     if (csrf) headers.set('X-CSRF-Token', csrf);
   }
   const response = await fetch(`${gatewayURL}${path}`, {
@@ -65,7 +74,8 @@ export async function api<T>(
     throw new APIError(
       response.status,
       payload.error?.code ?? 'request_failed',
-      payload.error?.message ?? t('api.requestFailed', { status: response.status }),
+      payload.error?.message ??
+        t('api.requestFailed', { status: response.status }),
     );
   }
   if (response.status === 204) return undefined as T;

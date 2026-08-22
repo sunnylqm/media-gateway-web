@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from 'react';
 import { ArrowRight, ShieldCheck } from 'lucide-react';
+import { type FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../api';
 import { AuthShell } from '../components/AuthShell';
@@ -19,27 +19,65 @@ export function AdminLogin() {
     setBusy(true);
     setError('');
     try {
-      await api('/v1/admin/auth/login', {
-        method: 'POST', body: JSON.stringify({ email, password }),
-      }, true);
+      await api(
+        '/v1/admin/auth/login',
+        {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        },
+        true,
+      );
       navigate('/admin', { replace: true });
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('adminLogin.error'));
+      setError(
+        reason instanceof Error ? reason.message : t('adminLogin.error'),
+      );
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <AuthShell eyebrow={t('adminLogin.eyebrow')} title={t('adminLogin.title')} description={t('adminLogin.description')}>
-      <div className="security-note"><ShieldCheck size={17} /><span>{t('adminLogin.singleMode')}</span></div>
+    <AuthShell
+      eyebrow={t('adminLogin.eyebrow')}
+      title={t('adminLogin.title')}
+      description={t('adminLogin.description')}
+    >
+      <div className="security-note">
+        <ShieldCheck size={17} />
+        <span>{t('adminLogin.singleMode')}</span>
+      </div>
       <form className="auth-form" onSubmit={submit}>
-        <Field label={t('adminLogin.email')} type="email" autoComplete="username" value={email} onChange={(event) => setEmail(event.target.value)} required />
-        <Field label={t('adminLogin.password')} type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+        <Field
+          label={t('adminLogin.email')}
+          type="email"
+          autoComplete="username"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+        <Field
+          label={t('adminLogin.password')}
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          required
+        />
         <FormError>{error}</FormError>
-        <button className="button primary wide" disabled={busy}>{busy ? t('adminLogin.verifying') : <>{t('adminLogin.continue')} <ArrowRight size={17} /></>}</button>
+        <button className="button primary wide" disabled={busy}>
+          {busy ? (
+            t('adminLogin.verifying')
+          ) : (
+            <>
+              {t('adminLogin.continue')} <ArrowRight size={17} />
+            </>
+          )}
+        </button>
       </form>
-      <Link className="admin-entry" to="/app/login">{t('adminLogin.back')}</Link>
+      <Link className="admin-entry" to="/app/login">
+        {t('adminLogin.back')}
+      </Link>
     </AuthShell>
   );
 }

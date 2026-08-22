@@ -70,7 +70,10 @@ const zhTerms: Record<string, string> = {
   motion: '运动强度',
 };
 
-export function translateTerm(locale: Locale, value: string): string | undefined {
+export function translateTerm(
+  locale: Locale,
+  value: string,
+): string | undefined {
   if (locale !== 'zh') return undefined;
   return zhTerms[value.trim().toLowerCase()];
 }

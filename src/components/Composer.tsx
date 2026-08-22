@@ -1,14 +1,39 @@
-import { useCallback, useEffect, useMemo, useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
+import {
+  AudioLines,
+  Film,
+  Image as ImageIcon,
+  ListFilter,
+  Plus,
+  RotateCw,
+  Send,
+  Trash2,
+  Upload,
+  X,
+} from 'lucide-react';
 import { Dialog, Select, Slider, Tabs } from 'radix-ui';
 import {
-  AudioLines, Film, Image as ImageIcon, ListFilter, Plus, RotateCw, Send, Trash2, Upload, X,
-} from 'lucide-react';
+  type DragEvent,
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { api } from '../api';
 import { formatAmount, formatBytes, formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import {
-  acceptAttribute, buildRequestBody, defaultParameterValue, estimateAmount, mediaKind, mediaSlots,
-  modelPathSlug, slotAccepts, type MediaKind, type MediaSlot,
+  acceptAttribute,
+  buildRequestBody,
+  defaultParameterValue,
+  estimateAmount,
+  type MediaKind,
+  type MediaSlot,
+  mediaKind,
+  mediaSlots,
+  modelPathSlug,
+  slotAccepts,
 } from '../lib/requestForm';
 import type { Asset, FormParameter, PublicModel } from '../types';
 
@@ -31,12 +56,13 @@ type Attachment = {
 // yet, so these ceilings stand in for it. They are the limits the reference
 // console shows; replace them with profile-published values once the gateway
 // carries max_items per media entry.
-const referenceLimits: Record<MediaKind, { count: number; seconds?: number }> = {
-  image: { count: 9 },
-  video: { count: 3, seconds: 15 },
-  audio: { count: 3, seconds: 15 },
-  file: { count: 9 },
-};
+const referenceLimits: Record<MediaKind, { count: number; seconds?: number }> =
+  {
+    image: { count: 9 },
+    video: { count: 3, seconds: 15 },
+    audio: { count: 3, seconds: 15 },
+    file: { count: 9 },
+  };
 
 const kindIcon: Record<MediaKind, ReactNode> = {
   image: <ImageIcon size={19} />,
@@ -45,11 +71,14 @@ const kindIcon: Record<MediaKind, ReactNode> = {
   file: <Upload size={19} />,
 };
 
-export function GenerationComposer({ models, onCreated }: {
+export function GenerationComposer({
+  models,
+  onCreated,
+}: {
   models: PublicModel[];
   onCreated: () => Promise<void> | void;
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [modality, setModality] = useState<'image' | 'video'>('video');
   const [model, setModel] = useState('');
@@ -64,21 +93,37 @@ export function GenerationComposer({ models, onCreated }: {
     () => models.filter((item) => item.modality === modality),
     [models, modality],
   );
-  const selectedModel = useMemo(() => models.find((item) => item.id === model), [models, model]);
+  const selectedModel = useMemo(
+    () => models.find((item) => item.id === model),
+    [models, model],
+  );
   const form = selectedModel?.request_form;
   // Slot labels come out of the form itself, so they are rebuilt on a locale change.
-  const slots = useMemo(() => mediaSlots(form), [form, locale]);
-  const slotByID = useMemo(() => new Map(slots.map((slot) => [slot.id, slot])), [slots]);
-  const frameSlots = useMemo(() => slots.filter((slot) => slot.group === 'frame'), [slots]);
-  const referenceSlots = useMemo(() => slots.filter((slot) => slot.group === 'reference'), [slots]);
+  const slots = useMemo(() => mediaSlots(form), [form]);
+  const slotByID = useMemo(
+    () => new Map(slots.map((slot) => [slot.id, slot])),
+    [slots],
+  );
+  const frameSlots = useMemo(
+    () => slots.filter((slot) => slot.group === 'frame'),
+    [slots],
+  );
+  const referenceSlots = useMemo(
+    () => slots.filter((slot) => slot.group === 'reference'),
+    [slots],
+  );
   const referenceKinds = useMemo(
-    () => [...new Set(referenceSlots.map((slot) => mediaKind(slot.mimePrefix)))],
+    () => [
+      ...new Set(referenceSlots.map((slot) => mediaKind(slot.mimePrefix))),
+    ],
     [referenceSlots],
   );
 
   const clearAttachments = useCallback(() => {
     setAttachments((current) => {
-      current.forEach((item) => URL.revokeObjectURL(item.preview));
+      for (const item of current) {
+        URL.revokeObjectURL(item.preview);
+      }
       return [];
     });
   }, []);
@@ -96,10 +141,16 @@ export function GenerationComposer({ models, onCreated }: {
   // Each model publishes its own parameters and media vocabulary, so the form
   // restarts from that model's declared defaults rather than carrying values.
   useEffect(() => {
-    const parameterForms = models.find((item) => item.id === model)?.request_form?.parameters ?? [];
-    setParameters(Object.fromEntries(parameterForms.map((parameter) => [
-      parameter.name, defaultParameterValue(parameter),
-    ])));
+    const parameterForms =
+      models.find((item) => item.id === model)?.request_form?.parameters ?? [];
+    setParameters(
+      Object.fromEntries(
+        parameterForms.map((parameter) => [
+          parameter.name,
+          defaultParameterValue(parameter),
+        ]),
+      ),
+    );
     clearAttachments();
     setError('');
   }, [model, models, clearAttachments]);
@@ -107,8 +158,10 @@ export function GenerationComposer({ models, onCreated }: {
   // A model that publishes only one of the two groups opens on it; a model
   // that publishes both opens on frames, the narrower choice.
   useEffect(() => {
-    if (mode === 'frame' && !frameSlots.length && referenceSlots.length) setMode('reference');
-    if (mode === 'reference' && !referenceSlots.length && frameSlots.length) setMode('frame');
+    if (mode === 'frame' && !frameSlots.length && referenceSlots.length)
+      setMode('reference');
+    if (mode === 'reference' && !referenceSlots.length && frameSlots.length)
+      setMode('frame');
   }, [mode, frameSlots, referenceSlots]);
 
   useEffect(() => clearAttachments, [clearAttachments]);
@@ -118,14 +171,28 @@ export function GenerationComposer({ models, onCreated }: {
     body.append('file', attachment.file);
     try {
       const asset = await api<Asset>('/v1/assets', { method: 'POST', body });
-      setAttachments((current) => current.map((item) => item.key === attachment.key
-        ? { ...item, status: 'ready', url: `asset://${asset.id}`, message: undefined }
-        : item));
+      setAttachments((current) =>
+        current.map((item) =>
+          item.key === attachment.key
+            ? {
+                ...item,
+                status: 'ready',
+                url: `asset://${asset.id}`,
+                message: undefined,
+              }
+            : item,
+        ),
+      );
     } catch (reason) {
-      const message = reason instanceof Error ? reason.message : t('composer.errorUpload');
-      setAttachments((current) => current.map((item) => item.key === attachment.key
-        ? { ...item, status: 'error', message }
-        : item));
+      const message =
+        reason instanceof Error ? reason.message : t('composer.errorUpload');
+      setAttachments((current) =>
+        current.map((item) =>
+          item.key === attachment.key
+            ? { ...item, status: 'error', message }
+            : item,
+        ),
+      );
     }
   }
 
@@ -137,15 +204,34 @@ export function GenerationComposer({ models, onCreated }: {
     const element = document.createElement(kind);
     element.preload = 'metadata';
     element.src = attachment.preview;
-    element.onloadedmetadata = () => setAttachments((current) => current.map((item) => item.key === attachment.key
-      ? { ...item, seconds: Number.isFinite(element.duration) ? element.duration : undefined }
-      : item));
+    element.onloadedmetadata = () =>
+      setAttachments((current) =>
+        current.map((item) =>
+          item.key === attachment.key
+            ? {
+                ...item,
+                seconds: Number.isFinite(element.duration)
+                  ? element.duration
+                  : undefined,
+              }
+            : item,
+        ),
+      );
   }
 
   function attach(files: File[], target?: MediaSlot) {
-    const candidates = target ? [target] : (mode === 'frame' ? frameSlots : referenceSlots);
+    const candidates = target
+      ? [target]
+      : mode === 'frame'
+        ? frameSlots
+        : referenceSlots;
     const additions: Attachment[] = [];
-    const room = new Map(referenceKinds.map((kind) => [kind, referenceLimits[kind].count - countOf(kind)]));
+    const room = new Map(
+      referenceKinds.map((kind) => [
+        kind,
+        referenceLimits[kind].count - countOf(kind),
+      ]),
+    );
     let rejected = '';
     for (const file of files) {
       const slot = candidates.find((item) => slotAccepts(item, file.type));
@@ -157,14 +243,20 @@ export function GenerationComposer({ models, onCreated }: {
         const kind = mediaKind(slot.mimePrefix);
         const remaining = room.get(kind) ?? referenceLimits[kind].count;
         if (remaining <= 0) {
-          rejected = t('composer.errorMediaCount', { count: referenceLimits[kind].count, kind: t(`modality.${kind}`) });
+          rejected = t('composer.errorMediaCount', {
+            count: referenceLimits[kind].count,
+            kind: t(`modality.${kind}`),
+          });
           continue;
         }
         room.set(kind, remaining - 1);
       }
       additions.push({
-        key: crypto.randomUUID(), slotID: slot.id, file,
-        preview: URL.createObjectURL(file), status: 'uploading',
+        key: crypto.randomUUID(),
+        slotID: slot.id,
+        file,
+        preview: URL.createObjectURL(file),
+        status: 'uploading',
       });
     }
     setError(rejected);
@@ -174,17 +266,31 @@ export function GenerationComposer({ models, onCreated }: {
     const kept: Attachment[] = [];
     for (const addition of additions) {
       if (!slotByID.get(addition.slotID)?.multiple) {
-        const previous = kept.findIndex((item) => item.slotID === addition.slotID);
-        if (previous >= 0) URL.revokeObjectURL(kept.splice(previous, 1)[0].preview);
+        const previous = kept.findIndex(
+          (item) => item.slotID === addition.slotID,
+        );
+        if (previous >= 0)
+          URL.revokeObjectURL(kept.splice(previous, 1)[0].preview);
       }
       kept.push(addition);
     }
-    const singles = new Set(kept.map((item) => item.slotID)
-      .filter((id) => !slotByID.get(id)?.multiple));
+    const singles = new Set(
+      kept
+        .map((item) => item.slotID)
+        .filter((id) => !slotByID.get(id)?.multiple),
+    );
     const replaced = attachments.filter((item) => singles.has(item.slotID));
-    setAttachments([...attachments.filter((item) => !singles.has(item.slotID)), ...kept]);
-    replaced.forEach((item) => URL.revokeObjectURL(item.preview));
-    kept.forEach((item) => { void upload(item); measure(item); });
+    setAttachments([
+      ...attachments.filter((item) => !singles.has(item.slotID)),
+      ...kept,
+    ]);
+    for (const item of replaced) {
+      URL.revokeObjectURL(item.preview);
+    }
+    kept.forEach((item) => {
+      void upload(item);
+      measure(item);
+    });
   }
 
   function detach(key: string) {
@@ -194,29 +300,49 @@ export function GenerationComposer({ models, onCreated }: {
   }
 
   function reassign(key: string, slotID: string) {
-    setAttachments(attachments.map((item) => item.key === key ? { ...item, slotID } : item));
+    setAttachments(
+      attachments.map((item) =>
+        item.key === key ? { ...item, slotID } : item,
+      ),
+    );
   }
 
   function countOf(kind: MediaKind) {
-    return references.filter((item) => mediaKind(item.file.type) === kind).length;
+    return references.filter((item) => mediaKind(item.file.type) === kind)
+      .length;
   }
 
   const references = useMemo(
-    () => attachments.filter((item) => slotByID.get(item.slotID)?.group === 'reference'),
+    () =>
+      attachments.filter(
+        (item) => slotByID.get(item.slotID)?.group === 'reference',
+      ),
     [attachments, slotByID],
   );
   const activeAttachments = useMemo(
-    () => attachments.filter((item) => slotByID.get(item.slotID)?.group === mode),
+    () =>
+      attachments.filter((item) => slotByID.get(item.slotID)?.group === mode),
     [attachments, slotByID, mode],
   );
   const promptLength = useMemo(() => [...prompt].length, [prompt]);
   const maxRunes = form?.prompt.max_runes ?? 0;
   const promptTooLong = maxRunes > 0 && promptLength > maxRunes;
-  const uploading = activeAttachments.some((item) => item.status === 'uploading');
-  const uploadFailed = activeAttachments.some((item) => item.status === 'error');
-  const estimate = selectedModel ? estimateAmount(selectedModel.billing, parameters) : null;
+  const uploading = activeAttachments.some(
+    (item) => item.status === 'uploading',
+  );
+  const uploadFailed = activeAttachments.some(
+    (item) => item.status === 'error',
+  );
+  const estimate = selectedModel
+    ? estimateAmount(selectedModel.billing, parameters)
+    : null;
   const currency = selectedModel?.billing.currency ?? '';
-  const price = estimate === null || !currency ? '' : estimate === 0 ? t('composer.free') : formatAmount(estimate, currency);
+  const price =
+    estimate === null || !currency
+      ? ''
+      : estimate === 0
+        ? t('composer.free')
+        : formatAmount(estimate, currency);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -226,14 +352,18 @@ export function GenerationComposer({ models, onCreated }: {
       return;
     }
     if (uploading || uploadFailed) {
-      setError(t(uploading ? 'composer.errorUploading' : 'composer.errorUploadFailed'));
+      setError(
+        t(uploading ? 'composer.errorUploading' : 'composer.errorUploadFailed'),
+      );
       return;
     }
     setCreating(true);
     try {
-      const ordered = slots.flatMap((slot) => activeAttachments
-        .filter((item) => item.slotID === slot.id)
-        .map((item) => ({ slot, url: item.url ?? '' })));
+      const ordered = slots.flatMap((slot) =>
+        activeAttachments
+          .filter((item) => item.slotID === slot.id)
+          .map((item) => ({ slot, url: item.url ?? '' })),
+      );
       const body = buildRequestBody(form, model, prompt, parameters, ordered);
       await api(`/${modelPathSlug(model)}${form.path}`, {
         method: form.method || 'POST',
@@ -245,7 +375,9 @@ export function GenerationComposer({ models, onCreated }: {
       setOpen(false);
       await onCreated();
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : t('composer.errorCreate'));
+      setError(
+        reason instanceof Error ? reason.message : t('composer.errorCreate'),
+      );
     } finally {
       setCreating(false);
     }
@@ -254,97 +386,175 @@ export function GenerationComposer({ models, onCreated }: {
   // The two media groups share one panel: a model that offers both gets tabs,
   // and a model that offers one shows it without a control that has no choice.
   const tabbed = frameSlots.length > 0 && referenceSlots.length > 0;
-  const panel = (value: Mode, children: ReactNode) => tabbed
-    ? <Tabs.Content value={value} className="composer-section">{children}</Tabs.Content>
-    : <div className="composer-section">{children}</div>;
+  const panel = (value: Mode, children: ReactNode) =>
+    tabbed ? (
+      <Tabs.Content value={value} className="composer-section">
+        {children}
+      </Tabs.Content>
+    ) : (
+      <div className="composer-section">{children}</div>
+    );
 
-  const mediaSections = <>
-    {frameSlots.length > 0 && panel('frame', <>
-      <div className="section-heading">
-        <b>{t('composer.frames')}</b>
-        <small>{t(frameSlots.length > 1 ? 'composer.framesBoth' : 'composer.framesFirst')}</small>
-      </div>
-      <div className="frame-grid">
-        {frameSlots.map((slot) => <FrameCard
-          key={slot.id}
-          slot={slot}
-          attachment={attachments.find((item) => item.slotID === slot.id)}
-          onAttach={(files) => attach(files, slot)}
-          onDetach={detach}
-          onRetry={upload}
-        />)}
-      </div>
-    </>)}
-    {referenceSlots.length > 0 && panel('reference', <>
-      <div className="section-heading">
-        <b>{t('composer.references')}</b>
-        <div className="counter-row">
-          {referenceKinds.map((kind) => <Counter key={kind} kind={kind} attachments={references} />)}
-        </div>
-      </div>
-      <Dropzone accept={acceptAttribute(referenceSlots)} onFiles={(files) => attach(files)} />
-      {references.length > 0 && <div className="reference-grid">
-        {references.map((item, index) => <ReferenceCard
-          key={item.key}
-          index={index + 1}
-          attachment={item}
-          slot={slotByID.get(item.slotID)!}
-          roles={referenceSlots.filter((slot) => slotAccepts(slot, item.file.type))}
-          onRole={(slotID) => reassign(item.key, slotID)}
-          onDetach={() => detach(item.key)}
-          onRetry={() => void upload(item)}
-        />)}
-      </div>}
-    </>)}
-  </>;
+  const mediaSections = (
+    <>
+      {frameSlots.length > 0 &&
+        panel(
+          'frame',
+          <>
+            <div className="section-heading">
+              <b>{t('composer.frames')}</b>
+              <small>
+                {t(
+                  frameSlots.length > 1
+                    ? 'composer.framesBoth'
+                    : 'composer.framesFirst',
+                )}
+              </small>
+            </div>
+            <div className="frame-grid">
+              {frameSlots.map((slot) => (
+                <FrameCard
+                  key={slot.id}
+                  slot={slot}
+                  attachment={attachments.find(
+                    (item) => item.slotID === slot.id,
+                  )}
+                  onAttach={(files) => attach(files, slot)}
+                  onDetach={detach}
+                  onRetry={upload}
+                />
+              ))}
+            </div>
+          </>,
+        )}
+      {referenceSlots.length > 0 &&
+        panel(
+          'reference',
+          <>
+            <div className="section-heading">
+              <b>{t('composer.references')}</b>
+              <div className="counter-row">
+                {referenceKinds.map((kind) => (
+                  <Counter key={kind} kind={kind} attachments={references} />
+                ))}
+              </div>
+            </div>
+            <Dropzone
+              accept={acceptAttribute(referenceSlots)}
+              onFiles={(files) => attach(files)}
+            />
+            {references.length > 0 && (
+              <div className="reference-grid">
+                {references.map((item, index) => (
+                  <ReferenceCard
+                    key={item.key}
+                    index={index + 1}
+                    attachment={item}
+                    slot={slotByID.get(item.slotID)!}
+                    roles={referenceSlots.filter((slot) =>
+                      slotAccepts(slot, item.file.type),
+                    )}
+                    onRole={(slotID) => reassign(item.key, slotID)}
+                    onDetach={() => detach(item.key)}
+                    onRetry={() => void upload(item)}
+                  />
+                ))}
+              </div>
+            )}
+          </>,
+        )}
+    </>
+  );
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => { setOpen(next); if (!next) setError(''); }}>
-      <Dialog.Trigger className="button primary"><Plus size={16} /> {t('composer.open')}</Dialog.Trigger>
+    <Dialog.Root
+      open={open}
+      onOpenChange={(next) => {
+        setOpen(next);
+        if (!next) setError('');
+      }}
+    >
+      <Dialog.Trigger className="button primary">
+        <Plus size={16} /> {t('composer.open')}
+      </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content className="dialog-content composer-dialog" aria-describedby={undefined}>
+        <Dialog.Content
+          className="dialog-content composer-dialog"
+          aria-describedby={undefined}
+        >
           <div className="dialog-heading">
             <div>
               <Dialog.Title>{t('composer.title')}</Dialog.Title>
-              <Dialog.Description>{t('composer.description')}</Dialog.Description>
+              <Dialog.Description>
+                {t('composer.description')}
+              </Dialog.Description>
             </div>
-            <Dialog.Close className="icon-button"><X size={18} /></Dialog.Close>
+            <Dialog.Close className="icon-button">
+              <X size={18} />
+            </Dialog.Close>
           </div>
           <form onSubmit={submit} className="composer-form">
             <div className="composer-body">
               <div className="composer-models">
-                <label className="field">
+                <div className="field">
                   <span className="field-label">{t('composer.modality')}</span>
-                  <Picker value={modality} onChange={(value) => setModality(value as 'image' | 'video')} options={[
-                    { value: 'image', label: t('modality.image') },
-                    { value: 'video', label: t('modality.video') },
-                  ]} />
-                </label>
-                <label className="field">
+                  <Picker
+                    value={modality}
+                    onChange={(value) =>
+                      setModality(value as 'image' | 'video')
+                    }
+                    options={[
+                      { value: 'image', label: t('modality.image') },
+                      { value: 'video', label: t('modality.video') },
+                    ]}
+                  />
+                </div>
+                <div className="field">
                   <span className="field-label">{t('composer.model')}</span>
                   <Picker
                     value={model}
                     onChange={setModel}
-                    options={availableModels.map((item) => ({ value: item.id, label: item.display_name }))}
+                    options={availableModels.map((item) => ({
+                      value: item.id,
+                      label: item.display_name,
+                    }))}
                   />
-                </label>
+                </div>
               </div>
 
-              <Tabs.Root value={mode} onValueChange={(value) => setMode(value as Mode)} className="composer-tabs">
-                {tabbed && <Tabs.List className="mode-tabs" aria-label={t('composer.modeAria')}>
-                  <Tabs.Trigger className="mode-tab" value="frame">
-                    {t('composer.tabFrame')}{countBadge(attachments, slotByID, 'frame')}
-                  </Tabs.Trigger>
-                  <Tabs.Trigger className="mode-tab" value="reference">
-                    {t('composer.tabReference')}{countBadge(attachments, slotByID, 'reference')}
-                  </Tabs.Trigger>
-                </Tabs.List>}
-                {tabbed && attachments.length > activeAttachments.length && <p className="tab-note">
-                  {t(attachments.length - activeAttachments.length > 1 ? 'composer.tabNoteMany' : 'composer.tabNoteOne', {
-                    count: attachments.length - activeAttachments.length,
-                  })}
-                </p>}
+              <Tabs.Root
+                value={mode}
+                onValueChange={(value) => setMode(value as Mode)}
+                className="composer-tabs"
+              >
+                {tabbed && (
+                  <Tabs.List
+                    className="mode-tabs"
+                    aria-label={t('composer.modeAria')}
+                  >
+                    <Tabs.Trigger className="mode-tab" value="frame">
+                      {t('composer.tabFrame')}
+                      {countBadge(attachments, slotByID, 'frame')}
+                    </Tabs.Trigger>
+                    <Tabs.Trigger className="mode-tab" value="reference">
+                      {t('composer.tabReference')}
+                      {countBadge(attachments, slotByID, 'reference')}
+                    </Tabs.Trigger>
+                  </Tabs.List>
+                )}
+                {tabbed && attachments.length > activeAttachments.length && (
+                  <p className="tab-note">
+                    {t(
+                      attachments.length - activeAttachments.length > 1
+                        ? 'composer.tabNoteMany'
+                        : 'composer.tabNoteOne',
+                      {
+                        count: attachments.length - activeAttachments.length,
+                      },
+                    )}
+                  </p>
+                )}
 
                 <div className="field composer-prompt">
                   <span className="field-label">{t('composer.prompt')}</span>
@@ -355,8 +565,13 @@ export function GenerationComposer({ models, onCreated }: {
                       onChange={(event) => setPrompt(event.target.value)}
                       placeholder={t('composer.promptPlaceholder')}
                     />
-                    <span className={promptTooLong ? 'prompt-count over' : 'prompt-count'}>
-                      {promptLength}{maxRunes > 0 ? ` / ${maxRunes}` : ''}
+                    <span
+                      className={
+                        promptTooLong ? 'prompt-count over' : 'prompt-count'
+                      }
+                    >
+                      {promptLength}
+                      {maxRunes > 0 ? ` / ${maxRunes}` : ''}
                     </span>
                   </div>
                 </div>
@@ -364,31 +579,64 @@ export function GenerationComposer({ models, onCreated }: {
                 {mediaSections}
               </Tabs.Root>
 
-              {(form?.parameters ?? []).length > 0 && <div className="parameter-grid">
-                {(form?.parameters ?? []).map((parameter) => <ParameterTile
-                  key={parameter.name}
-                  parameter={parameter}
-                  value={parameters[parameter.name] ?? ''}
-                  onChange={(value) => setParameters((current) => ({ ...current, [parameter.name]: value }))}
-                />)}
-              </div>}
+              {(form?.parameters ?? []).length > 0 && (
+                <div className="parameter-grid">
+                  {(form?.parameters ?? []).map((parameter) => (
+                    <ParameterTile
+                      key={parameter.name}
+                      parameter={parameter}
+                      value={parameters[parameter.name] ?? ''}
+                      onChange={(value) =>
+                        setParameters((current) => ({
+                          ...current,
+                          [parameter.name]: value,
+                        }))
+                      }
+                    />
+                  ))}
+                </div>
+              )}
 
               {!availableModels.length && (
-                <div className="warning-box"><span>{t('composer.noModel', { modality: t(`modality.${modality}`) })}</span></div>
+                <div className="warning-box">
+                  <span>
+                    {t('composer.noModel', {
+                      modality: t(`modality.${modality}`),
+                    })}
+                  </span>
+                </div>
               )}
               {selectedModel && !form && (
-                <div className="warning-box"><span>{t('composer.noForm')}</span></div>
+                <div className="warning-box">
+                  <span>{t('composer.noForm')}</span>
+                </div>
               )}
-              {error && <div className="form-error" role="alert">{error}</div>}
+              {error && (
+                <div className="form-error" role="alert">
+                  {error}
+                </div>
+              )}
             </div>
 
             <div className="composer-footer">
-              {selectedModel?.billing.mode === 'per_output_second' && <small className="footer-note">
-                {t('composer.estimateNote')}
-              </small>}
-              <button className="button primary create-button" disabled={creating || !model || !form || promptTooLong || uploading}>
+              {selectedModel?.billing.mode === 'per_output_second' && (
+                <small className="footer-note">
+                  {t('composer.estimateNote')}
+                </small>
+              )}
+              <button
+                type="submit"
+                className="button primary create-button"
+                disabled={
+                  creating || !model || !form || promptTooLong || uploading
+                }
+              >
                 <Send size={15} />
-                {creating ? t('composer.submitting') : price ? t('composer.submitPriced', { price }) : t('composer.submit')}
+                {creating
+                  ? t('composer.submitting')
+                  : price
+                    ? t('composer.submitPriced', { price })
+                    : t('composer.submit')}
               </button>
             </div>
           </form>
@@ -398,46 +646,92 @@ export function GenerationComposer({ models, onCreated }: {
   );
 }
 
-function countBadge(attachments: Attachment[], slotByID: Map<string, MediaSlot>, group: Mode) {
-  const count = attachments.filter((item) => slotByID.get(item.slotID)?.group === group).length;
+function countBadge(
+  attachments: Attachment[],
+  slotByID: Map<string, MediaSlot>,
+  group: Mode,
+) {
+  const count = attachments.filter(
+    (item) => slotByID.get(item.slotID)?.group === group,
+  ).length;
   return count ? <i className="segment-count">{count}</i> : null;
 }
 
-function Counter({ kind, attachments }: { kind: MediaKind; attachments: Attachment[] }) {
+function Counter({
+  kind,
+  attachments,
+}: {
+  kind: MediaKind;
+  attachments: Attachment[];
+}) {
   const limit = referenceLimits[kind];
-  const matching = attachments.filter((item) => mediaKind(item.file.type) === kind);
-  const seconds = matching.reduce((total, item) => total + (item.seconds ?? 0), 0);
-  const over = matching.length > limit.count || (limit.seconds !== undefined && seconds > limit.seconds);
-  return <span className={`counter${matching.length ? ' filled' : ''}${over ? ' over' : ''}`}>
-    {kindIcon[kind]}
-    {matching.length}/{limit.count}
-    {limit.seconds !== undefined && ` (${Math.round(seconds)}s/${limit.seconds}s)`}
-  </span>;
+  const matching = attachments.filter(
+    (item) => mediaKind(item.file.type) === kind,
+  );
+  const seconds = matching.reduce(
+    (total, item) => total + (item.seconds ?? 0),
+    0,
+  );
+  const over =
+    matching.length > limit.count ||
+    (limit.seconds !== undefined && seconds > limit.seconds);
+  return (
+    <span
+      className={`counter${matching.length ? ' filled' : ''}${over ? ' over' : ''}`}
+    >
+      {kindIcon[kind]}
+      {matching.length}/{limit.count}
+      {limit.seconds !== undefined &&
+        ` (${Math.round(seconds)}s/${limit.seconds}s)`}
+    </span>
+  );
 }
 
-function Dropzone({ accept, onFiles }: { accept: string; onFiles: (files: File[]) => void }) {
+function Dropzone({
+  accept,
+  onFiles,
+}: {
+  accept: string;
+  onFiles: (files: File[]) => void;
+}) {
   const { t } = useI18n();
   const [over, setOver] = useState(false);
-  return <label
-    className={over ? 'dropzone over' : 'dropzone'}
-    onDragOver={(event: DragEvent<HTMLLabelElement>) => { event.preventDefault(); setOver(true); }}
-    onDragLeave={() => setOver(false)}
-    onDrop={(event: DragEvent<HTMLLabelElement>) => {
-      event.preventDefault();
-      setOver(false);
-      onFiles([...event.dataTransfer.files]);
-    }}
-  >
-    <Plus size={17} />
-    <span>{t('composer.dropzone')}</span>
-    <input type="file" accept={accept} multiple onChange={(event) => {
-      onFiles([...(event.target.files ?? [])]);
-      event.target.value = '';
-    }} />
-  </label>;
+  return (
+    <label
+      className={over ? 'dropzone over' : 'dropzone'}
+      onDragOver={(event: DragEvent<HTMLLabelElement>) => {
+        event.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(event: DragEvent<HTMLLabelElement>) => {
+        event.preventDefault();
+        setOver(false);
+        onFiles([...event.dataTransfer.files]);
+      }}
+    >
+      <Plus size={17} />
+      <span>{t('composer.dropzone')}</span>
+      <input
+        type="file"
+        accept={accept}
+        multiple
+        onChange={(event) => {
+          onFiles([...(event.target.files ?? [])]);
+          event.target.value = '';
+        }}
+      />
+    </label>
+  );
 }
 
-function FrameCard({ slot, attachment, onAttach, onDetach, onRetry }: {
+function FrameCard({
+  slot,
+  attachment,
+  onAttach,
+  onDetach,
+  onRetry,
+}: {
   slot: MediaSlot;
   attachment?: Attachment;
   onAttach: (files: File[]) => void;
@@ -447,35 +741,61 @@ function FrameCard({ slot, attachment, onAttach, onDetach, onRetry }: {
   const { t } = useI18n();
   const [over, setOver] = useState(false);
   if (attachment) {
-    return <figure className="frame-card filled">
-      <MediaPreview attachment={attachment} />
-      <figcaption>
-        <div><b>{slot.label}</b><small>{formatBytes(attachment.file.size)}</small></div>
-        <AttachmentActions attachment={attachment} onDetach={() => onDetach(attachment.key)} onRetry={() => onRetry(attachment)} />
-      </figcaption>
-    </figure>;
+    return (
+      <figure className="frame-card filled">
+        <MediaPreview attachment={attachment} />
+        <figcaption>
+          <div>
+            <b>{slot.label}</b>
+            <small>{formatBytes(attachment.file.size)}</small>
+          </div>
+          <AttachmentActions
+            attachment={attachment}
+            onDetach={() => onDetach(attachment.key)}
+            onRetry={() => onRetry(attachment)}
+          />
+        </figcaption>
+      </figure>
+    );
   }
-  return <label
-    className={over ? 'frame-card over' : 'frame-card'}
-    onDragOver={(event: DragEvent<HTMLLabelElement>) => { event.preventDefault(); setOver(true); }}
-    onDragLeave={() => setOver(false)}
-    onDrop={(event: DragEvent<HTMLLabelElement>) => {
-      event.preventDefault();
-      setOver(false);
-      onAttach([...event.dataTransfer.files]);
-    }}
-  >
-    {kindIcon[mediaKind(slot.mimePrefix)]}
-    <b>{slot.label}</b>
-    <small>{t('composer.frameHint')}</small>
-    <input type="file" accept={`${slot.mimePrefix}*`} onChange={(event) => {
-      onAttach([...(event.target.files ?? [])]);
-      event.target.value = '';
-    }} />
-  </label>;
+  return (
+    <label
+      className={over ? 'frame-card over' : 'frame-card'}
+      onDragOver={(event: DragEvent<HTMLLabelElement>) => {
+        event.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(event: DragEvent<HTMLLabelElement>) => {
+        event.preventDefault();
+        setOver(false);
+        onAttach([...event.dataTransfer.files]);
+      }}
+    >
+      {kindIcon[mediaKind(slot.mimePrefix)]}
+      <b>{slot.label}</b>
+      <small>{t('composer.frameHint')}</small>
+      <input
+        type="file"
+        accept={`${slot.mimePrefix}*`}
+        onChange={(event) => {
+          onAttach([...(event.target.files ?? [])]);
+          event.target.value = '';
+        }}
+      />
+    </label>
+  );
 }
 
-function ReferenceCard({ index, attachment, slot, roles, onRole, onDetach, onRetry }: {
+function ReferenceCard({
+  index,
+  attachment,
+  slot,
+  roles,
+  onRole,
+  onDetach,
+  onRetry,
+}: {
   index: number;
   attachment: Attachment;
   slot: MediaSlot;
@@ -485,146 +805,275 @@ function ReferenceCard({ index, attachment, slot, roles, onRole, onDetach, onRet
   onRetry: () => void;
 }) {
   const { t } = useI18n();
-  return <figure className="reference-card">
-    <span className="reference-index">{index}</span>
-    <MediaPreview attachment={attachment} />
-    <figcaption>
-      {roles.length > 1
-        ? <select value={slot.id} onChange={(event) => onRole(event.target.value)} aria-label={t('composer.roleAria', { name: attachment.file.name })}>
-            {roles.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}
+  return (
+    <figure className="reference-card">
+      <span className="reference-index">{index}</span>
+      <MediaPreview attachment={attachment} />
+      <figcaption>
+        {roles.length > 1 ? (
+          <select
+            value={slot.id}
+            onChange={(event) => onRole(event.target.value)}
+            aria-label={t('composer.roleAria', { name: attachment.file.name })}
+          >
+            {roles.map((role) => (
+              <option key={role.id} value={role.id}>
+                {role.label}
+              </option>
+            ))}
           </select>
-        : <div>
+        ) : (
+          <div>
             <b>{slot.label}</b>
-            <small>{attachment.seconds ? `${Math.round(attachment.seconds)}s · ` : ''}{formatBytes(attachment.file.size)}</small>
-          </div>}
-      <AttachmentActions attachment={attachment} onDetach={onDetach} onRetry={onRetry} />
-    </figcaption>
-  </figure>;
+            <small>
+              {attachment.seconds
+                ? `${Math.round(attachment.seconds)}s · `
+                : ''}
+              {formatBytes(attachment.file.size)}
+            </small>
+          </div>
+        )}
+        <AttachmentActions
+          attachment={attachment}
+          onDetach={onDetach}
+          onRetry={onRetry}
+        />
+      </figcaption>
+    </figure>
+  );
 }
 
-function AttachmentActions({ attachment, onDetach, onRetry }: {
+function AttachmentActions({
+  attachment,
+  onDetach,
+  onRetry,
+}: {
   attachment: Attachment;
   onDetach: () => void;
   onRetry: () => void;
 }) {
   const { t } = useI18n();
-  return <div className="attachment-actions">
-    {attachment.status === 'uploading' && <span className="loader small" aria-label={t('composer.uploadingAria')} />}
-    {attachment.status === 'error' && <button type="button" className="row-action" title={attachment.message} onClick={onRetry} aria-label={t('composer.retryAria')}><RotateCw size={13} /></button>}
-    <button type="button" className="row-action" onClick={onDetach} aria-label={t('composer.removeAria', { name: attachment.file.name })}><Trash2 size={13} /></button>
-  </div>;
+  return (
+    <div className="attachment-actions">
+      {attachment.status === 'uploading' && (
+        <span
+          className="loader small"
+          role="status"
+          aria-label={t('composer.uploadingAria')}
+        />
+      )}
+      {attachment.status === 'error' && (
+        <button
+          type="button"
+          className="row-action"
+          title={attachment.message}
+          onClick={onRetry}
+          aria-label={t('composer.retryAria')}
+        >
+          <RotateCw size={13} />
+        </button>
+      )}
+      <button
+        type="button"
+        className="row-action"
+        onClick={onDetach}
+        aria-label={t('composer.removeAria', { name: attachment.file.name })}
+      >
+        <Trash2 size={13} />
+      </button>
+    </div>
+  );
 }
 
 function MediaPreview({ attachment }: { attachment: Attachment }) {
   const kind = mediaKind(attachment.file.type);
   const failed = attachment.status === 'error';
-  return <div className={failed ? 'media-preview failed' : 'media-preview'}>
-    {kind === 'image' && <img src={attachment.preview} alt={attachment.file.name} />}
-    {kind === 'video' && <video src={attachment.preview} muted playsInline preload="metadata" />}
-    {kind !== 'image' && kind !== 'video' && <span className="media-glyph">{kindIcon[kind]}</span>}
-    {failed && <span className="media-note">{attachment.message}</span>}
-  </div>;
+  return (
+    <div className={failed ? 'media-preview failed' : 'media-preview'}>
+      {kind === 'image' && (
+        <img src={attachment.preview} alt={attachment.file.name} />
+      )}
+      {kind === 'video' && (
+        <video src={attachment.preview} muted playsInline preload="metadata" />
+      )}
+      {kind !== 'image' && kind !== 'video' && (
+        <span className="media-glyph">{kindIcon[kind]}</span>
+      )}
+      {failed && <span className="media-note">{attachment.message}</span>}
+    </div>
+  );
 }
 
 // Each declared parameter becomes the control its own shape implies: chips for
 // a short vocabulary, a slider for a bounded number, a field for the rest. A
 // long vocabulary takes the full row so every value stays on one line.
-function ParameterTile({ parameter, value, onChange }: {
+function ParameterTile({
+  parameter,
+  value,
+  onChange,
+}: {
   parameter: FormParameter;
   value: string;
   onChange: (value: string) => void;
 }) {
   const { t } = useI18n();
   const label = formatLabel(parameter.name);
-  const options = parameter.type === 'boolean'
-    ? [{ value: 'true', label: t('composer.on') }, { value: 'false', label: t('composer.off') }]
-    : (parameter.enum ?? []).map((option) => ({ value: option, label: option }));
-  const chips = options.length > 0 && options.length <= 8 && options.every((option) => option.label.length <= 10);
-  const ranged = parameter.type === 'integer'
-    && parameter.minimum !== undefined && parameter.maximum !== undefined
-    && parameter.maximum > parameter.minimum;
+  const options =
+    parameter.type === 'boolean'
+      ? [
+          { value: 'true', label: t('composer.on') },
+          { value: 'false', label: t('composer.off') },
+        ]
+      : (parameter.enum ?? []).map((option) => ({
+          value: option,
+          label: option,
+        }));
+  const chips =
+    options.length > 0 &&
+    options.length <= 8 &&
+    options.every((option) => option.label.length <= 10);
+  const ranged =
+    parameter.type === 'integer' &&
+    parameter.minimum !== undefined &&
+    parameter.maximum !== undefined &&
+    parameter.maximum > parameter.minimum;
 
   if (chips) {
-    const choices = parameter.required ? options : [{ value: '', label: t('composer.auto') }, ...options];
-    return <div className={choices.length > 3 ? 'parameter-tile wide' : 'parameter-tile'}>
-      <span className="tile-label">{label}</span>
-      <div className="segmented compact" role="radiogroup" aria-label={label}>
-        {choices.map((option) => <button
-          key={option.value}
-          type="button"
-          role="radio"
-          aria-checked={value === option.value}
-          className={value === option.value ? 'segment active' : 'segment'}
-          onClick={() => onChange(option.value)}
-        >{option.label}</button>)}
+    const choices = parameter.required
+      ? options
+      : [{ value: '', label: t('composer.auto') }, ...options];
+    return (
+      <div
+        className={
+          choices.length > 3 ? 'parameter-tile wide' : 'parameter-tile'
+        }
+      >
+        <span className="tile-label">{label}</span>
+        <div className="segmented compact" role="radiogroup" aria-label={label}>
+          {choices.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={value === option.value}
+              className={value === option.value ? 'segment active' : 'segment'}
+              onClick={() => onChange(option.value)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
-    </div>;
+    );
   }
 
   if (ranged) {
     const minimum = Number(parameter.minimum);
     const maximum = Number(parameter.maximum);
     const current = value === '' ? minimum : Number(value);
-    return <div className="parameter-tile">
-      <span className="tile-label">{label}</span>
-      <div className="slider-cell">
-        <Slider.Root
-          className="slider"
-          min={minimum}
-          max={maximum}
-          step={1}
-          value={[current]}
-          onValueChange={([next]) => onChange(String(next))}
-        >
-          <Slider.Track className="slider-track"><Slider.Range className="slider-range" /></Slider.Track>
-          <Slider.Thumb className="slider-thumb" aria-label={label} />
-        </Slider.Root>
-        <div className="slider-scale">
-          <small>{formatQuantity(parameter.name, minimum)}</small>
-          <b>{value === '' ? t('composer.auto') : formatQuantity(parameter.name, current)}</b>
-          <small>{formatQuantity(parameter.name, maximum)}</small>
+    return (
+      <div className="parameter-tile">
+        <span className="tile-label">{label}</span>
+        <div className="slider-cell">
+          <Slider.Root
+            className="slider"
+            min={minimum}
+            max={maximum}
+            step={1}
+            value={[current]}
+            onValueChange={([next]) => onChange(String(next))}
+          >
+            <Slider.Track className="slider-track">
+              <Slider.Range className="slider-range" />
+            </Slider.Track>
+            <Slider.Thumb className="slider-thumb" aria-label={label} />
+          </Slider.Root>
+          <div className="slider-scale">
+            <small>{formatQuantity(parameter.name, minimum)}</small>
+            <b>
+              {value === ''
+                ? t('composer.auto')
+                : formatQuantity(parameter.name, current)}
+            </b>
+            <small>{formatQuantity(parameter.name, maximum)}</small>
+          </div>
         </div>
       </div>
-    </div>;
+    );
   }
 
   if (options.length) {
-    return <div className="parameter-tile">
-      <span className="tile-label">{label}</span>
-      <select value={value} onChange={(event) => onChange(event.target.value)} aria-label={label}>
-        {!parameter.required && <option value="">{t('composer.providerDefault')}</option>}
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-    </div>;
+    return (
+      <div className="parameter-tile">
+        <span className="tile-label">{label}</span>
+        <select
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          aria-label={label}
+        >
+          {!parameter.required && (
+            <option value="">{t('composer.providerDefault')}</option>
+          )}
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    );
   }
 
-  return <div className="parameter-tile">
-    <span className="tile-label">{label}</span>
-    <input
-      type={parameter.type === 'integer' ? 'number' : 'text'}
-      min={parameter.minimum}
-      max={parameter.maximum}
-      required={parameter.required}
-      value={value}
-      aria-label={label}
-      onChange={(event) => onChange(event.target.value)}
-    />
-  </div>;
+  return (
+    <div className="parameter-tile">
+      <span className="tile-label">{label}</span>
+      <input
+        type={parameter.type === 'integer' ? 'number' : 'text'}
+        min={parameter.minimum}
+        max={parameter.maximum}
+        required={parameter.required}
+        value={value}
+        aria-label={label}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </div>
+  );
 }
 
-function Picker({ value, onChange, options }: {
+function Picker({
+  value,
+  onChange,
+  options,
+}: {
   value: string;
   onChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
 }) {
-  return <Select.Root value={value} onValueChange={onChange}>
-    <Select.Trigger className="select-trigger"><Select.Value /><Select.Icon><ListFilter size={15} /></Select.Icon></Select.Trigger>
-    <Select.Portal><Select.Content className="select-content" position="popper"><Select.Viewport>
-      {options.map((option) => <Select.Item className="select-item" value={option.value} key={option.value}>
-        <Select.ItemText>{option.label}</Select.ItemText>
-      </Select.Item>)}
-    </Select.Viewport></Select.Content></Select.Portal>
-  </Select.Root>;
+  return (
+    <Select.Root value={value} onValueChange={onChange}>
+      <Select.Trigger className="select-trigger">
+        <Select.Value />
+        <Select.Icon>
+          <ListFilter size={15} />
+        </Select.Icon>
+      </Select.Trigger>
+      <Select.Portal>
+        <Select.Content className="select-content" position="popper">
+          <Select.Viewport>
+            {options.map((option) => (
+              <Select.Item
+                className="select-item"
+                value={option.value}
+                key={option.value}
+              >
+                <Select.ItemText>{option.label}</Select.ItemText>
+              </Select.Item>
+            ))}
+          </Select.Viewport>
+        </Select.Content>
+      </Select.Portal>
+    </Select.Root>
+  );
 }
 
 // Seconds are the one unit worth spelling out: a bare number next to a slider

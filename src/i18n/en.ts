@@ -2,7 +2,8 @@
 // locale is typed against it, so a missing or stale key fails the build.
 export const en = {
   'app.title': 'Media Gateway Console',
-  'app.description': 'Operate tenants and media generation from one focused workspace.',
+  'app.description':
+    'Operate tenants and media generation from one focused workspace.',
 
   'brand.name': 'Media Gateway',
 
@@ -21,7 +22,8 @@ export const en = {
   'auth.storyAria': 'Product introduction',
   'auth.storyEyebrow': 'Unified generation infrastructure',
   'auth.storyTitle': 'One deliberate path from prompt to production.',
-  'auth.storyBody': 'Route image and video workloads, preserve every decision, and keep the operational picture calm.',
+  'auth.storyBody':
+    'Route image and video workloads, preserve every decision, and keep the operational picture calm.',
   'auth.signalGateway': 'Gateway',
   'auth.signalOperational': 'Operational',
   'auth.signalImage': 'Image',
@@ -30,7 +32,8 @@ export const en = {
 
   'login.eyebrow': 'Media workspace',
   'login.title': 'Sign in or create an account',
-  'login.description': 'Enter your email and password. If the email is new, your account will be created automatically.',
+  'login.description':
+    'Enter your email and password. If the email is new, your account will be created automatically.',
   'login.verifyTitle': 'Verify your email',
   'login.verifyDescription': 'Enter the eight-digit code sent to {email}.',
   'login.code': 'Verification code',
@@ -48,7 +51,8 @@ export const en = {
 
   'adminLogin.eyebrow': 'Restricted system',
   'adminLogin.title': 'Administrator access',
-  'adminLogin.description': 'This surface controls every tenant. Activity is recorded in the system audit trail.',
+  'adminLogin.description':
+    'This surface controls every tenant. Activity is recorded in the system audit trail.',
   'adminLogin.singleMode': 'Single administrator mode',
   'adminLogin.email': 'Administrator email',
   'adminLogin.password': 'Password',
@@ -94,7 +98,8 @@ export const en = {
   'details.noArtifact': 'No artifact has been stored yet.',
   'details.download': 'Download',
   'details.videoPreview': 'Generated video preview',
-  'details.previewFailed': 'The preview could not be loaded. You can still download the result.',
+  'details.previewFailed':
+    'The preview could not be loaded. You can still download the result.',
   'details.inputAlt': '{role} input',
 
   'tenant.navOverview': 'Overview',
@@ -122,12 +127,15 @@ export const en = {
   'apiKeys.errorRevoke': 'Unable to revoke API key',
   'apiKeys.errorReveal': 'Unable to reveal API key',
   'apiKeys.errorClipboard': 'Clipboard access was denied',
-  'apiKeys.errorLegacy': 'This legacy API key must be replaced before it can be viewed',
+  'apiKeys.errorLegacy':
+    'This legacy API key must be replaced before it can be viewed',
   'apiKeys.baseEyebrow': 'API base URL',
   'apiKeys.endpointsTitle': 'Model endpoints',
-  'apiKeys.endpointsNote': "Append the provider's official paths and authenticate with a Bearer API key.",
+  'apiKeys.endpointsNote':
+    "Append the provider's official paths and authenticate with a Bearer API key.",
   'apiKeys.title': 'API keys',
-  'apiKeys.note': 'Create, reveal, copy, and revoke credentials for your applications.',
+  'apiKeys.note':
+    'Create, reveal, copy, and revoke credentials for your applications.',
   'apiKeys.create': 'Create key',
   'apiKeys.loading': 'Loading API keys…',
   'apiKeys.columnName': 'Name',
@@ -142,34 +150,43 @@ export const en = {
   'apiKeys.copyKeyAria': 'Copy {name}',
   'apiKeys.revokeKeyAria': 'Revoke {name}',
   'apiKeys.createdTitle': 'API key created',
-  'apiKeys.createdNote': 'Copy it now, or reveal and copy it again later from this page.',
+  'apiKeys.createdNote':
+    'Copy it now, or reveal and copy it again later from this page.',
   'apiKeys.createTitle': 'Create API key',
-  'apiKeys.createNote': 'Give the key a recognizable name for this application.',
+  'apiKeys.createNote':
+    'Give the key a recognizable name for this application.',
   'apiKeys.copySecret': 'Copy API key',
-  'apiKeys.storedNote': 'The server keeps an encrypted copy so signed-in users can reveal it again.',
+  'apiKeys.storedNote':
+    'The server keeps an encrypted copy so signed-in users can reveal it again.',
   'apiKeys.name': 'Key name',
   'apiKeys.namePlaceholder': 'Production app',
   'apiKeys.creating': 'Creating…',
   'apiKeys.revokeTitle': 'Revoke API key?',
   'apiKeys.revokeDescription': '{name} will stop working immediately.',
-  'apiKeys.revokeWarning': 'Applications using this key will receive authentication errors.',
+  'apiKeys.revokeWarning':
+    'Applications using this key will receive authentication errors.',
   'apiKeys.revoking': 'Revoking…',
   'apiKeys.revoke': 'Revoke key',
 
   'composer.open': 'New generation',
   'composer.title': 'New generation',
-  'composer.description': "Send the selected provider's native request through the gateway.",
+  'composer.description':
+    "Send the selected provider's native request through the gateway.",
   'composer.modality': 'Modality',
   'composer.model': 'Model',
   'composer.modeAria': 'Reference mode',
   'composer.tabFrame': 'Text / image to video',
   'composer.tabReference': 'Multi-reference',
-  'composer.tabNoteOne': 'The other tab holds {count} file this request will not include.',
-  'composer.tabNoteMany': 'The other tab holds {count} files this request will not include.',
+  'composer.tabNoteOne':
+    'The other tab holds {count} file this request will not include.',
+  'composer.tabNoteMany':
+    'The other tab holds {count} files this request will not include.',
   'composer.prompt': 'Prompt',
-  'composer.promptPlaceholder': 'Describe the shot: subject, action, camera, lighting…',
+  'composer.promptPlaceholder':
+    'Describe the shot: subject, action, camera, lighting…',
   'composer.frames': 'Images',
-  'composer.framesBoth': 'Set the first and last frame to control how the clip starts and ends.',
+  'composer.framesBoth':
+    'Set the first and last frame to control how the clip starts and ends.',
   'composer.framesFirst': 'Set the first frame to control how the clip starts.',
   'composer.references': 'Reference material',
   'composer.dropzone': 'Click or drop images, video, or audio',
@@ -183,7 +200,8 @@ export const en = {
   'composer.errorUpload': 'The upload failed',
   'composer.errorMediaType': '{name} is not a media type this model accepts',
   'composer.errorMediaCount': 'At most {count} {kind} references',
-  'composer.estimateNote': 'Estimated from the requested length. The final charge follows the delivered output.',
+  'composer.estimateNote':
+    'Estimated from the requested length. The final charge follows the delivered output.',
   'composer.submitting': 'Submitting…',
   'composer.submit': 'Create generation',
   'composer.submitPriced': 'Create generation ({price})',
@@ -223,12 +241,14 @@ export const en = {
   'adminOverview.billable': 'Billable model configured',
   'adminOverview.allFree': 'All models are free',
   'adminOverview.newest': 'Newest accounts',
-  'adminOverview.newestNote': 'Most recently registered accounts and their workspace.',
+  'adminOverview.newestNote':
+    'Most recently registered accounts and their workspace.',
   'adminOverview.noWorkspace': 'No workspace',
   'adminOverview.jobs': '{count} jobs',
 
   'models.title': 'Model catalog',
-  'models.note': 'Runtime endpoints, write-only credentials, and tenant pricing.',
+  'models.note':
+    'Runtime endpoints, write-only credentials, and tenant pricing.',
   'models.add': 'Add model',
   'models.custom': 'Custom provider',
   'models.customNote': 'Paste a protocol profile',
@@ -247,14 +267,17 @@ export const en = {
   'models.configure': 'Configure',
   'models.dialogEdit': 'Configure {name}',
   'models.dialogAdd': 'Add model',
-  'models.dialogNote': 'The protocol profile decides which upstream routes exist, where the task ID and output URL live, and how status maps. Changes become effective for new jobs immediately.',
+  'models.dialogNote':
+    'The protocol profile decides which upstream routes exist, where the task ID and output URL live, and how status maps. Changes become effective for new jobs immediately.',
   'models.id': 'Public model ID',
   'models.displayName': 'Display name',
   'models.provider': 'Provider',
-  'models.providerNote': 'Selects the built-in protocol profile when one ships with that name.',
+  'models.providerNote':
+    'Selects the built-in protocol profile when one ships with that name.',
   'models.upstreamModel': 'Upstream model',
   'models.bindings': 'Upstream bindings',
-  'models.bindingsNote': 'Each binding is one base URL and credential under an alias. The gateway picks an active binding at random by weight and moves to the next one when a submission cannot be placed. Tenants never see or choose a binding.',
+  'models.bindingsNote':
+    'Each binding is one base URL and credential under an alias. The gateway picks an active binding at random by weight and moves to the next one when a submission cannot be placed. Tenants never see or choose a binding.',
   'models.addBinding': 'Add binding',
   'models.binding': 'Binding {index}',
   'models.removeBinding': 'Remove binding {alias}',
@@ -264,7 +287,8 @@ export const en = {
   'models.statusInactive': 'Inactive',
   'models.weight': 'Weight',
   'models.endpoint': 'API base URL',
-  'models.endpointNote': "The gateway appends the profile's own route paths to this base.",
+  'models.endpointNote':
+    "The gateway appends the profile's own route paths to this base.",
   'models.apiKey': 'API key',
   'models.apiKeyKeep': 'Leave blank to keep the current encrypted key',
   'models.apiKeyRequired': 'Required before activation',
@@ -277,11 +301,13 @@ export const en = {
   'models.billingPerSecond': 'Per output second',
   'models.currency': 'Currency',
   'models.unitPriceFallback': 'Fallback unit price',
-  'models.unitPriceFallbackNote': 'Currency minor units when no parameter tier matches.',
+  'models.unitPriceFallbackNote':
+    'Currency minor units when no parameter tier matches.',
   'models.unitScale': 'Units per price',
   'models.minimumCharge': 'Minimum charge',
   'models.tiers': 'Parameter rate tiers',
-  'models.tiersNote': 'The most specific matching selector wins. MiniMax lists 2K at ¥0.80/s and 768P at ¥0.50/s.',
+  'models.tiersNote':
+    'The most specific matching selector wins. MiniMax lists 2K at ¥0.80/s and 768P at ¥0.50/s.',
   'models.addTier': 'Add tier',
   'models.tier': 'Tier {index}',
   'models.removeTier': 'Remove tier {index}',
@@ -290,28 +316,34 @@ export const en = {
   'models.tierSelectors': 'Parameter selectors',
   'models.tierSelectorsNote': 'Comma-separated parameter=value pairs.',
   'models.unitPrice': 'Unit price',
-  'models.tiersEmpty': 'No parameter tiers. The fallback unit price applies to every output second.',
+  'models.tiersEmpty':
+    'No parameter tiers. The fallback unit price applies to every output second.',
   'models.pricingReference': 'Open MiniMax pay-as-you-go pricing',
   'models.profile': 'Protocol profile',
   'models.profileCustomized': 'customized',
   'models.profileDefault': 'built-in default',
-  'models.profilePlaceholder': 'Paste the JSON profile for a provider without a built-in default',
-  'models.profileNote': 'Routes are an allowlist: a client can only reach the paths listed here with the stored credential.',
+  'models.profilePlaceholder':
+    'Paste the JSON profile for a provider without a built-in default',
+  'models.profileNote':
+    'Routes are an allowlist: a client can only reach the paths listed here with the stored credential.',
   'models.restoreDefault': 'Restore default',
   'models.availabilityActive': 'Active for tenants',
   'models.saving': 'Saving…',
   'models.save': 'Save configuration',
   'models.errorSave': 'Unable to save model',
   'models.errorProfileJSON': 'The protocol profile must be valid JSON',
-  'models.errorSelector': 'Invalid rate selector “{entry}”; use parameter=value',
-  'models.errorSelectorMissing': 'Every parameter rate needs at least one selector',
+  'models.errorSelector':
+    'Invalid rate selector “{entry}”; use parameter=value',
+  'models.errorSelectorMissing':
+    'Every parameter rate needs at least one selector',
   'models.billingUnitRequest': 'request',
   'models.billingUnitSecond': 'second',
   'models.billingSummary': '{price}/{scale} {currency} minor units per {unit}',
   'models.billingTiers': '{count} parameter tiers',
 
   'users.title': 'Accounts',
-  'users.note': 'Registered accounts, the workspace they own, and their activity.',
+  'users.note':
+    'Registered accounts, the workspace they own, and their activity.',
   'users.total': '{count} total',
   'users.columnAccount': 'Account',
   'users.columnWorkspace': 'Workspace',
@@ -332,8 +364,10 @@ export const en = {
   'users.emptyNote': 'Accounts appear here after their first sign-in.',
   'users.confirmActivateTitle': 'Activate workspace?',
   'users.confirmSuspendTitle': 'Suspend workspace?',
-  'users.confirmActivateDescription': '{name} ({email}) will regain access immediately.',
-  'users.confirmSuspendDescription': '{name} ({email}) will lose session and API access immediately.',
+  'users.confirmActivateDescription':
+    '{name} ({email}) will regain access immediately.',
+  'users.confirmSuspendDescription':
+    '{name} ({email}) will lose session and API access immediately.',
   'users.auditNote': 'This action is written to the audit trail.',
   'users.confirmActivate': 'Confirm activation',
   'users.confirmSuspend': 'Confirm suspension',
@@ -352,7 +386,8 @@ export const en = {
   'userDetail.registered': 'Registered',
   'userDetail.lastSeen': 'Last seen',
   'userDetail.workspace': 'Workspace',
-  'userDetail.workspaceNote': 'The tenant its generations and API keys belong to.',
+  'userDetail.workspaceNote':
+    'The tenant its generations and API keys belong to.',
   'userDetail.name': 'Name',
   'userDetail.slug': 'Slug',
   'userDetail.tenantID': 'Tenant ID',
@@ -362,7 +397,8 @@ export const en = {
   'userDetail.created': 'Created',
   'userDetail.lastActivity': 'Last activity',
   'userDetail.noWorkspace': 'This account has no active workspace membership.',
-  'userDetail.generationsNote': 'Jobs submitted from this workspace, newest first.',
+  'userDetail.generationsNote':
+    'Jobs submitted from this workspace, newest first.',
   'userDetail.loaded': '{count} loaded',
   'userDetail.generationsEmpty': 'This account has not submitted a job yet.',
 

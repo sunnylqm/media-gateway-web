@@ -17,7 +17,10 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/app" replace />} />
             <Route path="/app/login" element={<TenantLogin />} />
-            <Route path="/app/register" element={<Navigate to="/app/login" replace />} />
+            <Route
+              path="/app/register"
+              element={<Navigate to="/app/login" replace />}
+            />
             <Route path="/app/*" element={<TenantConsole />} />
             <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/admin/*" element={<AdminConsole />} />

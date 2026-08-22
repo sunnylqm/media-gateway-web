@@ -32,7 +32,8 @@ export const zh: Record<MessageKey, string> = {
 
   'login.eyebrow': '媒体工作区',
   'login.title': '登录或创建账户',
-  'login.description': '输入邮箱和密码。如果该邮箱尚未注册，系统会自动为你创建账户。',
+  'login.description':
+    '输入邮箱和密码。如果该邮箱尚未注册，系统会自动为你创建账户。',
   'login.verifyTitle': '验证邮箱',
   'login.verifyDescription': '请输入发送至 {email} 的 8 位验证码。',
   'login.code': '验证码',
@@ -50,7 +51,8 @@ export const zh: Record<MessageKey, string> = {
 
   'adminLogin.eyebrow': '受限系统',
   'adminLogin.title': '管理员入口',
-  'adminLogin.description': '此界面可管理全部租户，所有操作都会记入系统审计日志。',
+  'adminLogin.description':
+    '此界面可管理全部租户，所有操作都会记入系统审计日志。',
   'adminLogin.singleMode': '单管理员模式',
   'adminLogin.email': '管理员邮箱',
   'adminLogin.password': '密码',
@@ -127,7 +129,8 @@ export const zh: Record<MessageKey, string> = {
   'apiKeys.errorLegacy': '这是旧版 API 密钥，必须替换后才能查看',
   'apiKeys.baseEyebrow': 'API 基础地址',
   'apiKeys.endpointsTitle': '模型接口地址',
-  'apiKeys.endpointsNote': '在地址后追加服务商的官方路径，并使用 Bearer API 密钥鉴权。',
+  'apiKeys.endpointsNote':
+    '在地址后追加服务商的官方路径，并使用 Bearer API 密钥鉴权。',
   'apiKeys.title': 'API 密钥',
   'apiKeys.note': '为你的应用创建、查看、复制和吊销凭据。',
   'apiKeys.create': '创建密钥',
@@ -166,8 +169,10 @@ export const zh: Record<MessageKey, string> = {
   'composer.modeAria': '参考模式',
   'composer.tabFrame': '文生视频 / 图生视频',
   'composer.tabReference': '多参考素材',
-  'composer.tabNoteOne': '另一个标签页中有 {count} 个文件不会包含在本次请求中。',
-  'composer.tabNoteMany': '另一个标签页中有 {count} 个文件不会包含在本次请求中。',
+  'composer.tabNoteOne':
+    '另一个标签页中有 {count} 个文件不会包含在本次请求中。',
+  'composer.tabNoteMany':
+    '另一个标签页中有 {count} 个文件不会包含在本次请求中。',
   'composer.prompt': '提示词',
   'composer.promptPlaceholder': '描述画面：主体、动作、镜头、光线…',
   'composer.frames': '图像',
@@ -249,14 +254,16 @@ export const zh: Record<MessageKey, string> = {
   'models.configure': '配置',
   'models.dialogEdit': '配置 {name}',
   'models.dialogAdd': '添加模型',
-  'models.dialogNote': '协议配置决定了存在哪些上游路由、任务 ID 与输出 URL 的位置，以及状态如何映射。修改对新任务立即生效。',
+  'models.dialogNote':
+    '协议配置决定了存在哪些上游路由、任务 ID 与输出 URL 的位置，以及状态如何映射。修改对新任务立即生效。',
   'models.id': '对外模型 ID',
   'models.displayName': '显示名称',
   'models.provider': '服务商',
   'models.providerNote': '若存在同名的内置协议配置，将自动选用。',
   'models.upstreamModel': '上游模型',
   'models.bindings': '上游绑定',
-  'models.bindingsNote': '每个绑定是一个别名下的基础地址与凭据。网关按权重随机选取一个活跃绑定，提交失败时切换到下一个。租户既看不到也无法选择绑定。',
+  'models.bindingsNote':
+    '每个绑定是一个别名下的基础地址与凭据。网关按权重随机选取一个活跃绑定，提交失败时切换到下一个。租户既看不到也无法选择绑定。',
   'models.addBinding': '添加绑定',
   'models.binding': '绑定 {index}',
   'models.removeBinding': '移除绑定 {alias}',
@@ -279,11 +286,13 @@ export const zh: Record<MessageKey, string> = {
   'models.billingPerSecond': '按输出秒数计费',
   'models.currency': '币种',
   'models.unitPriceFallback': '兜底单价',
-  'models.unitPriceFallbackNote': '没有参数档位匹配时使用，单位为货币最小单位。',
+  'models.unitPriceFallbackNote':
+    '没有参数档位匹配时使用，单位为货币最小单位。',
   'models.unitScale': '每单价对应的单位数',
   'models.minimumCharge': '最低收费',
   'models.tiers': '参数计费档位',
-  'models.tiersNote': '匹配最精确的选择器生效。MiniMax 官方定价为 2K 每秒 ¥0.80、768P 每秒 ¥0.50。',
+  'models.tiersNote':
+    '匹配最精确的选择器生效。MiniMax 官方定价为 2K 每秒 ¥0.80、768P 每秒 ¥0.50。',
   'models.addTier': '添加档位',
   'models.tier': '档位 {index}',
   'models.removeTier': '移除档位 {index}',
@@ -298,7 +307,8 @@ export const zh: Record<MessageKey, string> = {
   'models.profileCustomized': '已自定义',
   'models.profileDefault': '内置默认',
   'models.profilePlaceholder': '为没有内置默认配置的服务商粘贴 JSON 协议配置',
-  'models.profileNote': '路由是白名单：客户端只能凭已保存的凭据访问这里列出的路径。',
+  'models.profileNote':
+    '路由是白名单：客户端只能凭已保存的凭据访问这里列出的路径。',
   'models.restoreDefault': '恢复默认',
   'models.availabilityActive': '对租户开放',
   'models.saving': '正在保存…',
@@ -335,7 +345,8 @@ export const zh: Record<MessageKey, string> = {
   'users.confirmActivateTitle': '启用工作区？',
   'users.confirmSuspendTitle': '暂停工作区？',
   'users.confirmActivateDescription': '{name}（{email}）将立即恢复访问。',
-  'users.confirmSuspendDescription': '{name}（{email}）的会话与 API 访问将立即中止。',
+  'users.confirmSuspendDescription':
+    '{name}（{email}）的会话与 API 访问将立即中止。',
   'users.auditNote': '该操作会写入审计日志。',
   'users.confirmActivate': '确认启用',
   'users.confirmSuspend': '确认暂停',

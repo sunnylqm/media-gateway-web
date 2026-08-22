@@ -1,7 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import { en, type MessageKey } from './en';
-import { zh } from './zh';
 import { translateTerm } from './terms';
+import { zh } from './zh';
 
 export type Locale = 'en' | 'zh';
 export type { MessageKey };
@@ -26,7 +34,9 @@ function storedLocale(): Locale | null {
 }
 
 function preferredLocale(): Locale {
-  const candidates = navigator.languages?.length ? navigator.languages : [navigator.language];
+  const candidates = navigator.languages?.length
+    ? navigator.languages
+    : [navigator.language];
   for (const candidate of candidates) {
     if (candidate?.toLowerCase().startsWith('zh')) return 'zh';
     if (candidate?.toLowerCase().startsWith('en')) return 'en';
@@ -51,7 +61,10 @@ export function intlLocale(): string | undefined {
   return preferred.toLowerCase().startsWith('en') ? preferred : 'en-US';
 }
 
-export function t(key: MessageKey, values?: Record<string, string | number>): string {
+export function t(
+  key: MessageKey,
+  values?: Record<string, string | number>,
+): string {
   const message = dictionaries[active][key] ?? en[key] ?? key;
   if (!values) return message;
   return Object.entries(values).reduce(
@@ -83,7 +96,9 @@ const LocaleContext = createContext<LocaleContextValue | null>(null);
 export function LocaleProvider({ children }: { children: ReactNode }) {
   const [locale, setCurrent] = useState<Locale>(active);
 
-  useEffect(() => { apply(locale); }, [locale]);
+  useEffect(() => {
+    apply(locale);
+  }, [locale]);
 
   const setLocale = useCallback((next: Locale) => {
     active = next;
@@ -96,7 +111,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale]);
-  return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
+  return (
+    <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
+  );
 }
 
 export function useI18n(): LocaleContextValue {

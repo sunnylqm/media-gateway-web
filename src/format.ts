@@ -1,14 +1,27 @@
 import { intlLocale, term } from './i18n';
 
 export function formatDate(value: string) {
-  return new Intl.DateTimeFormat(intlLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  return new Intl.DateTimeFormat(intlLocale(), {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 export function formatDay(value: string) {
-  return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(new Date(value));
+  return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(
+    new Date(value),
+  );
 }
 
-const byteUnits = ['byte', 'kilobyte', 'megabyte', 'gigabyte', 'terabyte'] as const;
+const byteUnits = [
+  'byte',
+  'kilobyte',
+  'megabyte',
+  'gigabyte',
+  'terabyte',
+] as const;
 
 // The unit is chosen here rather than left to compact notation, which counts a
 // file in 万 and 亿 for Chinese and in billions of bytes for English.
@@ -32,7 +45,12 @@ export function formatParameterName(value: string) {
 }
 
 export function formatParameterValue(value: unknown) {
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (
+    typeof value === 'string' ||
+    typeof value === 'number' ||
+    typeof value === 'boolean'
+  )
+    return String(value);
   return JSON.stringify(value);
 }
 
@@ -42,15 +60,28 @@ export function formatStatus(value: string) {
   return term(value) ?? value.replaceAll('_', ' ');
 }
 
-const acronyms = new Set(['ai', 'aigc', 'api', 'id', 'url', 'fps', 'hd', 'sd', 'cfg']);
+const acronyms = new Set([
+  'ai',
+  'aigc',
+  'api',
+  'id',
+  'url',
+  'fps',
+  'hd',
+  'sd',
+  'cfg',
+]);
 
 export function formatLabel(value: string) {
   const translated = term(value);
   if (translated) return translated;
-  return value.split('_')
+  return value
+    .split('_')
     .map((word, index) => {
       if (acronyms.has(word.toLowerCase())) return word.toUpperCase();
-      return index === 0 ? word.replace(/^./, (character) => character.toUpperCase()) : word;
+      return index === 0
+        ? word.replace(/^./, (character) => character.toUpperCase())
+        : word;
     })
     .join(' ');
 }
@@ -59,7 +90,10 @@ export function formatLabel(value: string) {
 // locale's own fraction digits for that currency rather than a fixed 100.
 export function formatAmount(minorUnits: number, currency: string) {
   try {
-    const formatter = new Intl.NumberFormat(intlLocale(), { style: 'currency', currency });
+    const formatter = new Intl.NumberFormat(intlLocale(), {
+      style: 'currency',
+      currency,
+    });
     const digits = formatter.resolvedOptions().maximumFractionDigits ?? 2;
     return formatter.format(minorUnits / 10 ** digits);
   } catch {

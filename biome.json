@@ -1,0 +1,53 @@
+{
+  "files": {
+    "ignoreUnknown": false,
+    "includes": [
+      "src/**",
+      "*.json",
+      "*.ts",
+      "*.js",
+      "!dist",
+      "!node_modules",
+      "!src/**/*.css"
+    ],
+    "maxSize": 1048576
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "suspicious": {
+        "noExplicitAny": "off",
+        "noAssignInExpressions": "off",
+        "noArrayIndexKey": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off"
+      },
+      "a11y": {
+        "useValidAnchor": "off",
+        "useButtonType": "off",
+        "useMediaCaption": "off",
+        "noAutofocus": "off",
+        "useSemanticElements": "off"
+      },
+      "performance": {
+        "noDelete": "off"
+      }
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "formatWithErrors": false,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineEnding": "lf",
+    "lineWidth": 80,
+    "attributePosition": "auto"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single"
+    }
+  }
+}
