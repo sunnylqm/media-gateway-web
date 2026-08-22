@@ -43,8 +43,8 @@ export function mediaSlots(form?: RequestForm): MediaSlot[] {
   return slots.sort((left, right) => slotRank(left) - slotRank(right));
 }
 
-export function mediaKind(mimePrefix: string): MediaKind {
-  const kind = mimePrefix.split('/')[0].toLowerCase();
+export function mediaKind(mimePrefix?: string): MediaKind {
+  const kind = (mimePrefix ?? '').split('/')[0].toLowerCase();
   return kindOrder.includes(kind as MediaKind) ? (kind as MediaKind) : 'file';
 }
 
