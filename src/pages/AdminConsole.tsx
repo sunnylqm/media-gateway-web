@@ -7,7 +7,9 @@ import {
   CirclePause,
   CirclePlay,
   Cpu,
+  Film,
   Gauge,
+  HardDrive,
   KeyRound,
   Plus,
   Server,
@@ -34,6 +36,7 @@ import {
   useParams,
 } from 'react-router';
 import { APIError, api } from '../api';
+import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { formatDate, formatDay, formatStatus } from '../format';
@@ -44,6 +47,7 @@ import type {
   AdminProfile,
   AdminUser,
   Artifact,
+  AssetStorage,
   Generation,
   ModelBilling,
   ProtocolPreset,
@@ -58,28 +62,44 @@ export function AdminConsole() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [models, setModels] = useState<AdminModel[]>([]);
   const [presets, setPresets] = useState<ProtocolPreset[]>([]);
+  const [storage, setStorage] = useState<AssetStorage | null>(null);
+  const [generations, setGenerations] = useState<Generation[]>([]);
+  const [selected, setSelected] = useState<Generation | null>(null);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [detailsLoading, setDetailsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = useCallback(async () => {
     try {
-      const [administrator, summary, userList, modelList, presetList] =
-        await Promise.all([
-          api<AdminProfile>('/v1/admin/auth/me', {}, true),
-          api<AdminOverview>('/v1/admin/overview', {}, true),
-          api<{ data: AdminUser[] }>('/v1/admin/users', {}, true),
-          api<{ data: AdminModel[] }>('/v1/admin/models', {}, true),
-          api<{ data: ProtocolPreset[] }>(
-            '/v1/admin/protocol-profiles',
-            {},
-            true,
-          ),
-        ]);
+      const [
+        administrator,
+        summary,
+        userList,
+        modelList,
+        presetList,
+        storageConfig,
+        generationList,
+      ] = await Promise.all([
+        api<AdminProfile>('/v1/admin/auth/me', {}, true),
+        api<AdminOverview>('/v1/admin/overview', {}, true),
+        api<{ data: AdminUser[] }>('/v1/admin/users', {}, true),
+        api<{ data: AdminModel[] }>('/v1/admin/models', {}, true),
+        api<{ data: ProtocolPreset[] }>(
+          '/v1/admin/protocol-profiles',
+          {},
+          true,
+        ),
+        api<AssetStorage>('/v1/admin/storage', {}, true),
+        api<{ data: Generation[] }>('/v1/admin/generations?limit=50', {}, true),
+      ]);
       setProfile(administrator);
       setOverview(summary);
       setUsers(userList.data);
       setModels(modelList.data);
       setPresets(presetList.data);
+      setStorage(storageConfig);
+      setGenerations(generationList.data);
     } catch (reason) {
       if (reason instanceof APIError && reason.status === 401) {
         navigate('/admin/login', { replace: true });
@@ -96,6 +116,71 @@ export function AdminConsole() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadGenerations = useCallback(async () => {
+    try {
+      const generationList = await api<{ data: Generation[] }>(
+        '/v1/admin/generations?limit=50',
+        {},
+        true,
+      );
+      setGenerations(generationList.data);
+    } catch (reason) {
+      if (reason instanceof APIError && reason.status === 401) {
+        navigate('/admin/login', { replace: true });
+        return;
+      }
+      setError(
+        reason instanceof Error ? reason.message : translate('admin.errorLoad'),
+      );
+    }
+  }, [navigate, translate]);
+
+  useEffect(() => {
+    if (
+      !generations.some((item) =>
+        ['queued', 'submitting', 'submitted', 'in_progress'].includes(
+          item.status,
+        ),
+      )
+    )
+      return;
+    const timer = window.setInterval(() => {
+      void loadGenerations();
+    }, 2_000);
+    return () => window.clearInterval(timer);
+  }, [generations, loadGenerations]);
+
+  async function openGenerationDetails(generation: Generation) {
+    setSelected(generation);
+    setArtifacts([]);
+    setDetailsLoading(true);
+    try {
+      const [freshGeneration, artifactList] = await Promise.all([
+        api<Generation>(`/v1/admin/generations/${generation.id}`, {}, true),
+        api<{ data: Artifact[] }>(
+          `/v1/admin/generations/${generation.id}/artifacts`,
+          {},
+          true,
+        ),
+      ]);
+      setSelected(freshGeneration);
+      setGenerations((current) =>
+        current.map((item) =>
+          item.id === freshGeneration.id ? freshGeneration : item,
+        ),
+      );
+      setArtifacts(artifactList.data);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : translate('tenant.errorDetails'),
+      );
+    } finally {
+      setDetailsLoading(false);
+    }
+  }
 
   // Suspension acts on the workspace, which is what carries session and API access.
   async function setStatus(user: AdminUser, status: Tenant['status']) {
@@ -144,6 +229,11 @@ export function AdminConsole() {
           icon: <Gauge size={17} />,
         },
         {
+          label: translate('admin.navVideoGeneration'),
+          to: '/admin/generations',
+          icon: <Film size={17} />,
+        },
+        {
           label: translate('admin.navAccounts'),
           to: '/admin/users',
           icon: <Users size={17} />,
@@ -153,6 +243,11 @@ export function AdminConsole() {
           label: translate('admin.navModels'),
           to: '/admin/models',
           icon: <Cpu size={17} />,
+        },
+        {
+          label: translate('admin.navStorage'),
+          to: '/admin/storage',
+          icon: <HardDrive size={17} />,
         },
       ]}
       title={translate('admin.title')}
@@ -173,6 +268,37 @@ export function AdminConsole() {
               users={users}
               models={models}
             />
+          }
+        />
+        <Route
+          path="generations"
+          element={
+            <AdminGenerationsView
+              models={models.filter(
+                (item) =>
+                  item.status === 'active' &&
+                  item.modality === 'video' &&
+                  item.provider !== 'development' &&
+                  Boolean(item.request_form),
+              )}
+              generations={generations.filter(
+                (item) => item.modality === 'video',
+              )}
+              onCreated={loadGenerations}
+              onSelect={openGenerationDetails}
+            />
+          }
+        />
+        <Route
+          path="storage"
+          element={
+            storage ? (
+              <StoragePanel
+                storage={storage}
+                onSaved={load}
+                onError={setError}
+              />
+            ) : null
           }
         />
         <Route
@@ -197,7 +323,44 @@ export function AdminConsole() {
         />
         <Route path="*" element={<Navigate to="/admin" replace />} />
       </Routes>
+      <GenerationDetails
+        generation={selected}
+        artifacts={artifacts}
+        loading={detailsLoading}
+        onClose={() => setSelected(null)}
+      />
     </Shell>
+  );
+}
+
+function AdminGenerationsView({
+  models,
+  generations,
+  onCreated,
+  onSelect,
+}: {
+  models: AdminModel[];
+  generations: Generation[];
+  onCreated: () => Promise<void>;
+  onSelect: (generation: Generation) => void;
+}) {
+  const { t } = useI18n();
+  return (
+    <section className="panel admin-generations-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>{t('adminGenerations.title')}</h2>
+          <p>{t('adminGenerations.note')}</p>
+        </div>
+        <GenerationComposer models={models} onCreated={onCreated} admin />
+      </div>
+      <GenerationsTable
+        generations={generations}
+        compact
+        emptyHint={t('adminGenerations.empty')}
+        onSelect={onSelect}
+      />
+    </section>
   );
 }
 
@@ -359,6 +522,228 @@ type RateForm = {
   unitScale: string;
   minimumCharge: string;
 };
+
+type StorageForm = {
+  backend: 'local' | 's3';
+  localPath: string;
+  maxBytes: string;
+  cdnBaseURL: string;
+  s3Endpoint: string;
+  s3Region: string;
+  s3Bucket: string;
+  s3AccessKeyID: string;
+  s3SecretAccessKey: string;
+};
+
+function storageForm(storage: AssetStorage): StorageForm {
+  return {
+    backend: storage.backend,
+    localPath: storage.local_path,
+    maxBytes: String(storage.max_bytes),
+    cdnBaseURL: storage.cdn_base_url ?? '',
+    s3Endpoint: storage.s3_endpoint ?? '',
+    s3Region: storage.s3_region ?? '',
+    s3Bucket: storage.s3_bucket ?? '',
+    s3AccessKeyID: '',
+    s3SecretAccessKey: '',
+  };
+}
+
+function StoragePanel({
+  storage,
+  onSaved,
+  onError,
+}: {
+  storage: AssetStorage;
+  onSaved: () => Promise<void>;
+  onError: (message: string) => void;
+}) {
+  const { t } = useI18n();
+  const [form, setForm] = useState<StorageForm>(() => storageForm(storage));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setForm(storageForm(storage));
+  }, [storage]);
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    onError('');
+    const maxBytes = Number(form.maxBytes);
+    if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0) {
+      onError(t('storage.errorMaxBytes'));
+      return;
+    }
+    setSaving(true);
+    try {
+      await api<AssetStorage>(
+        '/v1/admin/storage',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            backend: form.backend,
+            local_path: form.localPath,
+            max_bytes: maxBytes,
+            cdn_base_url: form.cdnBaseURL,
+            s3_endpoint: form.s3Endpoint,
+            s3_region: form.s3Region,
+            s3_bucket: form.s3Bucket,
+            s3_access_key_id: form.s3AccessKeyID,
+            s3_secret_access_key: form.s3SecretAccessKey,
+          }),
+        },
+        true,
+      );
+      await onSaved();
+    } catch (reason) {
+      onError(
+        reason instanceof Error ? reason.message : t('storage.errorSave'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="panel storage-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>{t('storage.title')}</h2>
+          <p>{t('storage.note')}</p>
+        </div>
+        <HardDrive size={19} />
+      </div>
+      <form className="panel-body dialog-form" onSubmit={save}>
+        <div className="field-grid">
+          <label className="field">
+            <span className="field-label">{t('storage.backend')}</span>
+            <select
+              value={form.backend}
+              onChange={(event) =>
+                setForm({
+                  ...form,
+                  backend: event.target.value as StorageForm['backend'],
+                })
+              }
+            >
+              <option value="local">{t('storage.local')}</option>
+              <option value="s3">{t('storage.s3')}</option>
+            </select>
+          </label>
+          <label className="field">
+            <span className="field-label">{t('storage.maxBytes')}</span>
+            <input
+              type="number"
+              min="1"
+              value={form.maxBytes}
+              onChange={(event) =>
+                setForm({ ...form, maxBytes: event.target.value })
+              }
+            />
+          </label>
+        </div>
+        <label className="field">
+          <span className="field-label">{t('storage.localPath')}</span>
+          <input
+            value={form.localPath}
+            onChange={(event) =>
+              setForm({ ...form, localPath: event.target.value })
+            }
+            placeholder="./data/assets"
+          />
+          <small>{t('storage.localPathNote')}</small>
+        </label>
+        <label className="field">
+          <span className="field-label">{t('storage.cdnBaseURL')}</span>
+          <input
+            type="url"
+            value={form.cdnBaseURL}
+            onChange={(event) =>
+              setForm({ ...form, cdnBaseURL: event.target.value })
+            }
+            placeholder="https://cdn.example.com/media"
+          />
+          <small>{t('storage.cdnNote')}</small>
+        </label>
+        {form.backend === 's3' && (
+          <>
+            <div className="form-section-title">{t('storage.s3Section')}</div>
+            <div className="field-grid">
+              <label className="field">
+                <span className="field-label">{t('storage.endpoint')}</span>
+                <input
+                  type="url"
+                  value={form.s3Endpoint}
+                  onChange={(event) =>
+                    setForm({ ...form, s3Endpoint: event.target.value })
+                  }
+                  placeholder="https://s3.example.com"
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">{t('storage.region')}</span>
+                <input
+                  value={form.s3Region}
+                  onChange={(event) =>
+                    setForm({ ...form, s3Region: event.target.value })
+                  }
+                  placeholder="us-east-1"
+                />
+              </label>
+            </div>
+            <label className="field">
+              <span className="field-label">{t('storage.bucket')}</span>
+              <input
+                value={form.s3Bucket}
+                onChange={(event) =>
+                  setForm({ ...form, s3Bucket: event.target.value })
+                }
+                placeholder="media"
+              />
+            </label>
+            <div className="field-grid">
+              <label className="field">
+                <span className="field-label">{t('storage.accessKey')}</span>
+                <input
+                  value={form.s3AccessKeyID}
+                  onChange={(event) =>
+                    setForm({ ...form, s3AccessKeyID: event.target.value })
+                  }
+                  placeholder={
+                    storage.s3_access_key_configured
+                      ? t('storage.keepConfigured')
+                      : t('storage.required')
+                  }
+                />
+              </label>
+              <label className="field">
+                <span className="field-label">{t('storage.secretKey')}</span>
+                <input
+                  type="password"
+                  value={form.s3SecretAccessKey}
+                  onChange={(event) =>
+                    setForm({ ...form, s3SecretAccessKey: event.target.value })
+                  }
+                  placeholder={
+                    storage.s3_secret_key_configured
+                      ? t('storage.keepConfigured')
+                      : t('storage.required')
+                  }
+                />
+              </label>
+            </div>
+            <small className="muted">{t('storage.secretNote')}</small>
+          </>
+        )}
+        <div className="dialog-actions">
+          <button className="button primary" type="submit" disabled={saving}>
+            {saving ? t('storage.saving') : t('storage.save')}
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
 
 const officialH3Rates: RateForm[] = [
   {

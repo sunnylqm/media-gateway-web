@@ -188,6 +188,7 @@ export type ProtocolPreset = {
 
 export type Asset = {
   id: string;
+  url?: string;
   mime_type: string;
   sha256: string;
   size_bytes: number;
@@ -222,6 +223,20 @@ export type AdminOverview = {
   generation_count: number;
   queued_count: number;
   failed_count: number;
+};
+
+export type AssetStorage = {
+  object: 'asset_storage';
+  backend: 'local' | 's3';
+  local_path: string;
+  max_bytes: number;
+  cdn_base_url?: string;
+  s3_endpoint?: string;
+  s3_region?: string;
+  s3_bucket?: string;
+  s3_access_key_configured: boolean;
+  s3_secret_key_configured: boolean;
+  updated_at: string;
 };
 
 export type AdminTenant = Tenant & {

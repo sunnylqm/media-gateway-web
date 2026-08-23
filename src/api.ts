@@ -30,9 +30,13 @@ function cookie(name: string): string {
   return '';
 }
 
-const gatewayURL = (
+export const gatewayURL = (
   import.meta.env.VITE_GATEWAY_URL ?? 'https://sg.cresc.dev'
 ).replace(/\/$/, '');
+
+export function absoluteGatewayURL(value: string): string {
+  return new URL(value, `${gatewayURL}/`).toString();
+}
 const csrfStorageKey = (admin: boolean) =>
   admin ? 'media_gateway_admin_csrf' : 'media_gateway_csrf';
 

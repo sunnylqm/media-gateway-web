@@ -169,9 +169,13 @@ export const en = {
   'apiKeys.revoke': 'Revoke key',
 
   'composer.open': 'New generation',
+  'composer.adminOpen': 'Generate video',
   'composer.title': 'New generation',
+  'composer.adminTitle': 'Generate video',
   'composer.description':
     "Send the selected provider's native request through the gateway.",
+  'composer.adminDescription':
+    'Run a video generation through the configured provider without charging a tenant.',
   'composer.modality': 'Modality',
   'composer.model': 'Model',
   'composer.modeAria': 'Reference mode',
@@ -202,8 +206,11 @@ export const en = {
   'composer.errorMediaCount': 'At most {count} {kind} references',
   'composer.estimateNote':
     'Estimated from the requested length. The final charge follows the delivered output.',
+  'composer.adminNoCharge':
+    'Administrator generation · no tenant charge. Provider usage is still recorded for operations.',
   'composer.submitting': 'Submitting…',
   'composer.submit': 'Create generation',
+  'composer.adminSubmit': 'Create video (no charge)',
   'composer.submitPriced': 'Create generation ({price})',
   'composer.free': 'Free',
   'composer.uploadingAria': 'Uploading',
@@ -220,10 +227,45 @@ export const en = {
   'admin.errorStatus': 'Unable to update workspace',
   'admin.identity': 'System admin',
   'admin.navOverview': 'Overview',
+  'admin.navVideoGeneration': 'Video generation',
   'admin.navAccounts': 'Accounts',
   'admin.navModels': 'Models',
+  'admin.navStorage': 'Asset storage',
   'admin.title': 'System control',
   'admin.description': 'Single administrator · {email}',
+
+  'adminGenerations.title': 'Video generation',
+  'adminGenerations.note':
+    'Generate videos for testing and operations without charging a tenant.',
+  'adminGenerations.empty': 'Create an administrator video to see it here.',
+
+  'storage.title': 'Asset storage',
+  'storage.note':
+    'Choose where uploaded inputs and generated artifacts are hosted. Changes apply to new objects immediately.',
+  'storage.backend': 'Active backend',
+  'storage.local': 'Local filesystem',
+  'storage.s3': 'S3-compatible storage',
+  'storage.maxBytes': 'Maximum object size (bytes)',
+  'storage.localPath': 'Local storage path',
+  'storage.localPathNote':
+    'The local store remains available as a read fallback for objects created before a backend switch.',
+  'storage.cdnBaseURL': 'Public CDN base URL',
+  'storage.cdnNote':
+    'Optional. Leave blank to use the gateway media route for local storage or the S3 endpoint for S3 storage.',
+  'storage.s3Section': 'S3 connection',
+  'storage.endpoint': 'S3 endpoint',
+  'storage.region': 'Region',
+  'storage.bucket': 'Bucket',
+  'storage.accessKey': 'Access key ID',
+  'storage.secretKey': 'Secret access key',
+  'storage.keepConfigured': 'Leave blank to keep configured value',
+  'storage.required': 'Required',
+  'storage.secretNote':
+    'Credentials are write-only in the console and encrypted before persistence.',
+  'storage.saving': 'Saving…',
+  'storage.save': 'Save storage configuration',
+  'storage.errorSave': 'Unable to save storage configuration',
+  'storage.errorMaxBytes': 'Maximum object size must be a positive integer',
 
   'adminOverview.tenants': 'Total tenants',
   'adminOverview.tenantsNote': '{count} active',

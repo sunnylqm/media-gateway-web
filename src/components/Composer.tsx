@@ -20,7 +20,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { api } from '../api';
+import { absoluteGatewayURL, api } from '../api';
 import { formatAmount, formatBytes, formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import {
@@ -74,9 +74,11 @@ const kindIcon: Record<MediaKind, ReactNode> = {
 export function GenerationComposer({
   models,
   onCreated,
+  admin = false,
 }: {
   models: PublicModel[];
   onCreated: () => Promise<void> | void;
+  admin?: boolean;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -170,14 +172,21 @@ export function GenerationComposer({
     const body = new FormData();
     body.append('file', attachment.file);
     try {
-      const asset = await api<Asset>('/v1/assets', { method: 'POST', body });
+      const asset = await api<Asset>(
+        admin ? '/v1/admin/assets' : '/v1/assets',
+        {
+          method: 'POST',
+          body,
+        },
+        admin,
+      );
       setAttachments((current) =>
         current.map((item) =>
           item.key === attachment.key
             ? {
                 ...item,
                 status: 'ready',
-                url: `asset://${asset.id}`,
+                url: asset.url ? absoluteGatewayURL(asset.url) : '',
                 message: undefined,
               }
             : item,
@@ -337,8 +346,9 @@ export function GenerationComposer({
     ? estimateAmount(selectedModel.billing, parameters)
     : null;
   const currency = selectedModel?.billing.currency ?? '';
-  const price =
-    estimate === null || !currency
+  const price = admin
+    ? t('composer.free')
+    : estimate === null || !currency
       ? ''
       : estimate === 0
         ? t('composer.free')
@@ -365,11 +375,17 @@ export function GenerationComposer({
           .map((item) => ({ slot, url: item.url ?? '' })),
       );
       const body = buildRequestBody(form, model, prompt, parameters, ordered);
-      await api(`/${modelPathSlug(model)}${form.path}`, {
-        method: form.method || 'POST',
-        headers: { 'Idempotency-Key': crypto.randomUUID() },
-        body: JSON.stringify(body),
-      });
+      await api(
+        admin
+          ? `/v1/admin/models/${encodeURIComponent(model)}/generations`
+          : `/${modelPathSlug(model)}${form.path}`,
+        {
+          method: admin ? 'POST' : form.method || 'POST',
+          headers: { 'Idempotency-Key': crypto.randomUUID() },
+          body: JSON.stringify(body),
+        },
+        admin,
+      );
       setPrompt('');
       clearAttachments();
       setOpen(false);
@@ -475,7 +491,7 @@ export function GenerationComposer({
       }}
     >
       <Dialog.Trigger className="button primary">
-        <Plus size={16} /> {t('composer.open')}
+        <Plus size={16} /> {t(admin ? 'composer.adminOpen' : 'composer.open')}
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="dialog-overlay" />
@@ -485,9 +501,13 @@ export function GenerationComposer({
         >
           <div className="dialog-heading">
             <div>
-              <Dialog.Title>{t('composer.title')}</Dialog.Title>
+              <Dialog.Title>
+                {t(admin ? 'composer.adminTitle' : 'composer.title')}
+              </Dialog.Title>
               <Dialog.Description>
-                {t('composer.description')}
+                {t(
+                  admin ? 'composer.adminDescription' : 'composer.description',
+                )}
               </Dialog.Description>
             </div>
             <Dialog.Close className="icon-button">
@@ -504,10 +524,14 @@ export function GenerationComposer({
                     onChange={(value) =>
                       setModality(value as 'image' | 'video')
                     }
-                    options={[
-                      { value: 'image', label: t('modality.image') },
-                      { value: 'video', label: t('modality.video') },
-                    ]}
+                    options={
+                      admin
+                        ? [{ value: 'video', label: t('modality.video') }]
+                        : [
+                            { value: 'image', label: t('modality.image') },
+                            { value: 'video', label: t('modality.video') },
+                          ]
+                    }
                   />
                 </div>
                 <div className="field">
@@ -619,11 +643,15 @@ export function GenerationComposer({
             </div>
 
             <div className="composer-footer">
-              {selectedModel?.billing.mode === 'per_output_second' && (
+              {admin ? (
+                <small className="footer-note">
+                  {t('composer.adminNoCharge')}
+                </small>
+              ) : selectedModel?.billing.mode === 'per_output_second' ? (
                 <small className="footer-note">
                   {t('composer.estimateNote')}
                 </small>
-              )}
+              ) : null}
               <button
                 type="submit"
                 className="button primary create-button"
@@ -634,9 +662,11 @@ export function GenerationComposer({
                 <Send size={15} />
                 {creating
                   ? t('composer.submitting')
-                  : price
-                    ? t('composer.submitPriced', { price })
-                    : t('composer.submit')}
+                  : admin
+                    ? t('composer.adminSubmit')
+                    : price
+                      ? t('composer.submitPriced', { price })
+                      : t('composer.submit')}
               </button>
             </div>
           </form>

@@ -1,6 +1,7 @@
 import { Download, Eye, Image, Sparkles, Video, X } from 'lucide-react';
 import { Dialog } from 'radix-ui';
 import { useState } from 'react';
+import { absoluteGatewayURL } from '../api';
 import {
   formatBytes,
   formatDate,
@@ -190,17 +191,13 @@ function InputPreview({
 }) {
   const { t } = useI18n();
   const mediaType = input.mime_type.split('/', 1)[0];
+  const url = absoluteGatewayURL(input.url);
   return (
     <article className="input-card">
       {mediaType === 'image' ? (
-        <a
-          className="input-media"
-          href={input.url}
-          target="_blank"
-          rel="noreferrer"
-        >
+        <a className="input-media" href={url} target="_blank" rel="noreferrer">
           <img
-            src={input.url}
+            src={url}
             loading="lazy"
             alt={t('details.inputAlt', {
               role: formatParameterName(input.role),
@@ -211,14 +208,14 @@ function InputPreview({
       {mediaType === 'video' ? (
         <video
           className="input-media"
-          src={input.url}
+          src={url}
           controls
           playsInline
           preload="metadata"
         />
       ) : null}
       {mediaType === 'audio' ? (
-        <audio src={input.url} controls preload="metadata" />
+        <audio src={url} controls preload="metadata" />
       ) : null}
       <div>
         <span>{formatParameterName(input.role)}</span>
@@ -234,6 +231,7 @@ function ArtifactPreview({ artifact }: { artifact: Artifact }) {
   const { t } = useI18n();
   const [previewFailed, setPreviewFailed] = useState(false);
   const isVideo = artifact.mime_type.toLowerCase().startsWith('video/');
+  const url = absoluteGatewayURL(artifact.url);
   return (
     <article className="artifact-card">
       {isVideo && !previewFailed ? (
@@ -242,7 +240,7 @@ function ArtifactPreview({ artifact }: { artifact: Artifact }) {
           controls
           playsInline
           preload="metadata"
-          src={artifact.url}
+          src={url}
           aria-label={t('details.videoPreview')}
           onError={() => setPreviewFailed(true)}
         />
@@ -258,7 +256,7 @@ function ArtifactPreview({ artifact }: { artifact: Artifact }) {
           <span>{artifact.mime_type}</span>
           <small>{formatBytes(artifact.size_bytes)}</small>
         </div>
-        <a href={artifact.url} download target="_blank" rel="noreferrer">
+        <a href={url} download target="_blank" rel="noreferrer">
           <Download size={16} />
           {t('details.download')}
         </a>
