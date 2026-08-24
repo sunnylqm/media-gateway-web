@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useI18n } from '@/i18n';
 import { Brand } from './Brand';
+import { Footer } from './Footer';
 import { LanguageMenuGroup } from './LanguageSwitch';
 
 export type NavigationItem = {
@@ -116,6 +117,7 @@ export function Shell({
           {actions && <div className="page-actions">{actions}</div>}
         </header>
         {children}
+        <Footer />
       </main>
     </div>
   );

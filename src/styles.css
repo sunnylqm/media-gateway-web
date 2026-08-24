@@ -122,6 +122,7 @@ h1, h2, h3, .brand-name { font-family: Inter, ui-sans-serif, system-ui, -apple-s
 .profile-copy b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
 .profile-copy small { color: #75847d; font-size: 10px; }
 .content { min-width: 0; padding: 39px clamp(28px, 4vw, 58px) 56px; }
+.page-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 16px; margin-top: 44px; color: var(--muted); font-size: 11px; }
 .page-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin-bottom: 31px; }
 .page-header .eyebrow { margin-bottom: 9px; }
 .page-header h1 { margin-bottom: 7px; font-size: 30px; line-height: 1.2; letter-spacing: -.035em; }
