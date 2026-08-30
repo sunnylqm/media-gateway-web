@@ -17,6 +17,16 @@ VITE_GATEWAY_URL=https://api.example.com
 VITE_GATEWAY_PROXY=false
 ```
 
+## Deployment
+
+Production is hosted by the Cloudflare Pages project `media-gateway-web`. Its
+Git integration builds and deploys every push to `main`; no separate publish
+command is required. A release is complete when the GitHub check
+`Workers Builds: media-gateway-web` succeeds for the pushed commit.
+
+OpenAI Sites, GitHub Pages, and direct Wrangler uploads are not part of this
+repository's production release path.
+
 ## Features
 
 - Tenant sign-in, email verification, job history, artifacts, and API-key management.
