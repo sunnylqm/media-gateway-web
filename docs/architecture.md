@@ -6,7 +6,7 @@ The browser application is a static Vite build. `VITE_GATEWAY_URL` selects the G
 
 ## Cross-origin authentication
 
-The gateway validates the exact request origin from `GATEWAY_CORS_ORIGINS`, allows credentials, and handles preflight requests. Login and verification responses expose `X-CSRF-Token`; the browser keeps it in `sessionStorage` and sends it on mutations. Same-origin deployments continue to read the existing non-HttpOnly CSRF cookie.
+The gateway validates the exact request origin from `GATEWAY_CORS_ORIGINS`, allows credentials, and handles preflight requests. Login, verification, and authenticated session responses expose `X-CSRF-Token`; the browser keeps it in `sessionStorage` and sends it on mutations. If another tab replaces the session, a rejected mutation carries the newly validated token and the client retries it once. Same-origin deployments continue to read the existing non-HttpOnly CSRF cookie.
 
 For a cross-site production deployment, serve both origins over HTTPS and enable `GATEWAY_SECURE_COOKIES=true`. Prefer sibling subdomains under the same registrable domain so modern browser cookie policies treat them as the same site.
 

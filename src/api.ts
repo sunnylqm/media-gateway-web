@@ -61,19 +61,39 @@ export async function api<T>(
       '';
     if (csrf) headers.set('X-CSRF-Token', csrf);
   }
-  const response = await fetch(`${gatewayURL}${path}`, {
-    ...init,
-    headers,
-    credentials: 'include',
-  });
-  const csrf = response.headers.get('X-CSRF-Token');
-  if (csrf) sessionStorage.setItem(csrfStorageKey(admin), csrf);
-  if (!response.ok) {
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const requestHeaders = new Headers(headers);
+    const response = await fetch(`${gatewayURL}${path}`, {
+      ...init,
+      headers: requestHeaders,
+      credentials: 'include',
+    });
+    const csrf = response.headers.get('X-CSRF-Token');
+    if (csrf) sessionStorage.setItem(csrfStorageKey(admin), csrf);
+    if (response.ok) {
+      if (response.status === 204) return undefined as T;
+      return (await response.json()) as T;
+    }
     let payload: ErrorEnvelope = {};
     try {
       payload = (await response.json()) as ErrorEnvelope;
     } catch {
       // The status still carries the useful failure signal.
+    }
+
+    // Another tab can replace the session cookie while this tab still holds
+    // the previous session's token. The gateway reflects the token belonging
+    // to the authenticated cookie, so retry the rejected mutation once with
+    // that newer value. A missing or unchanged token is a real CSRF failure.
+    if (
+      attempt === 0 &&
+      response.status === 403 &&
+      payload.error?.code === 'csrf_failed' &&
+      csrf &&
+      csrf !== headers.get('X-CSRF-Token')
+    ) {
+      headers.set('X-CSRF-Token', csrf);
+      continue;
     }
     throw new APIError(
       response.status,
@@ -82,6 +102,5 @@ export async function api<T>(
         t('api.requestFailed', { status: response.status }),
     );
   }
-  if (response.status === 204) return undefined as T;
-  return (await response.json()) as T;
+  throw new APIError(403, 'csrf_failed', 'a valid CSRF token is required');
 }
