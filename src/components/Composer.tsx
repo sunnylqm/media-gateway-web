@@ -140,11 +140,21 @@ export function GenerationComposer({
     setModel(availableModels[0]?.id ?? '');
   }, [availableModels, model, models]);
 
+  // The parameters a model declares, as a value rather than an array identity.
+  // A console that refetches its catalogue hands down a fresh array on every
+  // poll, and restarting the form on that alone would wipe what the operator
+  // typed a second earlier.
+  const parameterSignature = useMemo(
+    () => JSON.stringify({ model, parameters: form?.parameters ?? [] }),
+    [model, form],
+  );
+
   // Each model publishes its own parameters and media vocabulary, so the form
   // restarts from that model's declared defaults rather than carrying values.
   useEffect(() => {
-    const parameterForms =
-      models.find((item) => item.id === model)?.request_form?.parameters ?? [];
+    const { parameters: parameterForms } = JSON.parse(parameterSignature) as {
+      parameters: FormParameter[];
+    };
     setParameters(
       Object.fromEntries(
         parameterForms.map((parameter) => [
@@ -155,7 +165,7 @@ export function GenerationComposer({
     );
     clearAttachments();
     setError('');
-  }, [model, models, clearAttachments]);
+  }, [parameterSignature, clearAttachments]);
 
   // A model that publishes only one of the two groups opens on it; a model
   // that publishes both opens on frames, the narrower choice.

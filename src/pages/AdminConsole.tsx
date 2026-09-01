@@ -209,6 +209,25 @@ export function AdminConsole() {
     }
   }
 
+  // The composer keeps operator input across a poll only while the catalogue it
+  // was handed stays the same array, so the filtering happens once per change
+  // rather than on every refresh of the generation list.
+  const videoModels = useMemo(
+    () =>
+      models.filter(
+        (item) =>
+          item.status === 'active' &&
+          item.modality === 'video' &&
+          item.provider !== 'development' &&
+          Boolean(item.request_form),
+      ),
+    [models],
+  );
+  const videoGenerations = useMemo(
+    () => generations.filter((item) => item.modality === 'video'),
+    [generations],
+  );
+
   if (loading)
     return (
       <div className="loading-screen">
@@ -274,16 +293,8 @@ export function AdminConsole() {
           path="generations"
           element={
             <AdminGenerationsView
-              models={models.filter(
-                (item) =>
-                  item.status === 'active' &&
-                  item.modality === 'video' &&
-                  item.provider !== 'development' &&
-                  Boolean(item.request_form),
-              )}
-              generations={generations.filter(
-                (item) => item.modality === 'video',
-              )}
+              models={videoModels}
+              generations={videoGenerations}
               onCreated={loadGenerations}
               onSelect={openGenerationDetails}
             />
