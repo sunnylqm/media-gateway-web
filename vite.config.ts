@@ -53,7 +53,10 @@ function uiVersion(): string {
 }
 
 export default defineConfig({
-  plugins: [react(), sites()],
+  // The React Compiler memoises components and derived values on its own, so
+  // the console stops depending on hand-placed useMemo for correctness. It is
+  // the oxc build, which runs in the same pass as the JSX transform.
+  plugins: [react({ compiler: true }), sites()],
   resolve: { alias: { '@': path.resolve(import.meta.dirname, './src') } },
   define: {
     'import.meta.env.VITE_UI_VERSION': JSON.stringify(uiVersion()),
