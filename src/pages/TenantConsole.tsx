@@ -9,6 +9,7 @@ import {
   Plus,
   Sparkles,
   Trash2,
+  Wallet,
   X,
 } from 'lucide-react';
 import { Dialog } from 'radix-ui';
@@ -20,6 +21,7 @@ import {
   useState,
 } from 'react';
 import {
+  Link,
   Navigate,
   Route,
   Routes,
@@ -30,13 +32,15 @@ import { APIError, api } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
-import { formatDate, formatStatus } from '../format';
+import { TransactionsTable, useTransactions } from '../components/Transactions';
+import { formatAmount, formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
 import { modelPathSlug } from '../lib/requestForm';
 import type {
   APIKey,
   APIKeySecret,
   Artifact,
+  Balance,
   CreatedAPIKey,
   Generation,
   IdentityProfile,
@@ -56,17 +60,38 @@ export function TenantConsole() {
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<Generation | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [balance, setBalance] = useState<Balance | null>(null);
+  const [balanceError, setBalanceError] = useState('');
+  const [balanceLoading, setBalanceLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const load = useCallback(async () => {
+    setError('');
+    setBalanceLoading(true);
     try {
-      const [identity, jobs, catalog] = await Promise.all([
+      const balanceRequest = api<Balance>('/v1/billing/balance').then(
+        (value) => ({ ok: true as const, value }),
+        (reason: unknown) => ({ ok: false as const, reason }),
+      );
+      const [identity, jobs, catalog, balanceResult] = await Promise.all([
         api<IdentityProfile>('/v1/auth/me'),
         api<GenerationList>('/v1/generations?limit=50'),
         api<{ data: PublicModel[] }>('/v1/models'),
+        balanceRequest,
       ]);
       setProfile(identity);
       setGenerations(jobs.data);
+      if (balanceResult.ok) {
+        setBalance(balanceResult.value);
+        setBalanceError('');
+      } else {
+        setBalance(null);
+        setBalanceError(
+          balanceResult.reason instanceof Error
+            ? balanceResult.reason.message
+            : t('billing.errorBalance'),
+        );
+      }
       const publicModels = catalog.data.filter(
         (item) => item.provider !== 'development',
       );
@@ -85,6 +110,7 @@ export function TenantConsole() {
       );
     } finally {
       setLoading(false);
+      setBalanceLoading(false);
     }
   }, [navigate, t]);
 
@@ -178,13 +204,44 @@ export function TenantConsole() {
           to: '/app/api-keys',
           icon: <KeyRound size={17} />,
         },
+        {
+          label: t('nav.billing'),
+          to: '/app/billing',
+          icon: <Wallet size={17} />,
+        },
       ]}
       title={t('tenant.title')}
       description={t('tenant.description', { email: profile.user.email })}
       actions={
-        location.pathname === '/app/api-keys' ? undefined : (
-          <GenerationComposer models={models} onCreated={load} />
-        )
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {balance && (
+            <Link
+              to="/app/billing"
+              className="button secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+              }}
+            >
+              <Wallet size={15} />
+              <span>
+                {t('billing.badge')}:{' '}
+                {formatAmount(balance.available, balance.currency)}
+              </span>
+            </Link>
+          )}
+          {location.pathname !== '/app/api-keys' && (
+            <GenerationComposer
+              models={models}
+              user={profile.user}
+              onCreated={load}
+            />
+          )}
+        </div>
       }
       onLogout={() => void logout()}
     >
@@ -199,6 +256,7 @@ export function TenantConsole() {
           element={
             <Overview
               stats={stats}
+              balance={balance}
               generations={generations.slice(0, 6)}
               onSelect={openDetails}
             />
@@ -214,6 +272,17 @@ export function TenantConsole() {
           }
         />
         <Route path="api-keys" element={<APIKeysView models={models} />} />
+        <Route
+          path="billing"
+          element={
+            <BillingView
+              balance={balance}
+              balanceError={balanceError}
+              balanceLoading={balanceLoading}
+              onReload={load}
+            />
+          }
+        />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Routes>
       <GenerationDetails
@@ -622,10 +691,12 @@ function APIKeysView({ models }: { models: PublicModel[] }) {
 
 function Overview({
   stats,
+  balance,
   generations,
   onSelect,
 }: {
   stats: Record<string, number>;
+  balance: Balance | null;
   generations: Generation[];
   onSelect: (generation: Generation) => void;
 }) {
@@ -633,6 +704,14 @@ function Overview({
   return (
     <>
       <section className="metric-grid">
+        {balance && (
+          <Metric
+            label={t('billing.available')}
+            value={formatAmount(balance.available, balance.currency)}
+            note={t('billing.badge')}
+            tone="blue"
+          />
+        )}
         <Metric
           label={t('overview.total')}
           value={stats.total}
@@ -675,6 +754,93 @@ function Overview({
   );
 }
 
+function BillingView({
+  balance,
+  balanceError,
+  balanceLoading,
+  onReload,
+}: {
+  balance: Balance | null;
+  balanceError: string;
+  balanceLoading: boolean;
+  onReload: () => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const transactions = useTransactions('/v1/billing/transactions');
+  const currency = balance?.currency || 'CNY';
+
+  return (
+    <div className="billing-view">
+      {balanceError && (
+        <div className="banner-error transaction-error" role="alert">
+          <span>{balanceError}</span>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={balanceLoading}
+            onClick={() => void onReload()}
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
+      <section className="metric-grid">
+        <Metric
+          label={t('billing.available')}
+          value={balance ? formatAmount(balance.available, currency) : '—'}
+          note={
+            balanceLoading
+              ? t('billing.loadingBalance')
+              : balance
+                ? t(
+                    balance.enforced
+                      ? 'billing.enforcedOn'
+                      : 'billing.enforcedOff',
+                  )
+                : t('billing.balanceUnavailable')
+          }
+          tone="green"
+        />
+        <Metric
+          label={t('billing.totalCredited')}
+          value={balance ? formatAmount(balance.credited, currency) : '—'}
+          note={t('billing.totalCreditedNote')}
+        />
+        <Metric
+          label={t('billing.totalSpent')}
+          value={balance ? formatAmount(balance.spent, currency) : '—'}
+          note={t('billing.totalSpentNote')}
+          tone="amber"
+        />
+        <Metric
+          label={t('billing.reserved')}
+          value={balance ? formatAmount(balance.reserved, currency) : '—'}
+          note={t('billing.reservedNote')}
+        />
+      </section>
+
+      <section className="panel table-wrap" style={{ marginTop: '24px' }}>
+        <div className="panel-heading">
+          <div>
+            <h2>{t('billing.transactions')}</h2>
+            <p>{t('billing.note')}</p>
+          </div>
+          <Wallet size={19} />
+        </div>
+        <TransactionsTable
+          transactions={transactions.transactions}
+          loading={transactions.loading}
+          loadingMore={transactions.loadingMore}
+          error={transactions.error}
+          hasMore={transactions.hasMore}
+          onLoadMore={transactions.loadMore}
+          onReload={transactions.reload}
+        />
+      </section>
+    </div>
+  );
+}
+
 function Metric({
   label,
   value,
@@ -682,7 +848,7 @@ function Metric({
   tone = 'blue',
 }: {
   label: string;
-  value: number;
+  value: number | string;
   note: string;
   tone?: string;
 }) {

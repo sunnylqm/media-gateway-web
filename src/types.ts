@@ -13,7 +13,36 @@ export type User = {
   email: string;
   display_name: string;
   status: string;
+  image_enabled?: boolean;
+  video_enabled?: boolean;
   email_verified_at?: string;
+  created_at: string;
+};
+
+export type Balance = {
+  object: 'balance';
+  tenant_id: string;
+  currency: string;
+  credited: number;
+  spent: number;
+  balance: number;
+  reserved: number;
+  available: number;
+  enforced: boolean;
+};
+
+export type TransactionRecord = {
+  id: string;
+  object: 'transaction';
+  type: string;
+  amount: number;
+  currency: string;
+  reason: string;
+  actor?: string;
+  generation_id?: string;
+  model?: string;
+  modality?: 'image' | 'video';
+  prompt?: string;
   created_at: string;
 };
 
