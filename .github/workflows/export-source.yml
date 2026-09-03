@@ -31,27 +31,14 @@ jobs:
 
           path = Path('src/components/TopupDialog.tsx')
           content = path.read_text()
-          old = """  useEffect(() => {
-            if (!open) return;
-            setAmount('');
-            setReason('');
-            setError('');
-            setReference(crypto.randomUUID());
-          }, [open, user?.id]);
-          """
-          new = """  const userID = user?.id;
-
-          useEffect(() => {
-            if (!open || !userID) return;
-            setAmount('');
-            setReason('');
-            setError('');
-            setReference(crypto.randomUUID());
-          }, [open, userID]);
-          """
-          if old not in content:
-              raise SystemExit('TopupDialog follow-up context was not found')
-          path.write_text(content.replace(old, new))
+          first_old = "  useEffect(() => {\n    if (!open) return;"
+          first_new = "  const userID = user?.id;\n\n  useEffect(() => {\n    if (!open || !userID) return;"
+          second_old = "  }, [open, user?.id]);"
+          second_new = "  }, [open, userID]);"
+          if content.count(first_old) != 1 or content.count(second_old) != 1:
+              raise SystemExit('TopupDialog follow-up context was not found exactly once')
+          content = content.replace(first_old, first_new).replace(second_old, second_new)
+          path.write_text(content)
           PY
 
       - name: Set up Bun
