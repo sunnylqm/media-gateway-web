@@ -281,7 +281,7 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .parameter-list dd { overflow: hidden; margin: 0; color: #34423b; text-overflow: ellipsis; white-space: nowrap; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .artifact-list { display: grid; gap: 12px; }
 .artifact-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); background: #fafbfa; }
-.artifact-video { width: 100%; max-height: min(56vh, 560px); display: block; background: #0d1210; object-fit: contain; }
+.artifact-video, .artifact-image { width: 100%; max-height: min(56vh, 560px); display: block; background: #0d1210; object-fit: contain; }
 .artifact-preview-error { min-height: 150px; display: grid; place-items: center; align-content: center; gap: 9px; padding: 24px; background: #f2f4f3; color: var(--muted); text-align: center; font-size: 11px; }
 .artifact-meta { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 8px 11px 8px 13px; }
 .artifact-meta > div { min-width: 0; display: flex; align-items: baseline; gap: 9px; }

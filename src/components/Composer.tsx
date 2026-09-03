@@ -32,10 +32,9 @@ import {
   type MediaSlot,
   mediaKind,
   mediaSlots,
-  modelPathSlug,
   slotAccepts,
 } from '../lib/requestForm';
-import type { Asset, FormParameter, PublicModel } from '../types';
+import type { Asset, FormParameter, PublicModel, User } from '../types';
 
 type Mode = 'frame' | 'reference';
 
@@ -75,14 +74,20 @@ export function GenerationComposer({
   models,
   onCreated,
   admin = false,
+  user,
 }: {
   models: PublicModel[];
   onCreated: () => Promise<void> | void;
   admin?: boolean;
+  user?: User;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
-  const [modality, setModality] = useState<'image' | 'video'>('video');
+  const imageAllowed = admin || user?.image_enabled !== false;
+  const videoAllowed = admin || user?.video_enabled !== false;
+  const [modality, setModality] = useState<'image' | 'video'>(
+    videoAllowed ? 'video' : 'image',
+  );
   const [model, setModel] = useState('');
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -90,6 +95,17 @@ export function GenerationComposer({
   const [mode, setMode] = useState<Mode>('frame');
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (!videoAllowed && imageAllowed && modality === 'video') {
+      setModality('image');
+    } else if (!imageAllowed && videoAllowed && modality === 'image') {
+      setModality('video');
+    }
+  }, [imageAllowed, videoAllowed, modality]);
+
+  const currentModalityAllowed =
+    modality === 'image' ? imageAllowed : videoAllowed;
 
   const availableModels = useMemo(
     () => models.filter((item) => item.modality === modality),
@@ -388,9 +404,9 @@ export function GenerationComposer({
       await api(
         admin
           ? `/v1/admin/models/${encodeURIComponent(model)}/generations`
-          : `/${modelPathSlug(model)}${form.path}`,
+          : '/v1/generations',
         {
-          method: admin ? 'POST' : form.method || 'POST',
+          method: 'POST',
           headers: { 'Idempotency-Key': crypto.randomUUID() },
           body: JSON.stringify(body),
         },
@@ -526,6 +542,17 @@ export function GenerationComposer({
           </div>
           <form onSubmit={submit} className="composer-form">
             <div className="composer-body">
+              {!currentModalityAllowed && (
+                <div
+                  className="banner-error"
+                  role="alert"
+                  style={{ marginBottom: '16px' }}
+                >
+                  {t('composer.modalityDisabled', {
+                    modality: t(`modality.${modality}`),
+                  })}
+                </div>
+              )}
               <div className="composer-models">
                 <div className="field">
                   <span className="field-label">{t('composer.modality')}</span>
@@ -534,14 +561,20 @@ export function GenerationComposer({
                     onChange={(value) =>
                       setModality(value as 'image' | 'video')
                     }
-                    options={
-                      admin
-                        ? [{ value: 'video', label: t('modality.video') }]
-                        : [
-                            { value: 'image', label: t('modality.image') },
-                            { value: 'video', label: t('modality.video') },
-                          ]
-                    }
+                    options={[
+                      {
+                        value: 'video',
+                        label: videoAllowed
+                          ? t('modality.video')
+                          : `${t('modality.video')} (${t('models.statusInactive')})`,
+                      },
+                      {
+                        value: 'image',
+                        label: imageAllowed
+                          ? t('modality.image')
+                          : `${t('modality.image')} (${t('models.statusInactive')})`,
+                      },
+                    ]}
                   />
                 </div>
                 <div className="field">
@@ -666,7 +699,12 @@ export function GenerationComposer({
                 type="submit"
                 className="button primary create-button"
                 disabled={
-                  creating || !model || !form || promptTooLong || uploading
+                  creating ||
+                  !model ||
+                  !form ||
+                  promptTooLong ||
+                  uploading ||
+                  !currentModalityAllowed
                 }
               >
                 <Send size={15} />

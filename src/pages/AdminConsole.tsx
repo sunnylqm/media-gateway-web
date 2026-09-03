@@ -14,9 +14,11 @@ import {
   Plus,
   Server,
   ShieldAlert,
+  Sliders,
   Trash2,
   UserRound,
   Users,
+  Wallet,
   X,
 } from 'lucide-react';
 import { Dialog, DropdownMenu } from 'radix-ui';
@@ -39,7 +41,7 @@ import { APIError, api } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
-import { formatDate, formatDay, formatStatus } from '../format';
+import { formatAmount, formatDate, formatDay, formatStatus } from '../format';
 import { t, useI18n } from '../i18n';
 import type {
   AdminModel,
@@ -52,6 +54,7 @@ import type {
   ModelBilling,
   ProtocolPreset,
   Tenant,
+  TransactionRecord,
 } from '../types';
 
 export function AdminConsole() {
@@ -201,6 +204,53 @@ export function AdminConsole() {
     }
   }
 
+  async function updateCapabilities(
+    user: AdminUser,
+    capabilities: { image_enabled?: boolean; video_enabled?: boolean },
+  ) {
+    setError('');
+    try {
+      await api(
+        `/v1/admin/users/${encodeURIComponent(user.id)}`,
+        { method: 'PATCH', body: JSON.stringify(capabilities) },
+        true,
+      );
+      await load();
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : 'Failed to update user capabilities',
+      );
+      throw reason;
+    }
+  }
+
+  async function topupUser(
+    user: AdminUser,
+    amount: number,
+    currency: string,
+    reason: string,
+  ) {
+    setError('');
+    try {
+      await api(
+        `/v1/admin/users/${encodeURIComponent(user.id)}/credits`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ amount, currency, reason }),
+        },
+        true,
+      );
+      await load();
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : 'Failed to top up user',
+      );
+      throw reason;
+    }
+  }
+
   async function logout() {
     try {
       await api('/v1/admin/auth/logout', { method: 'POST' }, true);
@@ -212,19 +262,22 @@ export function AdminConsole() {
   // The composer keeps operator input across a poll only while the catalogue it
   // was handed stays the same array, so the filtering happens once per change
   // rather than on every refresh of the generation list.
-  const videoModels = useMemo(
+  const playableModels = useMemo(
     () =>
       models.filter(
         (item) =>
           item.status === 'active' &&
-          item.modality === 'video' &&
+          (item.modality === 'video' || item.modality === 'image') &&
           item.provider !== 'development' &&
           Boolean(item.request_form),
       ),
     [models],
   );
-  const videoGenerations = useMemo(
-    () => generations.filter((item) => item.modality === 'video'),
+  const playableGenerations = useMemo(
+    () =>
+      generations.filter(
+        (item) => item.modality === 'video' || item.modality === 'image',
+      ),
     [generations],
   );
 
@@ -293,8 +346,8 @@ export function AdminConsole() {
           path="generations"
           element={
             <AdminGenerationsView
-              models={videoModels}
-              generations={videoGenerations}
+              models={playableModels}
+              generations={playableGenerations}
               onCreated={loadGenerations}
               onSelect={openGenerationDetails}
             />
@@ -314,7 +367,14 @@ export function AdminConsole() {
         />
         <Route
           path="users"
-          element={<UsersTable users={users} onStatus={setStatus} />}
+          element={
+            <UsersTable
+              users={users}
+              onStatus={setStatus}
+              onUpdateCapabilities={updateCapabilities}
+              onTopup={topupUser}
+            />
+          }
         />
         <Route path="users/:userId" element={<UserDetail />} />
         <Route
@@ -807,13 +867,20 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     displayName: preset.display_name,
     provider: preset.name,
     upstreamModel: preset.upstream_model,
+    billingMode:
+      preset.modality === 'image' ? 'per_request' : 'per_output_second',
     bindings: [newBinding('default', preset.endpoint)],
     profile: JSON.stringify(preset.profile, null, 2),
     rates:
       preset.name === 'minimax'
         ? officialH3Rates.map((rate) => ({ ...rate }))
         : [],
-    unitPrice: preset.name === 'minimax' ? '80' : '0',
+    unitPrice:
+      preset.name === 'minimax'
+        ? '80'
+        : preset.modality === 'image'
+          ? '20'
+          : '0',
   };
 }
 
@@ -1668,17 +1735,75 @@ function parseRateDimensions(value: string): Record<string, string> {
 function UsersTable({
   users,
   onStatus,
+  onUpdateCapabilities,
+  onTopup,
 }: {
   users: AdminUser[];
   onStatus: (user: AdminUser, status: Tenant['status']) => Promise<void>;
+  onUpdateCapabilities: (
+    user: AdminUser,
+    capabilities: { image_enabled?: boolean; video_enabled?: boolean },
+  ) => Promise<void>;
+  onTopup: (
+    user: AdminUser,
+    amount: number,
+    currency: string,
+    reason: string,
+  ) => Promise<void>;
 }) {
   const { t } = useI18n();
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [nextStatus, setNextStatus] = useState<Tenant['status']>('suspended');
+  const [capabilityUser, setCapabilityUser] = useState<AdminUser | null>(null);
+  const [imageEnabled, setImageEnabled] = useState(true);
+  const [videoEnabled, setVideoEnabled] = useState(true);
+  const [capBusy, setCapBusy] = useState(false);
+  const [topupUser, setTopupUser] = useState<AdminUser | null>(null);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [topupReason, setTopupReason] = useState('');
+  const [topupBusy, setTopupBusy] = useState(false);
+  const [topupError, setTopupError] = useState('');
+
   function confirm(user: AdminUser, status: Tenant['status']) {
     setSelected(user);
     setNextStatus(status);
   }
+
+  async function handleSaveCapabilities() {
+    if (!capabilityUser) return;
+    setCapBusy(true);
+    try {
+      await onUpdateCapabilities(capabilityUser, {
+        image_enabled: imageEnabled,
+        video_enabled: videoEnabled,
+      });
+      setCapabilityUser(null);
+    } finally {
+      setCapBusy(false);
+    }
+  }
+
+  async function handleTopupSubmit(e: FormEvent) {
+    e.preventDefault();
+    if (!topupUser) return;
+    const num = parseFloat(topupAmount);
+    if (Number.isNaN(num) || num <= 0) {
+      setTopupError('请输入有效金额');
+      return;
+    }
+    const minorUnits = Math.round(num * 100);
+    setTopupBusy(true);
+    setTopupError('');
+    try {
+      await onTopup(topupUser, minorUnits, 'CNY', topupReason || '管理员充值');
+      setTopupUser(null);
+    } catch (err) {
+      setTopupError(err instanceof Error ? err.message : t('users.topupError'));
+    } finally {
+      setTopupBusy(false);
+    }
+  }
+
   return (
     <section className="panel table-wrap">
       <div className="panel-heading table-heading">
@@ -1696,6 +1821,7 @@ function UsersTable({
             <tr>
               <th>{t('users.columnAccount')}</th>
               <th>{t('users.columnWorkspace')}</th>
+              <th>{t('users.capabilities')}</th>
               <th>{t('users.columnRole')}</th>
               <th>{t('users.columnMembers')}</th>
               <th>{t('users.columnGenerations')}</th>
@@ -1734,6 +1860,29 @@ function UsersTable({
                   ) : (
                     <span className="muted">{t('users.noWorkspace')}</span>
                   )}
+                </td>
+                <td>
+                  <div
+                    className="status-cell"
+                    style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}
+                  >
+                    <span
+                      className={`status ${user.image_enabled !== false ? 'status-active' : 'status-suspended'}`}
+                    >
+                      {t('users.imageCapability')}:{' '}
+                      {user.image_enabled !== false
+                        ? t('models.statusActive')
+                        : t('models.statusInactive')}
+                    </span>
+                    <span
+                      className={`status ${user.video_enabled !== false ? 'status-active' : 'status-suspended'}`}
+                    >
+                      {t('users.videoCapability')}:{' '}
+                      {user.video_enabled !== false
+                        ? t('models.statusActive')
+                        : t('models.statusInactive')}
+                    </span>
+                  </div>
                 </td>
                 <td>{user.role ? formatStatus(user.role) : '—'}</td>
                 <td>{user.tenant.id ? user.member_count : '—'}</td>
@@ -1775,6 +1924,31 @@ function UsersTable({
                         <DropdownMenu.Content className="menu" align="end">
                           <DropdownMenu.Item
                             className="menu-item"
+                            onSelect={() => {
+                              setCapabilityUser(user);
+                              setImageEnabled(user.image_enabled !== false);
+                              setVideoEnabled(user.video_enabled !== false);
+                            }}
+                          >
+                            <Sliders size={15} />
+                            {t('users.editCapabilities')}
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Item
+                            className="menu-item"
+                            disabled={!user.tenant.id}
+                            onSelect={() => {
+                              setTopupUser(user);
+                              setTopupAmount('');
+                              setTopupReason('');
+                              setTopupError('');
+                            }}
+                          >
+                            <Wallet size={15} />
+                            {t('users.topup')}
+                          </DropdownMenu.Item>
+                          <DropdownMenu.Separator className="menu-separator" />
+                          <DropdownMenu.Item
+                            className="menu-item"
                             disabled={user.tenant.status === 'active'}
                             onSelect={() => confirm(user, 'active')}
                           >
@@ -1811,6 +1985,8 @@ function UsersTable({
           <span>{t('users.emptyNote')}</span>
         </div>
       )}
+
+      {/* Tenant status dialog */}
       <Dialog.Root
         open={Boolean(selected)}
         onOpenChange={(open) => !open && setSelected(null)}
@@ -1870,6 +2046,166 @@ function UsersTable({
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
+
+      {/* Capability dialog */}
+      <Dialog.Root
+        open={Boolean(capabilityUser)}
+        onOpenChange={(open) => !open && setCapabilityUser(null)}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="dialog-content small">
+            <div className="dialog-heading">
+              <div>
+                <Dialog.Title>
+                  {t('users.dialogCapabilitiesTitle')}
+                </Dialog.Title>
+                <Dialog.Description>
+                  {t('users.dialogCapabilitiesNote')}
+                </Dialog.Description>
+              </div>
+              <Dialog.Close className="icon-button">
+                <X size={18} />
+              </Dialog.Close>
+            </div>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                margin: '16px 0',
+              }}
+            >
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={imageEnabled}
+                  onChange={(e) => setImageEnabled(e.target.checked)}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <b>{t('users.imageEnabled')}</b>
+              </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={videoEnabled}
+                  onChange={(e) => setVideoEnabled(e.target.checked)}
+                  style={{ width: '18px', height: '18px' }}
+                />
+                <b>{t('users.videoEnabled')}</b>
+              </label>
+            </div>
+            <div className="dialog-actions">
+              <Dialog.Close className="button secondary">
+                {t('common.cancel')}
+              </Dialog.Close>
+              <button
+                className="button primary"
+                disabled={capBusy}
+                onClick={() => void handleSaveCapabilities()}
+              >
+                {t(
+                  capBusy
+                    ? 'users.savingCapabilities'
+                    : 'users.saveCapabilities',
+                )}
+              </button>
+            </div>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+
+      {/* Topup dialog */}
+      <Dialog.Root
+        open={Boolean(topupUser)}
+        onOpenChange={(open) => !open && setTopupUser(null)}
+      >
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content className="dialog-content small">
+            <form onSubmit={handleTopupSubmit}>
+              <div className="dialog-heading">
+                <div>
+                  <Dialog.Title>{t('users.dialogTopupTitle')}</Dialog.Title>
+                  <Dialog.Description>
+                    {t('users.dialogTopupNote')} ({topupUser?.email})
+                  </Dialog.Description>
+                </div>
+                <Dialog.Close className="icon-button" type="button">
+                  <X size={18} />
+                </Dialog.Close>
+              </div>
+              {topupError && (
+                <div
+                  className="banner-error"
+                  role="alert"
+                  style={{ margin: '12px 0' }}
+                >
+                  {topupError}
+                </div>
+              )}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  margin: '16px 0',
+                }}
+              >
+                <div className="field">
+                  <span className="field-label">{t('users.topupAmount')}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    required
+                    className="text-input"
+                    placeholder={t('users.topupAmountPlaceholder')}
+                    value={topupAmount}
+                    onChange={(e) => setTopupAmount(e.target.value)}
+                  />
+                </div>
+                <div className="field">
+                  <span className="field-label">{t('users.topupReason')}</span>
+                  <input
+                    type="text"
+                    className="text-input"
+                    placeholder={t('users.topupReasonPlaceholder')}
+                    value={topupReason}
+                    onChange={(e) => setTopupReason(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="dialog-actions">
+                <Dialog.Close className="button secondary" type="button">
+                  {t('common.cancel')}
+                </Dialog.Close>
+                <button
+                  type="submit"
+                  className="button primary"
+                  disabled={topupBusy || !topupAmount}
+                >
+                  {t(topupBusy ? 'users.topupSubmitting' : 'users.topupSubmit')}
+                </button>
+              </div>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
     </section>
   );
 }
@@ -1879,39 +2215,105 @@ function UserDetail() {
   const { userId = '' } = useParams();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
+  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [selected, setSelected] = useState<Generation | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState('');
+  const [topupReason, setTopupReason] = useState('');
+  const [topupBusy, setTopupBusy] = useState(false);
+  const [topupError, setTopupError] = useState('');
+  const [capBusy, setCapBusy] = useState(false);
   const base = `/v1/admin/users/${encodeURIComponent(userId)}`;
 
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const [profile, jobs] = await Promise.all([
-          api<AdminUser>(base, {}, true),
-          api<{ data: Generation[] }>(`${base}/generations?limit=50`, {}, true),
-        ]);
-        if (cancelled) return;
-        setUser(profile);
-        setGenerations(jobs.data);
-      } catch (reason) {
-        if (!cancelled)
-          setError(
-            reason instanceof Error
-              ? reason.message
-              : t('userDetail.errorLoad'),
-          );
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+  const loadData = useCallback(async () => {
+    try {
+      const [profile, jobs, txs] = await Promise.all([
+        api<AdminUser>(base, {}, true),
+        api<{ data: Generation[] }>(`${base}/generations?limit=50`, {}, true),
+        api<{ data: TransactionRecord[] }>(
+          `${base}/transactions?limit=50`,
+          {},
+          true,
+        ).catch(() => ({ data: [] })),
+      ]);
+      setUser(profile);
+      setGenerations(jobs.data);
+      setTransactions(txs.data);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : t('userDetail.errorLoad'),
+      );
+    } finally {
+      setLoading(false);
+    }
   }, [base, t]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  async function toggleCapability(
+    key: 'image_enabled' | 'video_enabled',
+    currentVal: boolean,
+  ) {
+    if (!user) return;
+    setCapBusy(true);
+    try {
+      const updated = await api<AdminUser>(
+        base,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ [key]: !currentVal }),
+        },
+        true,
+      );
+      setUser(updated);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to update capabilities',
+      );
+    } finally {
+      setCapBusy(false);
+    }
+  }
+
+  async function handleTopup(e: FormEvent) {
+    e.preventDefault();
+    if (!user) return;
+    const num = parseFloat(topupAmount);
+    if (Number.isNaN(num) || num <= 0) {
+      setTopupError('请输入有效金额');
+      return;
+    }
+    setTopupBusy(true);
+    setTopupError('');
+    try {
+      await api(
+        `${base}/credits`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            amount: Math.round(num * 100),
+            currency: 'CNY',
+            reason: topupReason || '管理员充值',
+          }),
+        },
+        true,
+      );
+      setTopupOpen(false);
+      setTopupAmount('');
+      setTopupReason('');
+      await loadData();
+    } catch (err) {
+      setTopupError(err instanceof Error ? err.message : t('users.topupError'));
+    } finally {
+      setTopupBusy(false);
+    }
+  }
 
   async function openDetails(generation: Generation) {
     setSelected(generation);
@@ -1954,6 +2356,105 @@ function UserDetail() {
         </div>
       ) : user ? (
         <>
+          <div
+            className="panel"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              marginBottom: '20px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div>
+                <b>{t('users.capabilities')}:</b>
+              </div>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  disabled={capBusy}
+                  checked={user.image_enabled !== false}
+                  onChange={() =>
+                    void toggleCapability(
+                      'image_enabled',
+                      user.image_enabled !== false,
+                    )
+                  }
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span>
+                  {t('users.imageCapability')} (
+                  {user.image_enabled !== false
+                    ? t('models.statusActive')
+                    : t('models.statusInactive')}
+                  )
+                </span>
+              </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  disabled={capBusy}
+                  checked={user.video_enabled !== false}
+                  onChange={() =>
+                    void toggleCapability(
+                      'video_enabled',
+                      user.video_enabled !== false,
+                    )
+                  }
+                  style={{ width: '16px', height: '16px' }}
+                />
+                <span>
+                  {t('users.videoCapability')} (
+                  {user.video_enabled !== false
+                    ? t('models.statusActive')
+                    : t('models.statusInactive')}
+                  )
+                </span>
+              </label>
+            </div>
+            {user.tenant.id && (
+              <button
+                type="button"
+                className="button primary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+                onClick={() => {
+                  setTopupAmount('');
+                  setTopupReason('');
+                  setTopupError('');
+                  setTopupOpen(true);
+                }}
+              >
+                <Wallet size={15} />
+                {t('users.topup')}
+              </button>
+            )}
+          </div>
           <div className="admin-grid">
             <section className="panel">
               <div className="panel-heading">
@@ -2079,6 +2580,163 @@ function UserDetail() {
               onSelect={openDetails}
             />
           </section>
+          <section className="panel table-wrap" style={{ marginTop: '24px' }}>
+            <div className="panel-heading table-heading">
+              <div>
+                <h2>{t('billing.transactions')}</h2>
+                <p>{t('billing.note')}</p>
+              </div>
+              <span className="count-pill">
+                {t('userDetail.loaded', { count: transactions.length })}
+              </span>
+            </div>
+            {transactions.length > 0 ? (
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t('billing.columnTime')}</th>
+                    <th>{t('billing.columnType')}</th>
+                    <th>{t('billing.columnAmount')}</th>
+                    <th>{t('billing.columnDetails')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.map((tx) => {
+                    const isGrant = tx.type === 'grant';
+                    return (
+                      <tr key={tx.id}>
+                        <td>{formatDate(tx.created_at)}</td>
+                        <td>
+                          <span
+                            className={`status ${isGrant ? 'status-active' : 'status-submitted'}`}
+                          >
+                            {isGrant
+                              ? t('billing.typeGrant')
+                              : t('billing.typeCapture')}
+                          </span>
+                        </td>
+                        <td>
+                          <b style={{ color: isGrant ? '#10b981' : 'inherit' }}>
+                            {isGrant ? '+' : ''}
+                            {formatAmount(tx.amount, tx.currency)}
+                          </b>
+                        </td>
+                        <td>
+                          <div>
+                            {tx.reason && <span>{tx.reason}</span>}
+                            {tx.model && (
+                              <small
+                                style={{
+                                  display: 'block',
+                                  color: 'var(--muted, #64748b)',
+                                }}
+                              >
+                                模型: {tx.model}{' '}
+                                {tx.prompt
+                                  ? `· ${tx.prompt.slice(0, 35)}...`
+                                  : ''}
+                              </small>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            ) : (
+              <div className="empty-state">
+                <Wallet size={22} />
+                <b>{t('billing.emptyTransactions')}</b>
+              </div>
+            )}
+          </section>
+
+          {/* Topup dialog in UserDetail */}
+          <Dialog.Root
+            open={topupOpen}
+            onOpenChange={(open) => !open && setTopupOpen(false)}
+          >
+            <Dialog.Portal>
+              <Dialog.Overlay className="dialog-overlay" />
+              <Dialog.Content className="dialog-content small">
+                <form onSubmit={handleTopup}>
+                  <div className="dialog-heading">
+                    <div>
+                      <Dialog.Title>{t('users.dialogTopupTitle')}</Dialog.Title>
+                      <Dialog.Description>
+                        {t('users.dialogTopupNote')} ({user.email})
+                      </Dialog.Description>
+                    </div>
+                    <Dialog.Close className="icon-button" type="button">
+                      <X size={18} />
+                    </Dialog.Close>
+                  </div>
+                  {topupError && (
+                    <div
+                      className="banner-error"
+                      role="alert"
+                      style={{ margin: '12px 0' }}
+                    >
+                      {topupError}
+                    </div>
+                  )}
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '12px',
+                      margin: '16px 0',
+                    }}
+                  >
+                    <div className="field">
+                      <span className="field-label">
+                        {t('users.topupAmount')}
+                      </span>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        className="text-input"
+                        placeholder={t('users.topupAmountPlaceholder')}
+                        value={topupAmount}
+                        onChange={(e) => setTopupAmount(e.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <span className="field-label">
+                        {t('users.topupReason')}
+                      </span>
+                      <input
+                        type="text"
+                        className="text-input"
+                        placeholder={t('users.topupReasonPlaceholder')}
+                        value={topupReason}
+                        onChange={(e) => setTopupReason(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="dialog-actions">
+                    <Dialog.Close className="button secondary" type="button">
+                      {t('common.cancel')}
+                    </Dialog.Close>
+                    <button
+                      type="submit"
+                      className="button primary"
+                      disabled={topupBusy || !topupAmount}
+                    >
+                      {t(
+                        topupBusy
+                          ? 'users.topupSubmitting'
+                          : 'users.topupSubmit',
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </Dialog.Content>
+            </Dialog.Portal>
+          </Dialog.Root>
         </>
       ) : null}
       <GenerationDetails

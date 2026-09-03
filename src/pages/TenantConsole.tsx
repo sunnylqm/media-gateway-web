@@ -9,6 +9,7 @@ import {
   Plus,
   Sparkles,
   Trash2,
+  Wallet,
   X,
 } from 'lucide-react';
 import { Dialog } from 'radix-ui';
@@ -20,6 +21,7 @@ import {
   useState,
 } from 'react';
 import {
+  Link,
   Navigate,
   Route,
   Routes,
@@ -30,17 +32,19 @@ import { APIError, api } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
-import { formatDate, formatStatus } from '../format';
+import { formatAmount, formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
 import { modelPathSlug } from '../lib/requestForm';
 import type {
   APIKey,
   APIKeySecret,
   Artifact,
+  Balance,
   CreatedAPIKey,
   Generation,
   IdentityProfile,
   PublicModel,
+  TransactionRecord,
 } from '../types';
 
 type GenerationList = { data: Generation[] };
@@ -56,17 +60,20 @@ export function TenantConsole() {
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<Generation | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
+  const [balance, setBalance] = useState<Balance | null>(null);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const [identity, jobs, catalog] = await Promise.all([
+      const [identity, jobs, catalog, bal] = await Promise.all([
         api<IdentityProfile>('/v1/auth/me'),
         api<GenerationList>('/v1/generations?limit=50'),
         api<{ data: PublicModel[] }>('/v1/models'),
+        api<Balance>('/v1/billing/balance').catch(() => null),
       ]);
       setProfile(identity);
       setGenerations(jobs.data);
+      if (bal) setBalance(bal);
       const publicModels = catalog.data.filter(
         (item) => item.provider !== 'development',
       );
@@ -178,13 +185,44 @@ export function TenantConsole() {
           to: '/app/api-keys',
           icon: <KeyRound size={17} />,
         },
+        {
+          label: t('nav.billing'),
+          to: '/app/billing',
+          icon: <Wallet size={17} />,
+        },
       ]}
       title={t('tenant.title')}
       description={t('tenant.description', { email: profile.user.email })}
       actions={
-        location.pathname === '/app/api-keys' ? undefined : (
-          <GenerationComposer models={models} onCreated={load} />
-        )
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {balance && (
+            <Link
+              to="/app/billing"
+              className="button secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 12px',
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+              }}
+            >
+              <Wallet size={15} />
+              <span>
+                {t('billing.badge')}:{' '}
+                {formatAmount(balance.available, balance.currency)}
+              </span>
+            </Link>
+          )}
+          {location.pathname !== '/app/api-keys' && (
+            <GenerationComposer
+              models={models}
+              user={profile.user}
+              onCreated={load}
+            />
+          )}
+        </div>
       }
       onLogout={() => void logout()}
     >
@@ -199,6 +237,7 @@ export function TenantConsole() {
           element={
             <Overview
               stats={stats}
+              balance={balance}
               generations={generations.slice(0, 6)}
               onSelect={openDetails}
             />
@@ -214,6 +253,10 @@ export function TenantConsole() {
           }
         />
         <Route path="api-keys" element={<APIKeysView models={models} />} />
+        <Route
+          path="billing"
+          element={<BillingView balance={balance} onReload={load} />}
+        />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Routes>
       <GenerationDetails
@@ -622,10 +665,12 @@ function APIKeysView({ models }: { models: PublicModel[] }) {
 
 function Overview({
   stats,
+  balance,
   generations,
   onSelect,
 }: {
   stats: Record<string, number>;
+  balance: Balance | null;
   generations: Generation[];
   onSelect: (generation: Generation) => void;
 }) {
@@ -633,6 +678,14 @@ function Overview({
   return (
     <>
       <section className="metric-grid">
+        {balance && (
+          <Metric
+            label={t('billing.available')}
+            value={formatAmount(balance.available, balance.currency)}
+            note={t('billing.badge')}
+            tone="blue"
+          />
+        )}
         <Metric
           label={t('overview.total')}
           value={stats.total}
@@ -675,6 +728,150 @@ function Overview({
   );
 }
 
+function BillingView({
+  balance,
+  onReload: _onReload,
+}: {
+  balance: Balance | null;
+  onReload: () => void;
+}) {
+  const { t } = useI18n();
+  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const loadTransactions = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api<{ data: TransactionRecord[] }>(
+        '/v1/billing/transactions?limit=100',
+      );
+      setTransactions(res.data);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to load transactions',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTransactions();
+  }, [loadTransactions]);
+
+  const currency = balance?.currency || 'CNY';
+
+  return (
+    <div className="billing-view">
+      <section className="metric-grid">
+        <Metric
+          label={t('billing.available')}
+          value={balance ? formatAmount(balance.available, currency) : '—'}
+          note={balance?.enforced ? '扣费门槛已启用' : '正常'}
+          tone="green"
+        />
+        <Metric
+          label={t('billing.totalCredited')}
+          value={balance ? formatAmount(balance.credited, currency) : '—'}
+          note="账户累计充值额"
+        />
+        <Metric
+          label={t('billing.totalSpent')}
+          value={balance ? formatAmount(balance.spent, currency) : '—'}
+          note="账户累计扣费额"
+          tone="amber"
+        />
+        <Metric
+          label={t('billing.reserved')}
+          value={balance ? formatAmount(balance.reserved, currency) : '—'}
+          note="任务进行中冻结额"
+        />
+      </section>
+
+      <section className="panel" style={{ marginTop: '24px' }}>
+        <div className="panel-heading">
+          <div>
+            <h2>{t('billing.transactions')}</h2>
+            <p>{t('billing.note')}</p>
+          </div>
+          <Wallet size={19} />
+        </div>
+
+        {error && (
+          <div className="banner-error" role="alert">
+            {error}
+          </div>
+        )}
+
+        {loading ? (
+          <div className="empty-state">
+            <span className="loader" />
+          </div>
+        ) : transactions.length > 0 ? (
+          <table>
+            <thead>
+              <tr>
+                <th>{t('billing.columnTime')}</th>
+                <th>{t('billing.columnType')}</th>
+                <th>{t('billing.columnAmount')}</th>
+                <th>{t('billing.columnDetails')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.map((tx) => {
+                const isGrant = tx.type === 'grant';
+                return (
+                  <tr key={tx.id}>
+                    <td>{formatDate(tx.created_at)}</td>
+                    <td>
+                      <span
+                        className={`status ${isGrant ? 'status-active' : 'status-submitted'}`}
+                      >
+                        {isGrant
+                          ? t('billing.typeGrant')
+                          : t('billing.typeCapture')}
+                      </span>
+                    </td>
+                    <td>
+                      <b style={{ color: isGrant ? '#10b981' : 'inherit' }}>
+                        {isGrant ? '+' : ''}
+                        {formatAmount(tx.amount, tx.currency)}
+                      </b>
+                    </td>
+                    <td>
+                      <div>
+                        {tx.reason && <span>{tx.reason}</span>}
+                        {tx.model && (
+                          <small
+                            style={{
+                              display: 'block',
+                              color: 'var(--muted, #64748b)',
+                            }}
+                          >
+                            模型: {tx.model}{' '}
+                            {tx.prompt ? `· ${tx.prompt.slice(0, 35)}...` : ''}
+                          </small>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        ) : (
+          <div className="empty-state">
+            <Wallet size={22} />
+            <b>{t('billing.emptyTransactions')}</b>
+            <p>{t('billing.emptyTransactionsNote')}</p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function Metric({
   label,
   value,
@@ -682,7 +879,7 @@ function Metric({
   tone = 'blue',
 }: {
   label: string;
-  value: number;
+  value: number | string;
   note: string;
   tone?: string;
 }) {

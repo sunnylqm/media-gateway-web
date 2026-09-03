@@ -231,6 +231,7 @@ function ArtifactPreview({ artifact }: { artifact: Artifact }) {
   const { t } = useI18n();
   const [previewFailed, setPreviewFailed] = useState(false);
   const isVideo = artifact.mime_type.toLowerCase().startsWith('video/');
+  const isImage = artifact.mime_type.toLowerCase().startsWith('image/');
   const url = absoluteGatewayURL(artifact.url);
   return (
     <article className="artifact-card">
@@ -245,9 +246,18 @@ function ArtifactPreview({ artifact }: { artifact: Artifact }) {
           onError={() => setPreviewFailed(true)}
         />
       ) : null}
-      {isVideo && previewFailed ? (
+      {isImage && !previewFailed ? (
+        <img
+          className="artifact-image"
+          loading="lazy"
+          src={url}
+          alt={t('details.imagePreview')}
+          onError={() => setPreviewFailed(true)}
+        />
+      ) : null}
+      {(isVideo || isImage) && previewFailed ? (
         <div className="artifact-preview-error">
-          <Video size={20} />
+          {isVideo ? <Video size={20} /> : <Image size={20} />}
           <span>{t('details.previewFailed')}</span>
         </div>
       ) : null}
