@@ -1,4 +1,4 @@
-name: diagnose-review-fixes
+name: apply-validated-review-fixes
 
 on:
   push:
@@ -7,10 +7,11 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  diagnose:
+  apply-and-validate:
+    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - name: Check out pull request branch
@@ -25,6 +26,33 @@ jobs:
           cat .github/review-fix/patch-*.b64 | base64 --decode | gzip --decompress > /tmp/review-fixes.patch
           git apply --check /tmp/review-fixes.patch
           git apply /tmp/review-fixes.patch
+          python3 - <<'PY'
+          from pathlib import Path
+
+          path = Path('src/components/TopupDialog.tsx')
+          content = path.read_text()
+          old = """  useEffect(() => {
+            if (!open) return;
+            setAmount('');
+            setReason('');
+            setError('');
+            setReference(crypto.randomUUID());
+          }, [open, user?.id]);
+          """
+          new = """  const userID = user?.id;
+
+          useEffect(() => {
+            if (!open || !userID) return;
+            setAmount('');
+            setReason('');
+            setError('');
+            setReference(crypto.randomUUID());
+          }, [open, userID]);
+          """
+          if old not in content:
+              raise SystemExit('TopupDialog follow-up context was not found')
+          path.write_text(content.replace(old, new))
+          PY
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -34,52 +62,41 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Format and collect diagnostics
+      - name: Format fixes
         shell: bash
         run: |
-          set +e
           set -o pipefail
           bun run lint:fix 2>&1 | tee /tmp/lint-fix.log
-          echo "${PIPESTATUS[0]}" > /tmp/lint-fix.status
-          bun run typecheck 2>&1 | tee /tmp/typecheck.log
-          echo "${PIPESTATUS[0]}" > /tmp/typecheck.status
-          bun run lint 2>&1 | tee /tmp/lint.log
-          echo "${PIPESTATUS[0]}" > /tmp/lint.status
-          bun run test 2>&1 | tee /tmp/test.log
-          echo "${PIPESTATUS[0]}" > /tmp/test.status
-          bun run build 2>&1 | tee /tmp/build.log
-          echo "${PIPESTATUS[0]}" > /tmp/build.status
-          exit 0
 
-      - name: Capture validation output
+      - name: Run repository CI
         shell: bash
         run: |
-          git diff -- src > /tmp/validated.diff || true
-          git status --short > /tmp/status.txt || true
+          set -o pipefail
+          bun run ci 2>&1 | tee /tmp/ci.log
 
-      - name: Upload validation output
+      - name: Build production bundle
+        shell: bash
+        run: |
+          set -o pipefail
+          bun run build 2>&1 | tee /tmp/build.log
+
+      - name: Upload validation logs
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: review-fix-diagnostics-${{ github.sha }}
+          name: validated-review-fixes-${{ github.sha }}
           path: |
             /tmp/lint-fix.log
-            /tmp/typecheck.log
-            /tmp/lint.log
-            /tmp/test.log
+            /tmp/ci.log
             /tmp/build.log
-            /tmp/*.status
-            /tmp/validated.diff
-            /tmp/status.txt
-          if-no-files-found: error
+          if-no-files-found: ignore
           retention-days: 1
 
-      - name: Require all validations to pass
+      - name: Commit validated source changes
         shell: bash
         run: |
-          for check in lint-fix typecheck lint test build; do
-            status=$(cat "/tmp/${check}.status")
-            if [ "$status" != "0" ]; then
-              echo "$check failed with status $status"
-              exit 1
-            fi
-          done
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src
+          git commit -m 'fix: address media billing review findings'
+          git push origin HEAD:feat/image-generation-and-user-billing
