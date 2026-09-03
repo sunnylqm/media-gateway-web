@@ -23,6 +23,7 @@ import {
 import { absoluteGatewayURL, api } from '../api';
 import { formatAmount, formatBytes, formatLabel } from '../format';
 import { useI18n } from '../i18n';
+import { selectComposerModel } from '../lib/composerSelection';
 import {
   acceptAttribute,
   buildRequestBody,
@@ -96,14 +97,6 @@ export function GenerationComposer({
   const [error, setError] = useState('');
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    if (!videoAllowed && imageAllowed && modality === 'video') {
-      setModality('image');
-    } else if (!imageAllowed && videoAllowed && modality === 'image') {
-      setModality('video');
-    }
-  }, [imageAllowed, videoAllowed, modality]);
-
   const currentModalityAllowed =
     modality === 'image' ? imageAllowed : videoAllowed;
 
@@ -146,15 +139,18 @@ export function GenerationComposer({
     });
   }, []);
 
-  // A workspace with no video model still has to open on something usable.
+  // Keep modality and model as one valid selection. Treating them in separate
+  // effects can oscillate when the catalog only contains a disabled modality.
   useEffect(() => {
-    if (availableModels.some((item) => item.id === model)) return;
-    if (!availableModels.length && models.length) {
-      setModality(models[0].modality);
-      return;
-    }
-    setModel(availableModels[0]?.id ?? '');
-  }, [availableModels, model, models]);
+    const next = selectComposerModel(
+      models,
+      { modality, model },
+      imageAllowed,
+      videoAllowed,
+    );
+    if (next.modality !== modality) setModality(next.modality);
+    if (next.model !== model) setModel(next.model);
+  }, [models, modality, model, imageAllowed, videoAllowed]);
 
   // The parameters a model declares, as a value rather than an array identity.
   // A console that refetches its catalogue hands down a fresh array on every

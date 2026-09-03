@@ -27,6 +27,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -41,8 +42,12 @@ import { APIError, api } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
-import { formatAmount, formatDate, formatDay, formatStatus } from '../format';
+import { TopupDialog } from '../components/TopupDialog';
+import { TransactionsTable, useTransactions } from '../components/Transactions';
+import { formatDate, formatDay, formatStatus } from '../format';
 import { t, useI18n } from '../i18n';
+import { currentAdminUserPath } from '../lib/adminUserPath';
+import type { CreditRequest } from '../lib/billing';
 import type {
   AdminModel,
   AdminOverview,
@@ -54,7 +59,6 @@ import type {
   ModelBilling,
   ProtocolPreset,
   Tenant,
-  TransactionRecord,
 } from '../types';
 
 export function AdminConsole() {
@@ -220,32 +224,29 @@ export function AdminConsole() {
       setError(
         reason instanceof Error
           ? reason.message
-          : 'Failed to update user capabilities',
+          : translate('users.capabilitiesError'),
       );
       throw reason;
     }
   }
 
-  async function topupUser(
-    user: AdminUser,
-    amount: number,
-    currency: string,
-    reason: string,
-  ) {
+  async function topupUser(user: AdminUser, request: CreditRequest) {
     setError('');
     try {
       await api(
         `/v1/admin/users/${encodeURIComponent(user.id)}/credits`,
         {
           method: 'POST',
-          body: JSON.stringify({ amount, currency, reason }),
+          body: JSON.stringify(request),
         },
         true,
       );
       await load();
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : 'Failed to top up user',
+        reason instanceof Error
+          ? reason.message
+          : translate('users.topupError'),
       );
       throw reason;
     }
@@ -1744,12 +1745,7 @@ function UsersTable({
     user: AdminUser,
     capabilities: { image_enabled?: boolean; video_enabled?: boolean },
   ) => Promise<void>;
-  onTopup: (
-    user: AdminUser,
-    amount: number,
-    currency: string,
-    reason: string,
-  ) => Promise<void>;
+  onTopup: (user: AdminUser, request: CreditRequest) => Promise<void>;
 }) {
   const { t } = useI18n();
   const [selected, setSelected] = useState<AdminUser | null>(null);
@@ -1759,10 +1755,6 @@ function UsersTable({
   const [videoEnabled, setVideoEnabled] = useState(true);
   const [capBusy, setCapBusy] = useState(false);
   const [topupUser, setTopupUser] = useState<AdminUser | null>(null);
-  const [topupAmount, setTopupAmount] = useState('');
-  const [topupReason, setTopupReason] = useState('');
-  const [topupBusy, setTopupBusy] = useState(false);
-  const [topupError, setTopupError] = useState('');
 
   function confirm(user: AdminUser, status: Tenant['status']) {
     setSelected(user);
@@ -1780,27 +1772,6 @@ function UsersTable({
       setCapabilityUser(null);
     } finally {
       setCapBusy(false);
-    }
-  }
-
-  async function handleTopupSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!topupUser) return;
-    const num = parseFloat(topupAmount);
-    if (Number.isNaN(num) || num <= 0) {
-      setTopupError('请输入有效金额');
-      return;
-    }
-    const minorUnits = Math.round(num * 100);
-    setTopupBusy(true);
-    setTopupError('');
-    try {
-      await onTopup(topupUser, minorUnits, 'CNY', topupReason || '管理员充值');
-      setTopupUser(null);
-    } catch (err) {
-      setTopupError(err instanceof Error ? err.message : t('users.topupError'));
-    } finally {
-      setTopupBusy(false);
     }
   }
 
@@ -1936,12 +1907,7 @@ function UsersTable({
                           <DropdownMenu.Item
                             className="menu-item"
                             disabled={!user.tenant.id}
-                            onSelect={() => {
-                              setTopupUser(user);
-                              setTopupAmount('');
-                              setTopupReason('');
-                              setTopupError('');
-                            }}
+                            onSelect={() => setTopupUser(user)}
                           >
                             <Wallet size={15} />
                             {t('users.topup')}
@@ -2129,83 +2095,14 @@ function UsersTable({
         </Dialog.Portal>
       </Dialog.Root>
 
-      {/* Topup dialog */}
-      <Dialog.Root
+      <TopupDialog
+        user={topupUser}
         open={Boolean(topupUser)}
         onOpenChange={(open) => !open && setTopupUser(null)}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay className="dialog-overlay" />
-          <Dialog.Content className="dialog-content small">
-            <form onSubmit={handleTopupSubmit}>
-              <div className="dialog-heading">
-                <div>
-                  <Dialog.Title>{t('users.dialogTopupTitle')}</Dialog.Title>
-                  <Dialog.Description>
-                    {t('users.dialogTopupNote')} ({topupUser?.email})
-                  </Dialog.Description>
-                </div>
-                <Dialog.Close className="icon-button" type="button">
-                  <X size={18} />
-                </Dialog.Close>
-              </div>
-              {topupError && (
-                <div
-                  className="banner-error"
-                  role="alert"
-                  style={{ margin: '12px 0' }}
-                >
-                  {topupError}
-                </div>
-              )}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '12px',
-                  margin: '16px 0',
-                }}
-              >
-                <div className="field">
-                  <span className="field-label">{t('users.topupAmount')}</span>
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    required
-                    className="text-input"
-                    placeholder={t('users.topupAmountPlaceholder')}
-                    value={topupAmount}
-                    onChange={(e) => setTopupAmount(e.target.value)}
-                  />
-                </div>
-                <div className="field">
-                  <span className="field-label">{t('users.topupReason')}</span>
-                  <input
-                    type="text"
-                    className="text-input"
-                    placeholder={t('users.topupReasonPlaceholder')}
-                    value={topupReason}
-                    onChange={(e) => setTopupReason(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="dialog-actions">
-                <Dialog.Close className="button secondary" type="button">
-                  {t('common.cancel')}
-                </Dialog.Close>
-                <button
-                  type="submit"
-                  className="button primary"
-                  disabled={topupBusy || !topupAmount}
-                >
-                  {t(topupBusy ? 'users.topupSubmitting' : 'users.topupSubmit')}
-                </button>
-              </div>
-            </form>
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+        onSubmit={(request) =>
+          topupUser ? onTopup(topupUser, request) : Promise.resolve()
+        }
+      />
     </section>
   );
 }
@@ -2215,124 +2112,152 @@ function UserDetail() {
   const { userId = '' } = useParams();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [selected, setSelected] = useState<Generation | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [topupOpen, setTopupOpen] = useState(false);
-  const [topupAmount, setTopupAmount] = useState('');
-  const [topupReason, setTopupReason] = useState('');
-  const [topupBusy, setTopupBusy] = useState(false);
-  const [topupError, setTopupError] = useState('');
   const [capBusy, setCapBusy] = useState(false);
   const base = `/v1/admin/users/${encodeURIComponent(userId)}`;
+  const currentUserID = useRef(userId);
+  const loadSequence = useRef(0);
+  currentUserID.current = userId;
+  const transactions = useTransactions(`${base}/transactions`, true);
 
-  const loadData = useCallback(async () => {
-    try {
-      const [profile, jobs, txs] = await Promise.all([
-        api<AdminUser>(base, {}, true),
-        api<{ data: Generation[] }>(`${base}/generations?limit=50`, {}, true),
-        api<{ data: TransactionRecord[] }>(
-          `${base}/transactions?limit=50`,
-          {},
-          true,
-        ).catch(() => ({ data: [] })),
-      ]);
-      setUser(profile);
-      setGenerations(jobs.data);
-      setTransactions(txs.data);
-    } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : t('userDetail.errorLoad'),
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, [base, t]);
+  const loadData = useCallback(
+    async (signal?: AbortSignal, reset = false) => {
+      const sequence = ++loadSequence.current;
+      if (reset) {
+        setLoading(true);
+        setUser(null);
+        setGenerations([]);
+        setSelected(null);
+        setArtifacts([]);
+        setDetailsLoading(false);
+        setTopupOpen(false);
+        setCapBusy(false);
+      }
+      setError('');
+      try {
+        const [profile, jobs] = await Promise.all([
+          api<AdminUser>(base, signal ? { signal } : {}, true),
+          api<{ data: Generation[] }>(
+            `${base}/generations?limit=50`,
+            signal ? { signal } : {},
+            true,
+          ),
+        ]);
+        if (signal?.aborted || sequence !== loadSequence.current) return;
+        setUser(profile);
+        setGenerations(jobs.data);
+      } catch (reason) {
+        if (
+          signal?.aborted ||
+          sequence !== loadSequence.current ||
+          (reason instanceof DOMException && reason.name === 'AbortError')
+        ) {
+          return;
+        }
+        setError(
+          reason instanceof Error ? reason.message : t('userDetail.errorLoad'),
+        );
+      } finally {
+        if (!signal?.aborted && sequence === loadSequence.current) {
+          setLoading(false);
+        }
+      }
+    },
+    [base, t],
+  );
 
   useEffect(() => {
-    void loadData();
+    const controller = new AbortController();
+    void loadData(controller.signal, true);
+    return () => {
+      controller.abort();
+      loadSequence.current += 1;
+    };
   }, [loadData]);
 
   async function toggleCapability(
     key: 'image_enabled' | 'video_enabled',
-    currentVal: boolean,
+    currentValue: boolean,
   ) {
-    if (!user) return;
+    const target = user;
+    const path = target
+      ? currentAdminUserPath(target.id, currentUserID.current)
+      : null;
+    if (!target || !path) return;
     setCapBusy(true);
+    setError('');
     try {
       const updated = await api<AdminUser>(
-        base,
+        path,
         {
           method: 'PATCH',
-          body: JSON.stringify({ [key]: !currentVal }),
+          body: JSON.stringify({ [key]: !currentValue }),
         },
         true,
       );
-      setUser(updated);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to update capabilities',
-      );
+      if (currentUserID.current === target.id) setUser(updated);
+    } catch (reason) {
+      if (currentUserID.current === target.id) {
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : t('users.capabilitiesError'),
+        );
+      }
     } finally {
-      setCapBusy(false);
+      if (currentUserID.current === target.id) setCapBusy(false);
     }
   }
 
-  async function handleTopup(e: FormEvent) {
-    e.preventDefault();
-    if (!user) return;
-    const num = parseFloat(topupAmount);
-    if (Number.isNaN(num) || num <= 0) {
-      setTopupError('请输入有效金额');
-      return;
+  async function handleTopup(request: CreditRequest) {
+    const target = user;
+    const path = target
+      ? currentAdminUserPath(target.id, currentUserID.current, '/credits')
+      : null;
+    if (!target || !path) {
+      throw new Error(t('userDetail.errorUserChanged'));
     }
-    setTopupBusy(true);
-    setTopupError('');
-    try {
-      await api(
-        `${base}/credits`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            amount: Math.round(num * 100),
-            currency: 'CNY',
-            reason: topupReason || '管理员充值',
-          }),
-        },
-        true,
-      );
-      setTopupOpen(false);
-      setTopupAmount('');
-      setTopupReason('');
-      await loadData();
-    } catch (err) {
-      setTopupError(err instanceof Error ? err.message : t('users.topupError'));
-    } finally {
-      setTopupBusy(false);
+    await api(path, { method: 'POST', body: JSON.stringify(request) }, true);
+    if (currentUserID.current === target.id) {
+      await Promise.all([loadData(), transactions.reload()]);
     }
   }
 
   async function openDetails(generation: Generation) {
+    const target = user;
+    const path = target
+      ? currentAdminUserPath(
+          target.id,
+          currentUserID.current,
+          `/generations/${encodeURIComponent(generation.id)}`,
+        )
+      : null;
+    if (!target || !path) return;
     setSelected(generation);
     setArtifacts([]);
     setDetailsLoading(true);
+    setError('');
     try {
-      const path = `${base}/generations/${encodeURIComponent(generation.id)}`;
       const [details, artifactList] = await Promise.all([
         api<Generation>(path, {}, true),
         api<{ data: Artifact[] }>(`${path}/artifacts`, {}, true),
       ]);
+      if (currentUserID.current !== target.id) return;
       setSelected(details);
       setArtifacts(artifactList.data);
     } catch (reason) {
-      setError(
-        reason instanceof Error ? reason.message : t('tenant.errorDetails'),
-      );
+      if (currentUserID.current === target.id) {
+        setError(
+          reason instanceof Error ? reason.message : t('tenant.errorDetails'),
+        );
+      }
     } finally {
-      setDetailsLoading(false);
+      if (currentUserID.current === target.id) setDetailsLoading(false);
     }
   }
 
@@ -2443,12 +2368,7 @@ function UserDetail() {
                   alignItems: 'center',
                   gap: '6px',
                 }}
-                onClick={() => {
-                  setTopupAmount('');
-                  setTopupReason('');
-                  setTopupError('');
-                  setTopupOpen(true);
-                }}
+                onClick={() => setTopupOpen(true)}
               >
                 <Wallet size={15} />
                 {t('users.topup')}
@@ -2587,156 +2507,28 @@ function UserDetail() {
                 <p>{t('billing.note')}</p>
               </div>
               <span className="count-pill">
-                {t('userDetail.loaded', { count: transactions.length })}
+                {t('userDetail.loaded', {
+                  count: transactions.transactions.length,
+                })}
               </span>
             </div>
-            {transactions.length > 0 ? (
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t('billing.columnTime')}</th>
-                    <th>{t('billing.columnType')}</th>
-                    <th>{t('billing.columnAmount')}</th>
-                    <th>{t('billing.columnDetails')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.map((tx) => {
-                    const isGrant = tx.type === 'grant';
-                    return (
-                      <tr key={tx.id}>
-                        <td>{formatDate(tx.created_at)}</td>
-                        <td>
-                          <span
-                            className={`status ${isGrant ? 'status-active' : 'status-submitted'}`}
-                          >
-                            {isGrant
-                              ? t('billing.typeGrant')
-                              : t('billing.typeCapture')}
-                          </span>
-                        </td>
-                        <td>
-                          <b style={{ color: isGrant ? '#10b981' : 'inherit' }}>
-                            {isGrant ? '+' : ''}
-                            {formatAmount(tx.amount, tx.currency)}
-                          </b>
-                        </td>
-                        <td>
-                          <div>
-                            {tx.reason && <span>{tx.reason}</span>}
-                            {tx.model && (
-                              <small
-                                style={{
-                                  display: 'block',
-                                  color: 'var(--muted, #64748b)',
-                                }}
-                              >
-                                模型: {tx.model}{' '}
-                                {tx.prompt
-                                  ? `· ${tx.prompt.slice(0, 35)}...`
-                                  : ''}
-                              </small>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            ) : (
-              <div className="empty-state">
-                <Wallet size={22} />
-                <b>{t('billing.emptyTransactions')}</b>
-              </div>
-            )}
+            <TransactionsTable
+              transactions={transactions.transactions}
+              loading={transactions.loading}
+              loadingMore={transactions.loadingMore}
+              error={transactions.error}
+              hasMore={transactions.hasMore}
+              onLoadMore={transactions.loadMore}
+              onReload={transactions.reload}
+            />
           </section>
 
-          {/* Topup dialog in UserDetail */}
-          <Dialog.Root
+          <TopupDialog
+            user={user}
             open={topupOpen}
-            onOpenChange={(open) => !open && setTopupOpen(false)}
-          >
-            <Dialog.Portal>
-              <Dialog.Overlay className="dialog-overlay" />
-              <Dialog.Content className="dialog-content small">
-                <form onSubmit={handleTopup}>
-                  <div className="dialog-heading">
-                    <div>
-                      <Dialog.Title>{t('users.dialogTopupTitle')}</Dialog.Title>
-                      <Dialog.Description>
-                        {t('users.dialogTopupNote')} ({user.email})
-                      </Dialog.Description>
-                    </div>
-                    <Dialog.Close className="icon-button" type="button">
-                      <X size={18} />
-                    </Dialog.Close>
-                  </div>
-                  {topupError && (
-                    <div
-                      className="banner-error"
-                      role="alert"
-                      style={{ margin: '12px 0' }}
-                    >
-                      {topupError}
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px',
-                      margin: '16px 0',
-                    }}
-                  >
-                    <div className="field">
-                      <span className="field-label">
-                        {t('users.topupAmount')}
-                      </span>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0.01"
-                        required
-                        className="text-input"
-                        placeholder={t('users.topupAmountPlaceholder')}
-                        value={topupAmount}
-                        onChange={(e) => setTopupAmount(e.target.value)}
-                      />
-                    </div>
-                    <div className="field">
-                      <span className="field-label">
-                        {t('users.topupReason')}
-                      </span>
-                      <input
-                        type="text"
-                        className="text-input"
-                        placeholder={t('users.topupReasonPlaceholder')}
-                        value={topupReason}
-                        onChange={(e) => setTopupReason(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="dialog-actions">
-                    <Dialog.Close className="button secondary" type="button">
-                      {t('common.cancel')}
-                    </Dialog.Close>
-                    <button
-                      type="submit"
-                      className="button primary"
-                      disabled={topupBusy || !topupAmount}
-                    >
-                      {t(
-                        topupBusy
-                          ? 'users.topupSubmitting'
-                          : 'users.topupSubmit',
-                      )}
-                    </button>
-                  </div>
-                </form>
-              </Dialog.Content>
-            </Dialog.Portal>
-          </Dialog.Root>
+            onOpenChange={setTopupOpen}
+            onSubmit={handleTopup}
+          />
         </>
       ) : null}
       <GenerationDetails

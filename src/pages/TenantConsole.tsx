@@ -32,6 +32,7 @@ import { APIError, api } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
+import { TransactionsTable, useTransactions } from '../components/Transactions';
 import { formatAmount, formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
 import { modelPathSlug } from '../lib/requestForm';
@@ -44,7 +45,6 @@ import type {
   Generation,
   IdentityProfile,
   PublicModel,
-  TransactionRecord,
 } from '../types';
 
 type GenerationList = { data: Generation[] };
@@ -61,19 +61,37 @@ export function TenantConsole() {
   const [selected, setSelected] = useState<Generation | null>(null);
   const [artifacts, setArtifacts] = useState<Artifact[]>([]);
   const [balance, setBalance] = useState<Balance | null>(null);
+  const [balanceError, setBalanceError] = useState('');
+  const [balanceLoading, setBalanceLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
   const load = useCallback(async () => {
+    setError('');
+    setBalanceLoading(true);
     try {
-      const [identity, jobs, catalog, bal] = await Promise.all([
+      const balanceRequest = api<Balance>('/v1/billing/balance').then(
+        (value) => ({ ok: true as const, value }),
+        (reason: unknown) => ({ ok: false as const, reason }),
+      );
+      const [identity, jobs, catalog, balanceResult] = await Promise.all([
         api<IdentityProfile>('/v1/auth/me'),
         api<GenerationList>('/v1/generations?limit=50'),
         api<{ data: PublicModel[] }>('/v1/models'),
-        api<Balance>('/v1/billing/balance').catch(() => null),
+        balanceRequest,
       ]);
       setProfile(identity);
       setGenerations(jobs.data);
-      if (bal) setBalance(bal);
+      if (balanceResult.ok) {
+        setBalance(balanceResult.value);
+        setBalanceError('');
+      } else {
+        setBalance(null);
+        setBalanceError(
+          balanceResult.reason instanceof Error
+            ? balanceResult.reason.message
+            : t('billing.errorBalance'),
+        );
+      }
       const publicModels = catalog.data.filter(
         (item) => item.provider !== 'development',
       );
@@ -92,6 +110,7 @@ export function TenantConsole() {
       );
     } finally {
       setLoading(false);
+      setBalanceLoading(false);
     }
   }, [navigate, t]);
 
@@ -255,7 +274,14 @@ export function TenantConsole() {
         <Route path="api-keys" element={<APIKeysView models={models} />} />
         <Route
           path="billing"
-          element={<BillingView balance={balance} onReload={load} />}
+          element={
+            <BillingView
+              balance={balance}
+              balanceError={balanceError}
+              balanceLoading={balanceLoading}
+              onReload={load}
+            />
+          }
         />
         <Route path="*" element={<Navigate to="/app" replace />} />
       </Routes>
@@ -730,66 +756,70 @@ function Overview({
 
 function BillingView({
   balance,
-  onReload: _onReload,
+  balanceError,
+  balanceLoading,
+  onReload,
 }: {
   balance: Balance | null;
-  onReload: () => void;
+  balanceError: string;
+  balanceLoading: boolean;
+  onReload: () => Promise<void>;
 }) {
   const { t } = useI18n();
-  const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-
-  const loadTransactions = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await api<{ data: TransactionRecord[] }>(
-        '/v1/billing/transactions?limit=100',
-      );
-      setTransactions(res.data);
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to load transactions',
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadTransactions();
-  }, [loadTransactions]);
-
+  const transactions = useTransactions('/v1/billing/transactions');
   const currency = balance?.currency || 'CNY';
 
   return (
     <div className="billing-view">
+      {balanceError && (
+        <div className="banner-error transaction-error" role="alert">
+          <span>{balanceError}</span>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={balanceLoading}
+            onClick={() => void onReload()}
+          >
+            {t('common.retry')}
+          </button>
+        </div>
+      )}
       <section className="metric-grid">
         <Metric
           label={t('billing.available')}
           value={balance ? formatAmount(balance.available, currency) : '—'}
-          note={balance?.enforced ? '扣费门槛已启用' : '正常'}
+          note={
+            balanceLoading
+              ? t('billing.loadingBalance')
+              : balance
+                ? t(
+                    balance.enforced
+                      ? 'billing.enforcedOn'
+                      : 'billing.enforcedOff',
+                  )
+                : t('billing.balanceUnavailable')
+          }
           tone="green"
         />
         <Metric
           label={t('billing.totalCredited')}
           value={balance ? formatAmount(balance.credited, currency) : '—'}
-          note="账户累计充值额"
+          note={t('billing.totalCreditedNote')}
         />
         <Metric
           label={t('billing.totalSpent')}
           value={balance ? formatAmount(balance.spent, currency) : '—'}
-          note="账户累计扣费额"
+          note={t('billing.totalSpentNote')}
           tone="amber"
         />
         <Metric
           label={t('billing.reserved')}
           value={balance ? formatAmount(balance.reserved, currency) : '—'}
-          note="任务进行中冻结额"
+          note={t('billing.reservedNote')}
         />
       </section>
 
-      <section className="panel" style={{ marginTop: '24px' }}>
+      <section className="panel table-wrap" style={{ marginTop: '24px' }}>
         <div className="panel-heading">
           <div>
             <h2>{t('billing.transactions')}</h2>
@@ -797,76 +827,15 @@ function BillingView({
           </div>
           <Wallet size={19} />
         </div>
-
-        {error && (
-          <div className="banner-error" role="alert">
-            {error}
-          </div>
-        )}
-
-        {loading ? (
-          <div className="empty-state">
-            <span className="loader" />
-          </div>
-        ) : transactions.length > 0 ? (
-          <table>
-            <thead>
-              <tr>
-                <th>{t('billing.columnTime')}</th>
-                <th>{t('billing.columnType')}</th>
-                <th>{t('billing.columnAmount')}</th>
-                <th>{t('billing.columnDetails')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {transactions.map((tx) => {
-                const isGrant = tx.type === 'grant';
-                return (
-                  <tr key={tx.id}>
-                    <td>{formatDate(tx.created_at)}</td>
-                    <td>
-                      <span
-                        className={`status ${isGrant ? 'status-active' : 'status-submitted'}`}
-                      >
-                        {isGrant
-                          ? t('billing.typeGrant')
-                          : t('billing.typeCapture')}
-                      </span>
-                    </td>
-                    <td>
-                      <b style={{ color: isGrant ? '#10b981' : 'inherit' }}>
-                        {isGrant ? '+' : ''}
-                        {formatAmount(tx.amount, tx.currency)}
-                      </b>
-                    </td>
-                    <td>
-                      <div>
-                        {tx.reason && <span>{tx.reason}</span>}
-                        {tx.model && (
-                          <small
-                            style={{
-                              display: 'block',
-                              color: 'var(--muted, #64748b)',
-                            }}
-                          >
-                            模型: {tx.model}{' '}
-                            {tx.prompt ? `· ${tx.prompt.slice(0, 35)}...` : ''}
-                          </small>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        ) : (
-          <div className="empty-state">
-            <Wallet size={22} />
-            <b>{t('billing.emptyTransactions')}</b>
-            <p>{t('billing.emptyTransactionsNote')}</p>
-          </div>
-        )}
+        <TransactionsTable
+          transactions={transactions.transactions}
+          loading={transactions.loading}
+          loadingMore={transactions.loadingMore}
+          error={transactions.error}
+          hasMore={transactions.hasMore}
+          onLoadMore={transactions.loadMore}
+          onReload={transactions.reload}
+        />
       </section>
     </div>
   );

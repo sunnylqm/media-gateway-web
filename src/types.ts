@@ -34,7 +34,7 @@ export type Balance = {
 export type TransactionRecord = {
   id: string;
   object: 'transaction';
-  type: 'grant' | 'capture';
+  type: string;
   amount: number;
   currency: string;
   reason: string;
