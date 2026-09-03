@@ -86,9 +86,13 @@ export function GenerationComposer({
   const [open, setOpen] = useState(false);
   const imageAllowed = admin || user?.image_enabled !== false;
   const videoAllowed = admin || user?.video_enabled !== false;
-  const [modality, setModality] = useState<'image' | 'video'>(
-    videoAllowed ? 'video' : 'image',
-  );
+  const [modality, setModality] = useState<'image' | 'video'>(() => {
+    if (videoAllowed && models.some((m) => m.modality === 'video'))
+      return 'video';
+    if (imageAllowed && models.some((m) => m.modality === 'image'))
+      return 'image';
+    return videoAllowed ? 'video' : 'image';
+  });
   const [model, setModel] = useState('');
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -578,6 +582,13 @@ export function GenerationComposer({
                   <Picker
                     value={model}
                     onChange={setModel}
+                    placeholder={
+                      availableModels.length
+                        ? undefined
+                        : t('composer.noModel', {
+                            modality: t(`modality.${modality}`),
+                          })
+                    }
                     options={availableModels.map((item) => ({
                       value: item.id,
                       label: item.display_name,
@@ -1118,15 +1129,21 @@ function Picker({
   value,
   onChange,
   options,
+  placeholder,
 }: {
   value: string;
   onChange: (value: string) => void;
   options: Array<{ value: string; label: string }>;
+  placeholder?: string;
 }) {
   return (
-    <Select.Root value={value} onValueChange={onChange}>
+    <Select.Root
+      value={value}
+      onValueChange={onChange}
+      disabled={!options.length}
+    >
       <Select.Trigger className="select-trigger">
-        <Select.Value />
+        <Select.Value placeholder={placeholder} />
         <Select.Icon>
           <ListFilter size={15} />
         </Select.Icon>
