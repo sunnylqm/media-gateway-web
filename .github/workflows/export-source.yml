@@ -1,26 +1,13 @@
-name: export-source
+name: review-fix-staging
 
 on:
-  push:
-    branches:
-      - feat/image-generation-and-user-billing
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  export:
+  staged:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-      - name: Upload source archive
-        uses: actions/upload-artifact@v4
-        with:
-          name: source-${{ github.sha }}
-          path: |
-            .
-            !.git
-          include-hidden-files: true
-          retention-days: 1
+      - run: echo "Review fix payload is being staged."
