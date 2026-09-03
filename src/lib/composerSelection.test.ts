@@ -27,15 +27,26 @@ describe('composer model selection', () => {
     ).toEqual({ modality: 'video', model: '' });
   });
 
-  it('moves to the first model in another allowed modality', () => {
+  it('moves to the first model in another allowed modality when current modality is disallowed', () => {
     expect(
       selectComposerModel(
         [image],
         { modality: 'video', model: '' },
         true,
-        true,
+        false,
       ),
     ).toEqual({ modality: 'image', model: image.id });
+  });
+
+  it('keeps selected modality even if catalog has no model for it yet', () => {
+    expect(
+      selectComposerModel(
+        [video],
+        { modality: 'image', model: '' },
+        true,
+        true,
+      ),
+    ).toEqual({ modality: 'image', model: '' });
   });
 
   it('clears the model when every catalog entry is disallowed', () => {

@@ -73,8 +73,8 @@ export const zh: Record<MessageKey, string> = {
   'shell.administration': '系统管理',
   'shell.mediaWorkspace': '媒体工作区',
 
-  'modality.image': '图像',
-  'modality.video': '视频',
+  'modality.image': '生图',
+  'modality.video': '生视频',
   'modality.audio': '音频',
   'modality.file': '文件',
 

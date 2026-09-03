@@ -21,21 +21,35 @@ export function selectComposerModel(
 ): ComposerSelection {
   const allowed = (modality: PublicModel['modality']) =>
     modalityAllowed(modality, imageAllowed, videoAllowed);
+
+  // If the currently selected modality is not allowed for this account,
+  // find the first allowed modality from models, or fallback to an allowed modality.
+  if (!allowed(selection.modality)) {
+    const allowedModel = models.find((item) => allowed(item.modality));
+    if (allowedModel) {
+      return { modality: allowedModel.modality, model: allowedModel.id };
+    }
+    const fallbackModality = videoAllowed ? 'video' : 'image';
+    const fallbackModel = models.find(
+      (item) => item.modality === fallbackModality && allowed(item.modality),
+    );
+    return {
+      modality: fallbackModality,
+      model: fallbackModel?.id ?? '',
+    };
+  }
+
+  // The requested modality is allowed. Keep selection.modality.
   const current = models.find((item) => item.id === selection.model);
-  if (
-    current &&
-    current.modality === selection.modality &&
-    allowed(current.modality)
-  ) {
+  if (current && current.modality === selection.modality) {
     return selection;
   }
 
-  const fallback =
-    (allowed(selection.modality)
-      ? models.find((item) => item.modality === selection.modality)
-      : undefined) ?? models.find((item) => allowed(item.modality));
-
-  return fallback
-    ? { modality: fallback.modality, model: fallback.id }
-    : { modality: selection.modality, model: '' };
+  const firstForModality = models.find(
+    (item) => item.modality === selection.modality,
+  );
+  return {
+    modality: selection.modality,
+    model: firstForModality?.id ?? '',
+  };
 }
