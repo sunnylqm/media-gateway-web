@@ -614,6 +614,8 @@ export const en = {
   'playground.freeGenerate': 'Generate (free)',
   'playground.freeModelNote': 'This model is completely free to use.',
   'playground.viewDetails': 'Details',
+  'playground.on': 'On',
+  'playground.off': 'Off',
 } as const;
 
 export type MessageKey = keyof typeof en;

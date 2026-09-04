@@ -1126,6 +1126,37 @@ export function ImagePlayground({
                       );
                     }
 
+                    if (param.type === 'boolean') {
+                      return (
+                        <div key={param.name} className="playground-param-col">
+                          <span className="playground-param-label">
+                            {formatLabel(param.name)}
+                          </span>
+                          <select
+                            className="playground-select"
+                            value={
+                              parameters[param.name] ??
+                              (param.default !== undefined
+                                ? String(param.default)
+                                : '')
+                            }
+                            onChange={(e) =>
+                              setParameters((prev) => ({
+                                ...prev,
+                                [param.name]: e.target.value,
+                              }))
+                            }
+                          >
+                            {!param.required && (
+                              <option value="">{t('composer.auto')}</option>
+                            )}
+                            <option value="true">{t('playground.on')}</option>
+                            <option value="false">{t('playground.off')}</option>
+                          </select>
+                        </div>
+                      );
+                    }
+
                     return (
                       <div key={param.name} className="playground-param-col">
                         <span className="playground-param-label">
@@ -1154,7 +1185,7 @@ export function ImagePlayground({
                         ) : (
                           <input
                             type={param.type === 'integer' ? 'number' : 'text'}
-                            className="playground-select"
+                            className="playground-input"
                             value={parameters[param.name] ?? ''}
                             onChange={(e) =>
                               setParameters((prev) => ({

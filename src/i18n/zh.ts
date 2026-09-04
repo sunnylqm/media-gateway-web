@@ -572,4 +572,6 @@ export const zh: Record<MessageKey, string> = {
   'playground.freeGenerate': '生成（免费）',
   'playground.freeModelNote': '该模型对所有用户完全免费使用。',
   'playground.viewDetails': '查看详情',
+  'playground.on': '开启',
+  'playground.off': '关闭',
 };
