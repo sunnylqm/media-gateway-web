@@ -613,35 +613,13 @@ export function ImagePlayground({
 
   return (
     <div className="playground-page">
-      {/* Top bar: Playground icon, title, model selector */}
+      {/* Top bar: Playground icon, title */}
       <div className="playground-top-bar">
         <div className="playground-title-box">
           <span className="playground-icon-badge">
             <Sparkles size={17} />
           </span>
           <span>{t('playground.imageTitle')}</span>
-        </div>
-
-        <div className="playground-model-select-wrap">
-          <span className="playground-param-label">
-            {t('playground.model')}:
-          </span>
-          <select
-            value={modelId}
-            onChange={(e) => setModelId(e.target.value)}
-            disabled={!imageAllowed || !imageModels.length}
-          >
-            {imageModels.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.display_name} ({item.provider})
-              </option>
-            ))}
-          </select>
-          {modelPriceTag && (
-            <span className="playground-model-price-badge">
-              {modelPriceTag}
-            </span>
-          )}
         </div>
       </div>
 
@@ -664,7 +642,25 @@ export function ImagePlayground({
         {/* Left Column: INPUT */}
         <div className="playground-panel playground-input-panel">
           <div className="playground-panel-header">
-            <span className="playground-tag">{t('playground.input')}</span>
+            <div className="playground-model-select-wrap">
+              <select
+                value={modelId}
+                onChange={(e) => setModelId(e.target.value)}
+                disabled={!imageAllowed || !imageModels.length}
+                aria-label={t('playground.model')}
+              >
+                {imageModels.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.display_name} ({item.provider})
+                  </option>
+                ))}
+              </select>
+              {modelPriceTag && (
+                <span className="playground-model-price-badge">
+                  {modelPriceTag}
+                </span>
+              )}
+            </div>
             <div className="playground-tab-group" role="tablist">
               <button
                 type="button"
