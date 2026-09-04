@@ -63,6 +63,11 @@ const zhTerms: Record<string, string> = {
   prompt_optimizer: '提示词优化',
   callback_url: '回调地址',
   response_format: '返回格式',
+  output_format: '输出格式',
+  format: '格式',
+  image_format: '图像格式',
+  video_format: '视频格式',
+  output_quality: '输出画质',
   cfg: 'CFG',
   cfg_scale: 'CFG 强度',
   steps: '步数',
@@ -76,5 +81,10 @@ export function translateTerm(
   value: string,
 ): string | undefined {
   if (locale !== 'zh') return undefined;
-  return zhTerms[value.trim().toLowerCase()];
+  const key = value.trim().toLowerCase();
+  return (
+    zhTerms[key] ??
+    zhTerms[key.replaceAll(' ', '_')] ??
+    zhTerms[key.replaceAll('-', '_')]
+  );
 }

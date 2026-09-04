@@ -832,7 +832,9 @@ export function ImagePlayground({
                             }))
                           }
                         >
-                          {!param.required && <option value="">Auto</option>}
+                          {!param.required && (
+                            <option value="">{t('composer.auto')}</option>
+                          )}
                           {param.enum.map((opt) => (
                             <option key={opt} value={opt}>
                               {opt}
