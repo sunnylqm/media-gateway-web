@@ -246,6 +246,20 @@ export const en = {
   'composer.off': 'Off',
   'composer.providerDefault': 'Provider default',
 
+  'videoCompress.title': 'Video Exceeds Size Limit',
+  'videoCompress.desc':
+    'The video file size is {currentSize}, which exceeds the limit of {maxSize}.',
+  'videoCompress.askPrompt':
+    'Would you like to compress it in your browser to within the limit before uploading?',
+  'videoCompress.confirm': 'Compress & Upload',
+  'videoCompress.compressing': 'Compressing video… {percent}%',
+  'videoCompress.compressingHint':
+    'Compressing using browser hardware acceleration without extra server bandwidth, please wait…',
+  'videoCompress.compressFailed': 'Video compression failed: {error}',
+  'videoCompress.retry': 'Retry Compression',
+  'videoCompress.unsupported':
+    'Client-side video compression is not supported in this browser. Please compress the video to under {maxSize} using a local tool before uploading.',
+
   'admin.loading': 'Loading system control',
   'admin.errorLoad': 'Unable to load administration',
   'admin.errorStatus': 'Unable to update workspace',
@@ -425,6 +439,7 @@ export const en = {
   'users.total': '{count} total',
   'users.columnAccount': 'Account',
   'users.columnWorkspace': 'Workspace',
+  'users.columnBalance': 'Balance',
   'users.columnRole': 'Role',
   'users.columnMembers': 'Members',
   'users.columnGenerations': 'Generations',
@@ -536,6 +551,9 @@ export const en = {
   'userDetail.created': 'Created',
   'userDetail.lastActivity': 'Last activity',
   'userDetail.noWorkspace': 'This account has no active workspace membership.',
+  'userDetail.balance': 'Workspace Balance',
+  'userDetail.balanceNote':
+    'Account balance and funds statistics for this user’s workspace.',
   'userDetail.generationsNote':
     'Jobs submitted from this workspace, newest first.',
   'userDetail.loaded': '{count} loaded',

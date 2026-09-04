@@ -34,6 +34,10 @@ import {
   TooltipTrigger,
 } from '../components/ui/tooltip';
 import {
+  VideoCompressDialog,
+  type VideoCompressRequest,
+} from '../components/VideoCompressDialog';
+import {
   formatAmount,
   formatDimensionOption,
   formatLabel,
@@ -50,6 +54,7 @@ import {
   mediaSlots,
   unitAmount,
 } from '../lib/requestForm';
+import { isOversizedVideo } from '../lib/videoCompression';
 import type {
   AdminModel,
   Artifact,
@@ -125,7 +130,7 @@ export function VideoStudio({
       const base = unitAmount(fallbackRate(billing));
       return `${formatAmount(base, currency)} / ${unit}`;
     }
-    const allRates = [...rates, fallbackRate(billing)];
+    const allRates = admin ? [...rates, fallbackRate(billing)] : rates;
     const prices = allRates.map((r) =>
       unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
     );
@@ -432,7 +437,36 @@ export function VideoStudio({
     setError('');
   }
 
-  const isUploading = attachments.some((item) => item.status === 'uploading');
+  const [compressQueue, setCompressQueue] = useState<
+    Array<{ file: File; slot: MediaSlot }>
+  >([]);
+
+  function handleSelectFile(file: File, slot: MediaSlot) {
+    if (isOversizedVideo(file)) {
+      setCompressQueue((queue) => [...queue, { file, slot }]);
+      return;
+    }
+    void uploadFile(file, slot);
+  }
+
+  const activeCompressItem = compressQueue[0] ?? null;
+  const compressRequest: VideoCompressRequest | null = activeCompressItem
+    ? {
+        file: activeCompressItem.file,
+        onProceed: (compressedFile) => {
+          const item = activeCompressItem;
+          setCompressQueue((queue) => queue.slice(1));
+          void uploadFile(compressedFile, item.slot);
+        },
+        onCancel: () => {
+          setCompressQueue((queue) => queue.slice(1));
+        },
+      }
+    : null;
+
+  const isUploading =
+    attachments.some((item) => item.status === 'uploading') ||
+    compressQueue.length > 0;
 
   async function handleGenerate(e?: FormEvent) {
     e?.preventDefault();
@@ -742,7 +776,7 @@ export function VideoStudio({
                                 style={{ display: 'none' }}
                                 onChange={(e) => {
                                   const f = e.target.files?.[0];
-                                  if (f) void uploadFile(f, slot);
+                                  if (f) void handleSelectFile(f, slot);
                                   e.target.value = '';
                                 }}
                               />
@@ -803,7 +837,7 @@ export function VideoStudio({
                                 0,
                                 remaining,
                               )) {
-                                void uploadFile(f, defaultRefSlot);
+                                handleSelectFile(f, defaultRefSlot);
                               }
                             }
                             e.target.value = '';
@@ -1426,6 +1460,8 @@ export function VideoStudio({
         loading={detailsLoading}
         onClose={() => setShowDetails(false)}
       />
+
+      <VideoCompressDialog request={compressRequest} />
     </div>
   );
 }

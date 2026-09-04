@@ -233,6 +233,18 @@ export const zh: Record<MessageKey, string> = {
   'composer.off': '关',
   'composer.providerDefault': '服务商默认值',
 
+  'videoCompress.title': '视频超出大小上限',
+  'videoCompress.desc': '当前视频大小为 {currentSize}，已超过上限 {maxSize}。',
+  'videoCompress.askPrompt': '是否需要在浏览器中为您压缩至上限以内后再上传？',
+  'videoCompress.confirm': '压缩并上传',
+  'videoCompress.compressing': '正在压缩视频… {percent}%',
+  'videoCompress.compressingHint':
+    '正在使用浏览器硬件加速压缩，不消耗服务器流量，请稍候…',
+  'videoCompress.compressFailed': '视频压缩失败: {error}',
+  'videoCompress.retry': '重试压缩',
+  'videoCompress.unsupported':
+    '当前浏览器不支持本地视频压缩，请使用本地工具将视频压缩至 {maxSize} 以内后再上传。',
+
   'admin.loading': '正在加载系统控制台',
   'admin.errorLoad': '无法加载管理数据',
   'admin.errorStatus': '无法更新工作区',
@@ -398,6 +410,7 @@ export const zh: Record<MessageKey, string> = {
   'users.total': '共 {count} 个',
   'users.columnAccount': '账户',
   'users.columnWorkspace': '工作区',
+  'users.columnBalance': '余额',
   'users.columnRole': '角色',
   'users.columnMembers': '成员数',
   'users.columnGenerations': '生成任务',
@@ -502,6 +515,8 @@ export const zh: Record<MessageKey, string> = {
   'userDetail.created': '创建时间',
   'userDetail.lastActivity': '最近活动',
   'userDetail.noWorkspace': '该账户没有生效的工作区成员身份。',
+  'userDetail.balance': '工作区余额',
+  'userDetail.balanceNote': '该用户所属主工作区的账户余额及出入账统计。',
   'userDetail.generationsNote': '该工作区提交的任务，最新的在前。',
   'userDetail.loaded': '已加载 {count} 个',
   'userDetail.generationsEmpty': '该账户还没有提交过任务。',

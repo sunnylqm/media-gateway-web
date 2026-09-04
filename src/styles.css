@@ -664,6 +664,24 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   .section-heading small { text-align: left; }
 }
 
+.video-compress-box {
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: #f4f7f5;
+  border: 1px solid var(--line);
+}
+.video-compress-bar {
+  height: 6px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.video-compress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease-out;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }

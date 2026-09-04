@@ -41,8 +41,13 @@ import {
   mediaSlots,
   slotAccepts,
 } from '../lib/requestForm';
+import { isOversizedVideo } from '../lib/videoCompression';
 import type { Asset, FormParameter, PublicModel, User } from '../types';
 import { PriceTable } from './PriceTable';
+import {
+  VideoCompressDialog,
+  type VideoCompressRequest,
+} from './VideoCompressDialog';
 
 type Mode = 'frame' | 'reference';
 
@@ -261,7 +266,47 @@ export function GenerationComposer({
       );
   }
 
+  const [compressQueue, setCompressQueue] = useState<
+    Array<{ file: File; target?: MediaSlot }>
+  >([]);
+
   function attach(files: File[], target?: MediaSlot) {
+    const normal: File[] = [];
+    const oversized: File[] = [];
+    for (const f of files) {
+      if (isOversizedVideo(f)) {
+        oversized.push(f);
+      } else {
+        normal.push(f);
+      }
+    }
+    if (oversized.length > 0) {
+      setCompressQueue((queue) => [
+        ...queue,
+        ...oversized.map((file) => ({ file, target })),
+      ]);
+    }
+    if (normal.length > 0) {
+      attachFiles(normal, target);
+    }
+  }
+
+  const activeCompressItem = compressQueue[0] ?? null;
+  const compressRequest: VideoCompressRequest | null = activeCompressItem
+    ? {
+        file: activeCompressItem.file,
+        onProceed: (compressedFile) => {
+          const item = activeCompressItem;
+          setCompressQueue((queue) => queue.slice(1));
+          attachFiles([compressedFile], item.target);
+        },
+        onCancel: () => {
+          setCompressQueue((queue) => queue.slice(1));
+        },
+      }
+    : null;
+
+  function attachFiles(files: File[], target?: MediaSlot) {
     const candidates = target
       ? [target]
       : mode === 'frame'
@@ -369,9 +414,9 @@ export function GenerationComposer({
   const promptLength = useMemo(() => [...prompt].length, [prompt]);
   const maxRunes = form?.prompt.max_runes ?? 0;
   const promptTooLong = maxRunes > 0 && promptLength > maxRunes;
-  const uploading = activeAttachments.some(
-    (item) => item.status === 'uploading',
-  );
+  const uploading =
+    activeAttachments.some((item) => item.status === 'uploading') ||
+    compressQueue.length > 0;
   const uploadFailed = activeAttachments.some(
     (item) => item.status === 'error',
   );
@@ -516,245 +561,253 @@ export function GenerationComposer({
   );
 
   return (
-    <Dialog.Root
-      open={open}
-      onOpenChange={(next) => {
-        setOpen(next);
-        if (!next) setError('');
-      }}
-    >
-      <Dialog.Trigger className="button primary">
-        <Plus size={16} /> {t(admin ? 'composer.adminOpen' : 'composer.open')}
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="dialog-overlay" />
-        <Dialog.Content
-          className="dialog-content composer-dialog"
-          aria-describedby={undefined}
-        >
-          <div className="dialog-heading">
-            <div>
-              <Dialog.Title>
-                {t(admin ? 'composer.adminTitle' : 'composer.title')}
-              </Dialog.Title>
-              <Dialog.Description>
-                {t(
-                  admin ? 'composer.adminDescription' : 'composer.description',
-                )}
-              </Dialog.Description>
-            </div>
-            <Dialog.Close className="icon-button">
-              <X size={18} />
-            </Dialog.Close>
-          </div>
-          <form onSubmit={submit} className="composer-form">
-            <div className="composer-body">
-              {!currentModalityAllowed && (
-                <div
-                  className="banner-error"
-                  role="alert"
-                  style={{ marginBottom: '16px' }}
-                >
-                  {t('composer.modalityDisabled', {
-                    modality: t(`modality.${modality}`),
-                  })}
-                </div>
-              )}
-              <div className="composer-models">
-                <div className="field">
-                  <span className="field-label">{t('composer.modality')}</span>
-                  <Picker
-                    value={modality}
-                    onChange={(value) =>
-                      setModality(value as 'image' | 'video')
-                    }
-                    options={[
-                      {
-                        value: 'video',
-                        label: videoAllowed
-                          ? t('modality.video')
-                          : `${t('modality.video')} (${t('models.statusInactive')})`,
-                      },
-                      {
-                        value: 'image',
-                        label: imageAllowed
-                          ? t('modality.image')
-                          : `${t('modality.image')} (${t('models.statusInactive')})`,
-                      },
-                    ]}
-                  />
-                </div>
-                <div className="field">
-                  <span className="field-label">{t('composer.model')}</span>
-                  <Picker
-                    value={model}
-                    onChange={setModel}
-                    placeholder={
-                      availableModels.length
-                        ? undefined
-                        : t('composer.noModel', {
-                            modality: t(`modality.${modality}`),
-                          })
-                    }
-                    options={availableModels.map((item) => ({
-                      value: item.id,
-                      label: item.display_name,
-                    }))}
-                  />
-                </div>
+    <>
+      <Dialog.Root
+        open={open}
+        onOpenChange={(next) => {
+          setOpen(next);
+          if (!next) setError('');
+        }}
+      >
+        <Dialog.Trigger className="button primary">
+          <Plus size={16} /> {t(admin ? 'composer.adminOpen' : 'composer.open')}
+        </Dialog.Trigger>
+        <Dialog.Portal>
+          <Dialog.Overlay className="dialog-overlay" />
+          <Dialog.Content
+            className="dialog-content composer-dialog"
+            aria-describedby={undefined}
+          >
+            <div className="dialog-heading">
+              <div>
+                <Dialog.Title>
+                  {t(admin ? 'composer.adminTitle' : 'composer.title')}
+                </Dialog.Title>
+                <Dialog.Description>
+                  {t(
+                    admin
+                      ? 'composer.adminDescription'
+                      : 'composer.description',
+                  )}
+                </Dialog.Description>
               </div>
-
-              <Tabs.Root
-                value={mode}
-                onValueChange={(value) => setMode(value as Mode)}
-                className="composer-tabs"
-              >
-                {tabbed && (
-                  <Tabs.List
-                    className="mode-tabs"
-                    aria-label={t('composer.modeAria')}
+              <Dialog.Close className="icon-button">
+                <X size={18} />
+              </Dialog.Close>
+            </div>
+            <form onSubmit={submit} className="composer-form">
+              <div className="composer-body">
+                {!currentModalityAllowed && (
+                  <div
+                    className="banner-error"
+                    role="alert"
+                    style={{ marginBottom: '16px' }}
                   >
-                    <Tabs.Trigger className="mode-tab" value="frame">
-                      {t('composer.tabFrame')}
-                      {countBadge(attachments, slotByID, 'frame')}
-                    </Tabs.Trigger>
-                    <Tabs.Trigger className="mode-tab" value="reference">
-                      {t('composer.tabReference')}
-                      {countBadge(attachments, slotByID, 'reference')}
-                    </Tabs.Trigger>
-                  </Tabs.List>
+                    {t('composer.modalityDisabled', {
+                      modality: t(`modality.${modality}`),
+                    })}
+                  </div>
                 )}
-                {tabbed && attachments.length > activeAttachments.length && (
-                  <p className="tab-note">
-                    {t(
-                      attachments.length - activeAttachments.length > 1
-                        ? 'composer.tabNoteMany'
-                        : 'composer.tabNoteOne',
-                      {
-                        count: attachments.length - activeAttachments.length,
-                      },
-                    )}
-                  </p>
-                )}
-
-                <div className="field composer-prompt">
-                  <span className="field-label">{t('composer.prompt')}</span>
-                  <div className="prompt-box">
-                    <textarea
-                      required
-                      value={prompt}
-                      onChange={(event) => setPrompt(event.target.value)}
-                      placeholder={t('composer.promptPlaceholder')}
-                    />
-                    <span
-                      className={
-                        promptTooLong ? 'prompt-count over' : 'prompt-count'
-                      }
-                    >
-                      {promptLength}
-                      {maxRunes > 0 ? ` / ${maxRunes}` : ''}
+                <div className="composer-models">
+                  <div className="field">
+                    <span className="field-label">
+                      {t('composer.modality')}
                     </span>
+                    <Picker
+                      value={modality}
+                      onChange={(value) =>
+                        setModality(value as 'image' | 'video')
+                      }
+                      options={[
+                        {
+                          value: 'video',
+                          label: videoAllowed
+                            ? t('modality.video')
+                            : `${t('modality.video')} (${t('models.statusInactive')})`,
+                        },
+                        {
+                          value: 'image',
+                          label: imageAllowed
+                            ? t('modality.image')
+                            : `${t('modality.image')} (${t('models.statusInactive')})`,
+                        },
+                      ]}
+                    />
+                  </div>
+                  <div className="field">
+                    <span className="field-label">{t('composer.model')}</span>
+                    <Picker
+                      value={model}
+                      onChange={setModel}
+                      placeholder={
+                        availableModels.length
+                          ? undefined
+                          : t('composer.noModel', {
+                              modality: t(`modality.${modality}`),
+                            })
+                      }
+                      options={availableModels.map((item) => ({
+                        value: item.id,
+                        label: item.display_name,
+                      }))}
+                    />
                   </div>
                 </div>
 
-                {mediaSections}
-              </Tabs.Root>
-
-              {(form?.parameters ?? []).filter(
-                (parameter) => !isHiddenParameter(parameter.name),
-              ).length > 0 && (
-                <div className="parameter-grid">
-                  {(form?.parameters ?? [])
-                    .filter((parameter) => !isHiddenParameter(parameter.name))
-                    .map((parameter) => (
-                      <ParameterTile
-                        key={parameter.name}
-                        parameter={parameter}
-                        value={parameters[parameter.name] ?? ''}
-                        onChange={(value) =>
-                          setParameters((current) => ({
-                            ...current,
-                            [parameter.name]: value,
-                          }))
-                        }
-                      />
-                    ))}
-                </div>
-              )}
-
-              {!admin && selectedModel && form && (
-                <PriceTable
-                  billing={selectedModel.billing}
-                  parameters={parameters}
-                  showNote={false}
-                />
-              )}
-
-              {!availableModels.length && (
-                <div className="warning-box">
-                  <span>
-                    {t('composer.noModel', {
-                      modality: t(`modality.${modality}`),
-                    })}
-                  </span>
-                </div>
-              )}
-              {selectedModel && !form && (
-                <div className="warning-box">
-                  <span>{t('composer.noForm')}</span>
-                </div>
-              )}
-              {error && (
-                <div className="form-error" role="alert">
-                  {error}
-                </div>
-              )}
-            </div>
-
-            <div className="composer-footer">
-              {admin ? (
-                <small className="footer-note">
-                  {t('composer.adminNoCharge')}
-                </small>
-              ) : selectedModel?.billing.mode === 'per_output_second' ? (
-                <small className="footer-note">
-                  {t('composer.estimateNote')}
-                </small>
-              ) : selectedModel?.billing.mode === 'per_request' ? (
-                <small className="footer-note">
-                  {t(
-                    selectedModel.billing.rates?.length
-                      ? 'composer.perImageNote'
-                      : 'composer.flatImageNote',
+                <Tabs.Root
+                  value={mode}
+                  onValueChange={(value) => setMode(value as Mode)}
+                  className="composer-tabs"
+                >
+                  {tabbed && (
+                    <Tabs.List
+                      className="mode-tabs"
+                      aria-label={t('composer.modeAria')}
+                    >
+                      <Tabs.Trigger className="mode-tab" value="frame">
+                        {t('composer.tabFrame')}
+                        {countBadge(attachments, slotByID, 'frame')}
+                      </Tabs.Trigger>
+                      <Tabs.Trigger className="mode-tab" value="reference">
+                        {t('composer.tabReference')}
+                        {countBadge(attachments, slotByID, 'reference')}
+                      </Tabs.Trigger>
+                    </Tabs.List>
                   )}
-                </small>
-              ) : null}
-              <button
-                type="submit"
-                className="button primary create-button"
-                disabled={
-                  creating ||
-                  !model ||
-                  !form ||
-                  promptTooLong ||
-                  uploading ||
-                  !currentModalityAllowed
-                }
-              >
-                <Send size={15} />
-                {creating
-                  ? t('composer.submitting')
-                  : admin
-                    ? t('composer.adminSubmit')
-                    : price
-                      ? t('composer.submitPriced', { price })
-                      : t('composer.submit')}
-              </button>
-            </div>
-          </form>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+                  {tabbed && attachments.length > activeAttachments.length && (
+                    <p className="tab-note">
+                      {t(
+                        attachments.length - activeAttachments.length > 1
+                          ? 'composer.tabNoteMany'
+                          : 'composer.tabNoteOne',
+                        {
+                          count: attachments.length - activeAttachments.length,
+                        },
+                      )}
+                    </p>
+                  )}
+
+                  <div className="field composer-prompt">
+                    <span className="field-label">{t('composer.prompt')}</span>
+                    <div className="prompt-box">
+                      <textarea
+                        required
+                        value={prompt}
+                        onChange={(event) => setPrompt(event.target.value)}
+                        placeholder={t('composer.promptPlaceholder')}
+                      />
+                      <span
+                        className={
+                          promptTooLong ? 'prompt-count over' : 'prompt-count'
+                        }
+                      >
+                        {promptLength}
+                        {maxRunes > 0 ? ` / ${maxRunes}` : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  {mediaSections}
+                </Tabs.Root>
+
+                {(form?.parameters ?? []).filter(
+                  (parameter) => !isHiddenParameter(parameter.name),
+                ).length > 0 && (
+                  <div className="parameter-grid">
+                    {(form?.parameters ?? [])
+                      .filter((parameter) => !isHiddenParameter(parameter.name))
+                      .map((parameter) => (
+                        <ParameterTile
+                          key={parameter.name}
+                          parameter={parameter}
+                          value={parameters[parameter.name] ?? ''}
+                          onChange={(value) =>
+                            setParameters((current) => ({
+                              ...current,
+                              [parameter.name]: value,
+                            }))
+                          }
+                        />
+                      ))}
+                  </div>
+                )}
+
+                {!admin && selectedModel && form && (
+                  <PriceTable
+                    billing={selectedModel.billing}
+                    parameters={parameters}
+                    admin={admin}
+                    showNote={false}
+                  />
+                )}
+
+                {!availableModels.length && (
+                  <div className="warning-box">
+                    <span>
+                      {t('composer.noModel', {
+                        modality: t(`modality.${modality}`),
+                      })}
+                    </span>
+                  </div>
+                )}
+                {selectedModel && !form && (
+                  <div className="warning-box">
+                    <span>{t('composer.noForm')}</span>
+                  </div>
+                )}
+                {error && (
+                  <div className="form-error" role="alert">
+                    {error}
+                  </div>
+                )}
+              </div>
+
+              <div className="composer-footer">
+                {admin ? (
+                  <small className="footer-note">
+                    {t('composer.adminNoCharge')}
+                  </small>
+                ) : selectedModel?.billing.mode === 'per_output_second' ? (
+                  <small className="footer-note">
+                    {t('composer.estimateNote')}
+                  </small>
+                ) : selectedModel?.billing.mode === 'per_request' ? (
+                  <small className="footer-note">
+                    {t(
+                      selectedModel.billing.rates?.length
+                        ? 'composer.perImageNote'
+                        : 'composer.flatImageNote',
+                    )}
+                  </small>
+                ) : null}
+                <button
+                  type="submit"
+                  className="button primary create-button"
+                  disabled={
+                    creating ||
+                    !model ||
+                    !form ||
+                    promptTooLong ||
+                    uploading ||
+                    !currentModalityAllowed
+                  }
+                >
+                  <Send size={15} />
+                  {creating
+                    ? t('composer.submitting')
+                    : admin
+                      ? t('composer.adminSubmit')
+                      : price
+                        ? t('composer.submitPriced', { price })
+                        : t('composer.submit')}
+                </button>
+              </div>
+            </form>
+          </Dialog.Content>
+        </Dialog.Portal>
+      </Dialog.Root>
+      <VideoCompressDialog request={compressRequest} />
+    </>
   );
 }
 
