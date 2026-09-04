@@ -24,6 +24,7 @@ import {
   useState,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
+import { PriceTable } from '../components/PriceTable';
 import {
   Tooltip,
   TooltipContent,
@@ -35,9 +36,12 @@ import { useI18n } from '../i18n';
 import {
   buildRequestBody,
   defaultParameterValue,
+  estimateAmount,
+  fallbackRate,
   isHiddenParameter,
   type MediaSlot,
   mediaSlots,
+  unitAmount,
 } from '../lib/requestForm';
 import type {
   AdminModel,
@@ -97,8 +101,44 @@ export function ImagePlayground({
   );
   const form = selectedModel?.request_form;
 
+  const modelPriceTag = useMemo(() => {
+    if (admin) return t('composer.free');
+    if (!selectedModel) return '';
+    const billing = selectedModel.billing;
+    if (billing.mode === 'free') return t('composer.free');
+    const currency = billing.currency;
+    const unit = t('composer.unitImage');
+    const rates = billing.rates ?? [];
+    if (rates.length === 0) {
+      const base = unitAmount(fallbackRate(billing));
+      return `${formatAmount(base, currency)} / ${unit}`;
+    }
+    const allRates = [...rates, fallbackRate(billing)];
+    const prices = allRates.map((r) =>
+      unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
+    );
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    if (min === max) {
+      return `${formatAmount(min, currency)} / ${unit}`;
+    }
+    return `${formatAmount(min, currency)} ~ ${formatAmount(max, currency)} / ${unit}`;
+  }, [admin, selectedModel, t]);
+
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
+
+  const estimate = selectedModel
+    ? estimateAmount(selectedModel.billing, parameters)
+    : null;
+  const currency = selectedModel?.billing.currency ?? '';
+  const price = admin
+    ? t('composer.free')
+    : estimate === null || !currency
+      ? ''
+      : estimate === 0
+        ? t('composer.free')
+        : formatAmount(estimate, currency);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -589,6 +629,11 @@ export function ImagePlayground({
               </option>
             ))}
           </select>
+          {modelPriceTag && (
+            <span className="playground-model-price-badge">
+              {modelPriceTag}
+            </span>
+          )}
         </div>
       </div>
 
@@ -921,6 +966,15 @@ export function ImagePlayground({
                 </div>
               )}
 
+              {/* Price Table / 价格说明 */}
+              {selectedModel && (
+                <PriceTable
+                  billing={selectedModel.billing}
+                  parameters={parameters}
+                  admin={admin}
+                />
+              )}
+
               {/* Actions row: Reset and Generate */}
               <div className="playground-actions-bar">
                 <button
@@ -951,7 +1005,13 @@ export function ImagePlayground({
                   ) : (
                     <>
                       <Sparkles size={16} />
-                      <span>{t('playground.generate')}</span>
+                      <span>
+                        {admin
+                          ? t('playground.adminGenerate')
+                          : price
+                            ? t('playground.generatePriced', { price })
+                            : t('playground.generate')}
+                      </span>
                     </>
                   )}
                 </button>

@@ -217,7 +217,7 @@ export const en = {
     'Priced per image from the quality and size tier times the requested count, locked at submission.',
   'composer.flatImageNote':
     'One price per image regardless of size and quality, times the requested count, locked at submission.',
-  'composer.priceTable': 'Price list',
+  'composer.priceTable': 'Pricing details',
   'composer.priceFlatRule': 'Flat price, independent of parameters',
   'composer.priceFlat': 'Flat price',
   'composer.priceFlatNote': 'Every size and quality',
@@ -591,6 +591,10 @@ export const en = {
   'playground.frames': 'Keyframes',
   'playground.firstFrame': 'First frame',
   'playground.lastFrame': 'Last frame',
+  'playground.generatePriced': 'Generate ({price})',
+  'playground.adminGenerate': 'Generate (no charge)',
+  'playground.freeGenerate': 'Generate (free)',
+  'playground.freeModelNote': 'This model is completely free to use.',
 } as const;
 
 export type MessageKey = keyof typeof en;

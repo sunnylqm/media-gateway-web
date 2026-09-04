@@ -204,7 +204,7 @@ export const zh: Record<MessageKey, string> = {
   'composer.perImageNote': '按品质与尺寸档位 × 请求张数计价，提交时锁定。',
   'composer.flatImageNote':
     '每张统一价格，与分辨率、画质无关；按请求张数计价，提交时锁定。',
-  'composer.priceTable': '价目表',
+  'composer.priceTable': '价格说明',
   'composer.priceFlatRule': '统一单价，不区分参数',
   'composer.priceFlat': '统一单价',
   'composer.priceFlatNote': '所有分辨率与画质',
@@ -552,4 +552,8 @@ export const zh: Record<MessageKey, string> = {
   'playground.frames': '关键帧',
   'playground.firstFrame': '起始帧',
   'playground.lastFrame': '结束帧',
+  'playground.generatePriced': '生成（{price}）',
+  'playground.adminGenerate': '生成（免计费）',
+  'playground.freeGenerate': '生成（免费）',
+  'playground.freeModelNote': '该模型对所有用户完全免费使用。',
 };

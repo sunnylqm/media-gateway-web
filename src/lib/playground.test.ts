@@ -3,6 +3,7 @@ import type { PublicModel } from '../types';
 import {
   buildRequestBody,
   defaultParameterValue,
+  estimateAmount,
   mediaSlots,
 } from './requestForm';
 
@@ -141,5 +142,17 @@ describe('Playground model & request form utilities', () => {
     expect(defaults.aspect_ratio).toBe('16:9');
     expect(defaults.resolution).toBe('2K');
     expect(defaults.quality).toBe('Standard');
+  });
+
+  it('computes accurate price estimates for image and video playground models', () => {
+    expect(estimateAmount(sampleImageModel.billing, {})).toBe(3000);
+    // 5 seconds * 300000 = 1500000
+    expect(estimateAmount(sampleVideoModel.billing, { duration: '5' })).toBe(
+      1500000,
+    );
+    // 10 seconds * 300000 = 3000000
+    expect(estimateAmount(sampleVideoModel.billing, { duration: '10' })).toBe(
+      3000000,
+    );
   });
 });
