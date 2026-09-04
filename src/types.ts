@@ -98,6 +98,8 @@ export type Generation = {
   // Only administrator views carry the upstream binding that served the job.
   binding_alias?: string;
   inputs?: GenerationInput[];
+  // Present only when the list endpoint is asked for `include=artifacts`.
+  artifacts?: Artifact[];
   progress: number;
   created_at: string;
   updated_at: string;
@@ -231,6 +233,9 @@ export type Artifact = {
   mime_type: string;
   sha256: string;
   size_bytes: number;
+  width?: number;
+  height?: number;
+  duration_ms?: number;
   created_at: string;
 };
 

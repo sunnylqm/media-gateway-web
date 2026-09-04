@@ -88,6 +88,7 @@ export const zh: Record<MessageKey, string> = {
   'generations.columnStatus': '状态',
   'generations.columnCreated': '创建时间',
   'generations.view': '查看 {id}',
+  'generations.thumbnailAlt': '{id} 的结果预览',
 
   'details.title': '生成任务详情',
   'details.via': '经由 {alias}',
@@ -125,6 +126,7 @@ export const zh: Record<MessageKey, string> = {
   'overview.recent': '最近任务',
   'overview.recentNote': '图像与视频的最新任务。',
   'overview.viewAll': '查看全部',
+  'overview.summaryAria': '任务概览',
   'overview.emptyHint': '暂无最近任务，可前往图片画板或视频工作室开始生成。',
 
   'apiKeys.errorLoad': '无法加载 API 密钥',

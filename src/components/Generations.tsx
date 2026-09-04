@@ -1,4 +1,4 @@
-import { Download, Eye, Image, Sparkles, Video, X } from 'lucide-react';
+import { Download, Eye, Image, Play, Sparkles, Video, X } from 'lucide-react';
 import { Dialog } from 'radix-ui';
 import { useState } from 'react';
 import { absoluteGatewayURL } from '../api';
@@ -15,11 +15,14 @@ import type { Artifact, Generation } from '../types';
 export function GenerationsTable({
   generations,
   compact = false,
+  thumbnails = false,
   emptyHint,
   onSelect,
 }: {
   generations: Generation[];
   compact?: boolean;
+  // Overview lists ask for `include=artifacts`, so they can preview results.
+  thumbnails?: boolean;
   emptyHint?: string;
   onSelect: (generation: Generation) => void;
 }) {
@@ -37,6 +40,7 @@ export function GenerationsTable({
       <table>
         <thead>
           <tr>
+            {thumbnails && <th className="thumb-column" />}
             <th>{t('generations.columnJob')}</th>
             <th>{t('generations.columnType')}</th>
             <th>{t('generations.columnModel')}</th>
@@ -48,6 +52,11 @@ export function GenerationsTable({
         <tbody>
           {generations.map((item) => (
             <tr key={item.id}>
+              {thumbnails && (
+                <td className="thumb-column">
+                  <GenerationThumbnail generation={item} />
+                </td>
+              )}
               <td>
                 <div style={{ display: 'grid', gap: '2px' }}>
                   <code>{item.id.slice(0, 18)}…</code>
@@ -97,6 +106,60 @@ export function GenerationsTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+// A completed job shows its own result; anything else — queued, failed, or a
+// job whose artifacts were not requested — falls back to the modality icon.
+function GenerationThumbnail({ generation }: { generation: Generation }) {
+  const { t } = useI18n();
+  const [failed, setFailed] = useState(false);
+  const list = generation.artifacts ?? [];
+  const artifact = list.find((item) => item.role === 'output') ?? list[0];
+  const mime = artifact?.mime_type.toLowerCase() ?? '';
+  const isImage = mime.startsWith('image/');
+  const isVideo = mime.startsWith('video/');
+
+  if (artifact && !failed && (isImage || isVideo)) {
+    const url = absoluteGatewayURL(artifact.url);
+    return (
+      <span className="row-thumb">
+        {isImage ? (
+          <img
+            src={url}
+            loading="lazy"
+            decoding="async"
+            alt={t('generations.thumbnailAlt', { id: generation.id })}
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <>
+            {/* No controls: the poster frame is the whole point here. */}
+            <video
+              src={url}
+              preload="metadata"
+              muted
+              playsInline
+              aria-label={t('generations.thumbnailAlt', { id: generation.id })}
+              onError={() => setFailed(true)}
+            />
+            <span className="row-thumb-badge" aria-hidden="true">
+              <Play size={9} />
+            </span>
+          </>
+        )}
+      </span>
+    );
+  }
+
+  return (
+    <span className="row-thumb row-thumb-empty" aria-hidden="true">
+      {generation.modality === 'image' ? (
+        <Image size={16} />
+      ) : (
+        <Video size={16} />
+      )}
+    </span>
   );
 }
 

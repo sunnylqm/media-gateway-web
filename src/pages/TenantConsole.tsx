@@ -18,6 +18,7 @@ import {
 import { Dialog } from 'radix-ui';
 import {
   type FormEvent,
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -113,7 +114,7 @@ export function TenantConsole() {
       );
       const [identity, jobs, catalog, balanceResult] = await Promise.all([
         api<IdentityProfile>('/v1/auth/me'),
-        api<GenerationList>('/v1/generations?limit=50'),
+        api<GenerationList>('/v1/generations?limit=50&include=artifacts'),
         api<{ data: PublicModel[] }>('/v1/models'),
         balanceRequest,
       ]);
@@ -364,47 +365,6 @@ export function TenantConsole() {
       ]}
       title={t('tenant.title')}
       description={t('tenant.description', { email: profile.user.email })}
-      actions={
-        balance || topupOptions ? (
-          <>
-            {balance ? (
-              <Link
-                to="/app/billing"
-                className="button secondary"
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '6px 12px',
-                  fontSize: '0.85rem',
-                  textDecoration: 'none',
-                }}
-              >
-                <Wallet size={15} />
-                <span>
-                  {t('billing.badge')}:{' '}
-                  {formatAmount(balance.available, balance.currency)}
-                </span>
-              </Link>
-            ) : null}
-            {topupOptions && (
-              <button
-                type="button"
-                className="button primary"
-                style={{
-                  padding: '6px 12px',
-                  minHeight: '34px',
-                  fontSize: '0.85rem',
-                }}
-                onClick={() => setTopupOpen(true)}
-              >
-                <CreditCard size={15} />
-                {t('topup.button')}
-              </button>
-            )}
-          </>
-        ) : undefined
-      }
       onLogout={() => void logout()}
     >
       {error && (
@@ -456,8 +416,11 @@ export function TenantConsole() {
             <Overview
               stats={stats}
               balance={balance}
+              balanceLoading={balanceLoading}
               generations={generations.slice(0, 6)}
               onSelect={openDetails}
+              topupEnabled={Boolean(topupOptions)}
+              onTopup={() => setTopupOpen(true)}
             />
           }
         />
@@ -924,82 +887,116 @@ function APIKeysView({ models }: { models: PublicModel[] }) {
 function Overview({
   stats,
   balance,
+  balanceLoading,
   generations,
   onSelect,
+  topupEnabled,
+  onTopup,
 }: {
   stats: Record<string, number>;
   balance: Balance | null;
+  balanceLoading: boolean;
   generations: Generation[];
   onSelect: (generation: Generation) => void;
+  topupEnabled: boolean;
+  onTopup: () => void;
 }) {
   const { t } = useI18n();
-  return (
-    <>
-      <section className="metric-grid">
-        {balance && (
-          <Metric
-            label={t('billing.available')}
-            value={formatAmount(balance.available, balance.currency)}
-            note={t('billing.badge')}
-            tone="blue"
-          />
-        )}
-        <Metric
-          label={t('overview.total')}
-          value={stats.total}
-          note={t('overview.totalNote')}
-        />
-        <Metric
-          label={t('overview.active')}
-          value={stats.active}
-          note={t('overview.activeNote')}
-          tone="amber"
-        />
-        <Metric
-          label={t('overview.completed')}
-          value={stats.completed}
-          note={t('overview.completedNote')}
-          tone="green"
-        />
-        <Metric
-          label={t('overview.failed')}
-          value={stats.failed}
-          note={t('overview.failedNote')}
-          tone="red"
-        />
-      </section>
-      <section className="panel">
-        <div className="panel-heading">
-          <div>
-            <h2>{t('overview.recent')}</h2>
-            <p>{t('overview.recentNote')}</p>
+  const summary = [
+    { key: 'total', label: t('overview.total'), value: stats.total, tone: '' },
+    {
+      key: 'active',
+      label: t('overview.active'),
+      value: stats.active,
+      tone: 'amber',
+    },
+    {
+      key: 'completed',
+      label: t('overview.completed'),
+      value: stats.completed,
+      tone: 'green',
+    },
+    {
+      key: 'failed',
+      label: t('overview.failed'),
+      value: stats.failed,
+      tone: 'red',
+    },
+  ];
+
+  const tasks = (
+    <section className="panel overview-tasks">
+      <div className="panel-heading">
+        <div>
+          <h2>{t('overview.recent')}</h2>
+          <p>{t('overview.recentNote')}</p>
+        </div>
+        <div className="panel-heading-side">
+          <div
+            className="task-summary"
+            role="group"
+            aria-label={t('overview.summaryAria')}
+          >
+            {summary.map((item) => (
+              <span
+                key={item.key}
+                className={`task-summary-item ${item.tone}${item.value ? '' : ' is-zero'}`}
+              >
+                <b>{item.value}</b>
+                <span>{item.label}</span>
+              </span>
+            ))}
           </div>
           {generations.length > 0 && (
-            <Link
-              to="/app/generations"
-              className="button secondary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '12px',
-                padding: '5px 12px',
-                textDecoration: 'none',
-              }}
-            >
+            <Link to="/app/generations" className="button secondary view-all">
               <span>{t('overview.viewAll')}</span>
               <ArrowRight size={13} />
             </Link>
           )}
         </div>
-        <GenerationsTable
-          generations={generations}
-          compact
-          emptyHint={t('overview.emptyHint')}
-          onSelect={onSelect}
-        />
-      </section>
-    </>
+      </div>
+      <GenerationsTable
+        generations={generations}
+        compact
+        thumbnails
+        emptyHint={t('overview.emptyHint')}
+        onSelect={onSelect}
+      />
+    </section>
+  );
+
+  if (!balance && !topupEnabled) return tasks;
+
+  return (
+    <section className="overview-grid">
+      <Metric
+        label={t('billing.available')}
+        value={
+          balance ? formatAmount(balance.available, balance.currency) : '—'
+        }
+        note={
+          balanceLoading
+            ? t('billing.loadingBalance')
+            : balance
+              ? t(
+                  balance.enforced
+                    ? 'billing.enforcedOn'
+                    : 'billing.enforcedOff',
+                )
+              : t('billing.balanceUnavailable')
+        }
+        tone="green"
+        action={
+          topupEnabled ? (
+            <button type="button" className="button primary" onClick={onTopup}>
+              <CreditCard size={15} />
+              {t('topup.button')}
+            </button>
+          ) : null
+        }
+      />
+      {tasks}
+    </section>
   );
 }
 
@@ -1049,14 +1046,6 @@ function BillingView({
           </button>
         </div>
       )}
-      {topupEnabled && (
-        <div className="billing-actions">
-          <button type="button" className="button primary" onClick={onTopup}>
-            <CreditCard size={15} />
-            {t('topup.button')}
-          </button>
-        </div>
-      )}
       <section className="metric-grid">
         <Metric
           label={t('billing.available')}
@@ -1073,6 +1062,18 @@ function BillingView({
                 : t('billing.balanceUnavailable')
           }
           tone="green"
+          action={
+            topupEnabled ? (
+              <button
+                type="button"
+                className="button primary"
+                onClick={onTopup}
+              >
+                <CreditCard size={15} />
+                {t('topup.button')}
+              </button>
+            ) : null
+          }
         />
         <Metric
           label={t('billing.totalCredited')}
@@ -1120,17 +1121,20 @@ function Metric({
   value,
   note,
   tone = 'blue',
+  action,
 }: {
   label: string;
   value: number | string;
   note: string;
   tone?: string;
+  action?: ReactNode;
 }) {
   return (
     <article className={`metric ${tone}`}>
       <span>{label}</span>
       <strong>{value}</strong>
       <small>{note}</small>
+      {action ? <div className="metric-action">{action}</div> : null}
     </article>
   );
 }

@@ -152,6 +152,33 @@ h1, h2, h3, .brand-name { font-family: Inter, ui-sans-serif, system-ui, -apple-s
 .metric > span { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
 .metric strong { display: block; margin: 7px 0 8px; font-family: Inter, sans-serif; font-size: 32px; letter-spacing: -.04em; }
 .metric small { color: #8a928e; font-size: 11px; }
+.metric-action { margin-top: 14px; }
+.metric-action .button { width: 100%; }
+
+/* Overview: the balance card and the recent-task panel share one row, so the
+   task counts no longer need a row of their own. */
+.overview-grid { display: grid; grid-template-columns: minmax(230px, 280px) minmax(0, 1fr); align-items: start; gap: 13px; }
+.overview-grid .metric { min-height: 0; display: flex; flex-direction: column; }
+.overview-grid .metric::before { margin-bottom: 15px; }
+.overview-grid .metric .metric-action { margin-top: auto; padding-top: 14px; }
+.overview-tasks .panel-heading { flex-wrap: wrap; min-height: 0; row-gap: 12px; }
+.panel-heading-side { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px 10px; }
+.task-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.task-summary-item { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 9px; border: 1px solid var(--line); border-radius: 20px; background: #fafbfa; }
+.task-summary-item b { font-size: 13px; letter-spacing: -.02em; }
+.task-summary-item > span { color: var(--muted); font-size: 11px; }
+.task-summary-item.amber b { color: var(--amber); }
+.task-summary-item.green b { color: var(--accent); }
+.task-summary-item.red b { color: var(--red); }
+.task-summary-item.is-zero { border-color: #ebeeec; background: transparent; }
+.task-summary-item.is-zero b, .task-summary-item.is-zero > span { color: #a6ada9; }
+.panel-heading-side .view-all { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; font-size: 12px; text-decoration: none; }
+
+.thumb-column { width: 44px; padding-right: 0; }
+.row-thumb { position: relative; display: block; width: 42px; height: 42px; overflow: hidden; border: 1px solid var(--line); border-radius: 7px; background: #f1f4f2; }
+.row-thumb img, .row-thumb video { display: block; width: 100%; height: 100%; object-fit: cover; background: #edf0ee; }
+.row-thumb-badge { position: absolute; right: 3px; bottom: 3px; display: grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; background: rgba(23,32,29,.62); color: #fff; }
+.row-thumb-empty { display: grid; place-items: center; color: #a2aba6; }
 .panel { border: 1px solid var(--line); background: var(--paper); box-shadow: 0 4px 14px rgba(24,39,33,.025); }
 .panel-heading { min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 17px 20px; border-bottom: 1px solid #e7eae8; }
 .panel-heading h2 { margin: 0 0 4px; font-size: 15px; letter-spacing: -.015em; }
@@ -629,7 +656,6 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .banner-success { border-color: #b7dcc7; background: #eef7f2; color: #1e6045; }
 .banner-notice { background: #f5f7f5; color: #4a5550; }
 .banner-success .button, .banner-notice .button { flex: 0 0 auto; min-height: 32px; padding: 0 12px; font-size: 12px; }
-.billing-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
 .topup-amount-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .topup-amount { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--paper); color: #3c4642; cursor: pointer; font-size: 14px; font-weight: 700; transition: border-color .15s, background .15s, color .15s; }
 .topup-amount:hover:not(:disabled) { border-color: var(--accent); }
@@ -656,6 +682,7 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   .auth-story { padding: 36px; }
   .auth-story-copy h1 { font-size: 48px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
+  .overview-grid { grid-template-columns: 1fr; }
   .admin-grid { grid-template-columns: 1fr; }
 }
 
@@ -686,6 +713,9 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   .page-header { display: grid; }
   .page-actions, .page-actions .button { width: 100%; }
   .metric { min-height: 126px; }
+  .overview-grid .metric { min-height: 0; }
+  .overview-tasks .panel-heading { align-items: flex-start; flex-direction: column; }
+  .panel-heading-side { width: 100%; justify-content: flex-start; }
   .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .dialog-actions .reset-button { grid-column: 1 / -1; margin-right: 0; }
   .transaction-error { align-items: stretch; flex-direction: column; margin: 12px; }

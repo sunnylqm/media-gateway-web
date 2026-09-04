@@ -88,6 +88,7 @@ export const en = {
   'generations.columnStatus': 'Status',
   'generations.columnCreated': 'Created',
   'generations.view': 'View {id}',
+  'generations.thumbnailAlt': 'Result preview for {id}',
 
   'details.title': 'Generation details',
   'details.via': 'via {alias}',
@@ -126,6 +127,7 @@ export const en = {
   'overview.recent': 'Recent tasks',
   'overview.recentNote': 'The latest jobs across image and video.',
   'overview.viewAll': 'View all',
+  'overview.summaryAria': 'Task summary',
   'overview.emptyHint':
     'No recent tasks yet. Head to Image Playground or Video Studio to start generating.',
 
