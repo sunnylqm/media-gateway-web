@@ -119,7 +119,6 @@ export function VideoStudio({
   const form = selectedModel?.request_form;
 
   const modelPriceTag = useMemo(() => {
-    if (admin) return t('composer.free');
     if (!selectedModel) return '';
     const billing = selectedModel.billing;
     if (billing.mode === 'free') return t('composer.free');
@@ -130,8 +129,7 @@ export function VideoStudio({
       const base = unitAmount(fallbackRate(billing));
       return `${formatAmount(base, currency)} / ${unit}`;
     }
-    const allRates = admin ? [...rates, fallbackRate(billing)] : rates;
-    const prices = allRates.map((r) =>
+    const prices = rates.map((r) =>
       unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
     );
     const min = Math.min(...prices);
@@ -140,7 +138,7 @@ export function VideoStudio({
       return `${formatAmount(min, currency)} / ${unit}`;
     }
     return `${formatAmount(min, currency)} ~ ${formatAmount(max, currency)} / ${unit}`;
-  }, [admin, selectedModel, t]);
+  }, [selectedModel, t]);
 
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -149,9 +147,8 @@ export function VideoStudio({
     ? estimateAmount(selectedModel.billing, parameters)
     : null;
   const currency = selectedModel?.billing.currency ?? '';
-  const price = admin
-    ? t('composer.free')
-    : estimate === null || !currency
+  const price =
+    estimate === null || !currency
       ? ''
       : estimate === 0
         ? t('composer.free')
@@ -599,17 +596,14 @@ export function VideoStudio({
       parts.push(`${secs}s`);
     }
 
-    if (admin) {
-      parts.push(t('composer.free'));
-    } else {
-      const amt = activeGen.final_amount ?? activeGen.quote_amount;
-      if (amt !== undefined && activeGen.currency) {
-        parts.push(formatAmount(amt, activeGen.currency));
-      }
+    // Cost
+    const amt = activeGen.final_amount ?? activeGen.quote_amount;
+    if (amt !== undefined && activeGen.currency) {
+      parts.push(formatAmount(amt, activeGen.currency));
     }
 
     return parts.join(' · ');
-  }, [activeGen, admin, parameters, t]);
+  }, [activeGen, parameters]);
 
   const activeArtifact =
     activeArtifacts.find((a) => a.mime_type.startsWith('video/')) ??
@@ -1169,11 +1163,9 @@ export function VideoStudio({
                     <>
                       <Sparkles size={16} />
                       <span>
-                        {admin
-                          ? t('playground.adminGenerate')
-                          : price
-                            ? t('playground.generatePriced', { price })
-                            : t('playground.generate')}
+                        {price
+                          ? t('playground.generatePriced', { price })
+                          : t('playground.generate')}
                       </span>
                     </>
                   )}

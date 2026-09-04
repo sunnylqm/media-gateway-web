@@ -424,9 +424,8 @@ export function GenerationComposer({
     ? estimateAmount(selectedModel.billing, parameters)
     : null;
   const currency = selectedModel?.billing.currency ?? '';
-  const price = admin
-    ? t('composer.free')
-    : estimate === null || !currency
+  const price =
+    estimate === null || !currency
       ? ''
       : estimate === 0
         ? t('composer.free')
@@ -732,7 +731,7 @@ export function GenerationComposer({
                   </div>
                 )}
 
-                {!admin && selectedModel && form && (
+                {selectedModel && form && (
                   <PriceTable
                     billing={selectedModel.billing}
                     parameters={parameters}
@@ -763,11 +762,7 @@ export function GenerationComposer({
               </div>
 
               <div className="composer-footer">
-                {admin ? (
-                  <small className="footer-note">
-                    {t('composer.adminNoCharge')}
-                  </small>
-                ) : selectedModel?.billing.mode === 'per_output_second' ? (
+                {selectedModel?.billing.mode === 'per_output_second' ? (
                   <small className="footer-note">
                     {t('composer.estimateNote')}
                   </small>
@@ -795,11 +790,9 @@ export function GenerationComposer({
                   <Send size={15} />
                   {creating
                     ? t('composer.submitting')
-                    : admin
-                      ? t('composer.adminSubmit')
-                      : price
-                        ? t('composer.submitPriced', { price })
-                        : t('composer.submit')}
+                    : price
+                      ? t('composer.submitPriced', { price })
+                      : t('composer.submit')}
                 </button>
               </div>
             </form>
