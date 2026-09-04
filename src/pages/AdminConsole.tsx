@@ -12,6 +12,7 @@ import {
   HardDrive,
   KeyRound,
   Plus,
+  RotateCcw,
   Server,
   ShieldAlert,
   Sliders,
@@ -1025,6 +1026,33 @@ function ModelsPanel({
     }));
   }
 
+  const resetPreset = presets.find(
+    (candidate) =>
+      candidate.name === form.provider &&
+      (candidate.modality === 'image' ? 'image' : 'video') === form.modality,
+  );
+
+  // Resetting puts the shipped preset back into the form: display name,
+  // protocol profile, and the whole billing rule with its tiers. The upstream
+  // side is left alone: bindings (endpoints and keys), the upstream model
+  // name, and availability stay as they are. Nothing is saved until the
+  // administrator submits.
+  function resetToDefaults() {
+    if (!resetPreset) return;
+    const defaults = presetForm(resetPreset);
+    setForm((current) => ({
+      ...current,
+      displayName: defaults.displayName,
+      profile: defaults.profile,
+      billingMode: defaults.billingMode,
+      currency: defaults.currency,
+      unitPrice: defaults.unitPrice,
+      unitScale: defaults.unitScale,
+      minimumCharge: defaults.minimumCharge,
+      rates: defaults.rates,
+    }));
+  }
+
   function field<K extends keyof ModelForm>(key: K, value: ModelForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
   }
@@ -1747,6 +1775,17 @@ function ModelsPanel({
                 </select>
               </label>
               <div className="dialog-actions">
+                {editing && resetPreset && (
+                  <button
+                    className="button secondary reset-button"
+                    type="button"
+                    onClick={resetToDefaults}
+                    title={t('models.resetDefaultsNote')}
+                  >
+                    <RotateCcw size={14} />
+                    {t('models.resetDefaults')}
+                  </button>
+                )}
                 <Dialog.Close className="button secondary" type="button">
                   {t('common.cancel')}
                 </Dialog.Close>

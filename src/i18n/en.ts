@@ -396,6 +396,9 @@ export const en = {
   'models.profileNote':
     'Routes are an allowlist: a client can only reach the paths listed here with the stored credential.',
   'models.restoreDefault': 'Restore default',
+  'models.resetDefaults': 'Reset to defaults',
+  'models.resetDefaultsNote':
+    'Put the preset display name, protocol profile, and billing rule back. Upstream bindings, the upstream model name, and availability stay as they are. Takes effect on save.',
   'models.availabilityActive': 'Active for tenants',
   'models.saving': 'Saving…',
   'models.save': 'Save configuration',

@@ -373,6 +373,9 @@ export const zh: Record<MessageKey, string> = {
   'models.profileNote':
     '路由是白名单：客户端只能凭已保存的凭据访问这里列出的路径。',
   'models.restoreDefault': '恢复默认',
+  'models.resetDefaults': '重置为默认配置',
+  'models.resetDefaultsNote':
+    '把显示名、协议配置和计费规则恢复为预设值；上游绑定、上游模型名和可用状态保持不变。保存后生效。',
   'models.availabilityActive': '对租户开放',
   'models.saving': '正在保存…',
   'models.save': '保存配置',

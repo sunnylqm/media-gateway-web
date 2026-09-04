@@ -172,6 +172,7 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .icon-button { width: 32px; height: 32px; display: grid; place-items: center; flex: 0 0 auto; border: 1px solid var(--line); border-radius: 3px; background: var(--paper); color: #5f6964; cursor: pointer; }
 .dialog-form { display: grid; gap: 18px; }
 .dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 5px; }
+.dialog-actions .reset-button { margin-right: auto; }
 .topup-fields { display: flex; flex-direction: column; gap: 12px; margin: 16px 0; }
 .select-trigger { height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
 .select-content { z-index: 70; min-width: var(--radix-select-trigger-width); padding: 5px; border: 1px solid var(--line-strong); background: var(--paper); box-shadow: var(--shadow); }
@@ -427,6 +428,7 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   .page-actions, .page-actions .button { width: 100%; }
   .metric { min-height: 126px; }
   .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .dialog-actions .reset-button { grid-column: 1 / -1; margin-right: 0; }
   .transaction-error { align-items: stretch; flex-direction: column; margin: 12px; }
   .artifact-meta { align-items: stretch; }
   .artifact-meta > div { display: grid; gap: 2px; }
