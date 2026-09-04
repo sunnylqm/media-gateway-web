@@ -369,7 +369,11 @@ export const en = {
   'models.minimumCharge': 'Minimum charge',
   'models.tiers': 'Parameter rate tiers',
   'models.tiersNote':
+    'The most specific matching selector wins; the fallback unit price applies when none matches.',
+  'models.tiersNoteMinimax':
     'The most specific matching selector wins. MiniMax lists 2K at ¥0.80/s and 768P at ¥0.50/s.',
+  'models.tiersNoteXai':
+    'The most specific matching selector wins. xAI charges one flat upstream rate per second ($0.08/s, any resolution); the 480p, 720p, and 1080p tiers here are a selling-price choice to adjust as needed. Set the fallback to the top tier.',
   'models.tiersNoteImage':
     'Images are priced per image times the requested n. The default is flat: the cost spread across quality and size is small, and the auto defaults would otherwise have to be billed at the top tier. Add quality or size tiers only when needed; the most specific selector wins.',
   'models.addTier': 'Add tier',
@@ -382,7 +386,8 @@ export const en = {
   'models.unitPrice': 'Unit price',
   'models.tiersEmpty':
     'No parameter tiers. The fallback unit price applies to every request.',
-  'models.pricingReference': 'Open MiniMax pay-as-you-go pricing',
+  'models.pricingReferenceMinimax': 'Open MiniMax pay-as-you-go pricing',
+  'models.pricingReferenceXai': 'Open xAI model pricing',
   'models.profile': 'Protocol profile',
   'models.profileCustomized': 'customized',
   'models.profileDefault': 'built-in default',

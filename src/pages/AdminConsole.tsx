@@ -835,6 +835,59 @@ const officialH3Rates: RateForm[] = [
   },
 ];
 
+// Grok Imagine Video 1.5 selling tiers by output resolution, CNY minor units
+// per second. xAI itself charges one flat rate per second regardless of
+// resolution, so these tiers are a pricing decision, not a cost pass-through:
+// a starting point an administrator adjusts. The fallback is the top tier.
+const officialGrokRates: RateForm[] = [
+  {
+    label: '480p output',
+    dimensions: 'resolution=480p',
+    unitPrice: '60',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+  {
+    label: '720p output',
+    dimensions: 'resolution=720p',
+    unitPrice: '80',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+  {
+    label: '1080p output',
+    dimensions: 'resolution=1080p',
+    unitPrice: '120',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+];
+
+// Where each provider publishes its own price list, for the tier editor.
+const pricingReferences: Record<
+  string,
+  {
+    href: string;
+    key: 'models.pricingReferenceMinimax' | 'models.pricingReferenceXai';
+  }
+> = {
+  minimax: {
+    href: 'https://platform.minimaxi.com/docs/guides/pricing-paygo',
+    key: 'models.pricingReferenceMinimax',
+  },
+  xai: {
+    href: 'https://docs.x.ai/developers/models',
+    key: 'models.pricingReferenceXai',
+  },
+};
+
+function tiersNoteKey(form: ModelForm) {
+  if (form.modality === 'image') return 'models.tiersNoteImage' as const;
+  if (form.provider === 'minimax') return 'models.tiersNoteMinimax' as const;
+  if (form.provider === 'xai') return 'models.tiersNoteXai' as const;
+  return 'models.tiersNote' as const;
+}
+
 function newBinding(alias: string, endpoint: string): BindingForm {
   return {
     alias,
@@ -885,13 +938,17 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     rates:
       preset.name === 'minimax'
         ? officialH3Rates.map((rate) => ({ ...rate }))
-        : [],
+        : preset.name === 'xai'
+          ? officialGrokRates.map((rate) => ({ ...rate }))
+          : [],
     unitPrice:
       preset.name === 'minimax'
         ? '80'
-        : preset.modality === 'image'
-          ? flatImagePrice
-          : '0',
+        : preset.name === 'xai'
+          ? '120'
+          : preset.modality === 'image'
+            ? flatImagePrice
+            : '0',
   };
 }
 
@@ -1500,13 +1557,7 @@ function ModelsPanel({
                   <div className="rate-editor-heading">
                     <div>
                       <h4>{t('models.tiers')}</h4>
-                      <p>
-                        {t(
-                          form.modality === 'image'
-                            ? 'models.tiersNoteImage'
-                            : 'models.tiersNote',
-                        )}
-                      </p>
+                      <p>{t(tiersNoteKey(form))}</p>
                     </div>
                     <button
                       className="button secondary"
@@ -1639,14 +1690,16 @@ function ModelsPanel({
                   ) : (
                     <div className="rate-empty">{t('models.tiersEmpty')}</div>
                   )}
-                  <a
-                    className="pricing-reference"
-                    href="https://platform.minimaxi.com/docs/guides/pricing-paygo"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t('models.pricingReference')}
-                  </a>
+                  {pricingReferences[form.provider] && (
+                    <a
+                      className="pricing-reference"
+                      href={pricingReferences[form.provider].href}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t(pricingReferences[form.provider].key)}
+                    </a>
+                  )}
                 </section>
               )}
               <details

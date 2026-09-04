@@ -348,8 +348,11 @@ export const zh: Record<MessageKey, string> = {
   'models.unitScale': '每单价对应的单位数',
   'models.minimumCharge': '最低收费',
   'models.tiers': '参数计费档位',
-  'models.tiersNote':
+  'models.tiersNote': '匹配最精确的选择器生效；没有档位匹配时使用兜底单价。',
+  'models.tiersNoteMinimax':
     '匹配最精确的选择器生效。MiniMax 官方定价为 2K 每秒 ¥0.80、768P 每秒 ¥0.50。',
+  'models.tiersNoteXai':
+    '匹配最精确的选择器生效。xAI 上游按秒统一计费（$0.08/秒，不分分辨率），这里按 480p、720p、1080p 分档是售价策略，可按需调整；兜底单价建议取最高档。',
   'models.tiersNoteImage':
     '图片按张计价，数量取请求的 n。默认不分档：各画质与分辨率的成本差距不大，而 auto 默认值若分档只能按最高档收费。确有需要时可按 quality、size 添加档位，匹配最精确的选择器生效。',
   'models.addTier': '添加档位',
@@ -361,7 +364,8 @@ export const zh: Record<MessageKey, string> = {
   'models.tierSelectorsNote': '以逗号分隔的 参数=值 组合。',
   'models.unitPrice': '单价',
   'models.tiersEmpty': '没有参数档位，所有请求都按兜底单价计费。',
-  'models.pricingReference': '查看 MiniMax 按量付费价格',
+  'models.pricingReferenceMinimax': '查看 MiniMax 按量付费价格',
+  'models.pricingReferenceXai': '查看 xAI 模型价格',
   'models.profile': '协议配置',
   'models.profileCustomized': '已自定义',
   'models.profileDefault': '内置默认',
