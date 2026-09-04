@@ -208,6 +208,18 @@ export const en = {
   'composer.errorMediaCount': 'At most {count} {kind} references',
   'composer.estimateNote':
     'Estimated from the requested length. The final charge follows the delivered output.',
+  'composer.perImageNote':
+    'Priced per image from the quality and size tier times the requested count, locked at submission.',
+  'composer.priceTable': 'Price list',
+  'composer.priceRule': 'The tier matching the most parameters applies',
+  'composer.priceQuantity': '{count} {unit} this request',
+  'composer.priceTier': 'Tier',
+  'composer.priceSelector': 'Parameters',
+  'composer.pricePerUnit': 'Per {unit}',
+  'composer.priceFallback': 'Base price',
+  'composer.priceFallbackNote': 'Any other combination',
+  'composer.unitSecond': 'second',
+  'composer.unitImage': 'image',
   'composer.adminNoCharge':
     'Administrator generation · no tenant charge. Provider usage is still recorded for operations.',
   'composer.submitting': 'Submitting…',
@@ -342,7 +354,7 @@ export const en = {
   'models.billing': 'Billing rule',
   'models.billingMode': 'Charge by',
   'models.billingFree': 'Free',
-  'models.billingPerRequest': 'Per request',
+  'models.billingPerRequest': 'Per request / per image',
   'models.billingPerSecond': 'Per output second',
   'models.currency': 'Currency',
   'models.unitPriceFallback': 'Fallback unit price',
@@ -353,6 +365,8 @@ export const en = {
   'models.tiers': 'Parameter rate tiers',
   'models.tiersNote':
     'The most specific matching selector wins. MiniMax lists 2K at ¥0.80/s and 768P at ¥0.50/s.',
+  'models.tiersNoteImage':
+    'The most specific matching selector wins. Images are priced per image times the requested n; tier by quality and size, and price auto at the highest tier.',
   'models.addTier': 'Add tier',
   'models.tier': 'Tier {index}',
   'models.removeTier': 'Remove tier {index}',
@@ -362,7 +376,7 @@ export const en = {
   'models.tierSelectorsNote': 'Comma-separated parameter=value pairs.',
   'models.unitPrice': 'Unit price',
   'models.tiersEmpty':
-    'No parameter tiers. The fallback unit price applies to every output second.',
+    'No parameter tiers. The fallback unit price applies to every request.',
   'models.pricingReference': 'Open MiniMax pay-as-you-go pricing',
   'models.profile': 'Protocol profile',
   'models.profileCustomized': 'customized',
@@ -382,6 +396,7 @@ export const en = {
   'models.errorSelectorMissing':
     'Every parameter rate needs at least one selector',
   'models.billingUnitRequest': 'request',
+  'models.billingUnitImage': 'image',
   'models.billingUnitSecond': 'second',
   'models.billingSummary': '{price}/{scale} {currency} minor units per {unit}',
   'models.billingTiers': '{count} parameter tiers',

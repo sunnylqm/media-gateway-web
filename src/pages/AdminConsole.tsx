@@ -566,6 +566,7 @@ type ModelForm = {
   id: string;
   displayName: string;
   provider: string;
+  modality: 'image' | 'video';
   upstreamModel: string;
   profile: string;
   bindings: BindingForm[];
@@ -845,10 +846,46 @@ function newBinding(alias: string, endpoint: string): BindingForm {
   };
 }
 
+// The seeded GPT Image 2 tiers: CNY minor units per image by quality. "auto" is
+// billed as the highest tier because the upstream picks the tier after the
+// quote is locked. A size surcharge is one more selector, such as
+// "quality=high, size=1536x1024".
+const officialImageRates: RateForm[] = [
+  {
+    label: 'Low quality',
+    dimensions: 'quality=low',
+    unitPrice: '15',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+  {
+    label: 'Medium quality',
+    dimensions: 'quality=medium',
+    unitPrice: '50',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+  {
+    label: 'High quality',
+    dimensions: 'quality=high',
+    unitPrice: '200',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+  {
+    label: 'Auto quality (billed as high)',
+    dimensions: 'quality=auto',
+    unitPrice: '200',
+    unitScale: '1',
+    minimumCharge: '0',
+  },
+];
+
 const emptyModelForm: ModelForm = {
   id: '',
   displayName: '',
   provider: 'minimax',
+  modality: 'video',
   upstreamModel: 'MiniMax-H3',
   profile: '',
   bindings: [newBinding('default', 'https://api.minimax.io')],
@@ -867,6 +904,7 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     id: preset.model_id,
     displayName: preset.display_name,
     provider: preset.name,
+    modality: preset.modality === 'image' ? 'image' : 'video',
     upstreamModel: preset.upstream_model,
     billingMode:
       preset.modality === 'image' ? 'per_request' : 'per_output_second',
@@ -875,12 +913,14 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     rates:
       preset.name === 'minimax'
         ? officialH3Rates.map((rate) => ({ ...rate }))
-        : [],
+        : preset.modality === 'image'
+          ? officialImageRates.map((rate) => ({ ...rate }))
+          : [],
     unitPrice:
       preset.name === 'minimax'
         ? '80'
         : preset.modality === 'image'
-          ? '20'
+          ? '200'
           : '0',
   };
 }
@@ -910,6 +950,7 @@ function ModelsPanel({
             id: model.id,
             displayName: model.display_name,
             provider: model.provider,
+            modality: model.modality,
             upstreamModel: model.upstream_model,
             profile: model.protocol_profile
               ? JSON.stringify(model.protocol_profile, null, 2)
@@ -1169,7 +1210,7 @@ function ModelsPanel({
               <td>
                 <span className="billing-cell">
                   <CircleDollarSign size={14} />
-                  {billingLabel(model.billing)}
+                  {billingLabel(model.billing, model.modality)}
                 </span>
               </td>
               <td>
@@ -1484,12 +1525,18 @@ function ModelsPanel({
                   />
                 </label>
               </div>
-              {form.billingMode === 'per_output_second' && (
+              {form.billingMode !== 'free' && (
                 <section className="rate-editor">
                   <div className="rate-editor-heading">
                     <div>
                       <h4>{t('models.tiers')}</h4>
-                      <p>{t('models.tiersNote')}</p>
+                      <p>
+                        {t(
+                          form.modality === 'image'
+                            ? 'models.tiersNoteImage'
+                            : 'models.tiersNote',
+                        )}
+                      </p>
                     </div>
                     <button
                       className="button secondary"
@@ -1530,7 +1577,11 @@ function ModelsPanel({
                                 onChange={(event) =>
                                   updateRate(index, 'label', event.target.value)
                                 }
-                                placeholder={t('models.tierLabelPlaceholder')}
+                                placeholder={
+                                  form.modality === 'image'
+                                    ? 'High quality'
+                                    : t('models.tierLabelPlaceholder')
+                                }
                               />
                             </label>
                             <label className="field">
@@ -1547,7 +1598,11 @@ function ModelsPanel({
                                     event.target.value,
                                   )
                                 }
-                                placeholder="resolution=2K, ratio=16:9"
+                                placeholder={
+                                  form.modality === 'image'
+                                    ? 'quality=high, size=1536x1024'
+                                    : 'resolution=2K, ratio=16:9'
+                                }
                               />
                               <small>{t('models.tierSelectorsNote')}</small>
                             </label>
@@ -1696,11 +1751,13 @@ function parseProfile(text: string): unknown {
   }
 }
 
-function billingLabel(billing: ModelBilling) {
+function billingLabel(billing: ModelBilling, modality?: 'image' | 'video') {
   if (billing.mode === 'free') return t('models.billingFree');
   const unit = t(
     billing.mode === 'per_request'
-      ? 'models.billingUnitRequest'
+      ? modality === 'image'
+        ? 'models.billingUnitImage'
+        : 'models.billingUnitRequest'
       : 'models.billingUnitSecond',
   );
   const summary = t('models.billingSummary', {

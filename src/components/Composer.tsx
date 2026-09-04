@@ -21,7 +21,12 @@ import {
   useState,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
-import { formatAmount, formatBytes, formatLabel } from '../format';
+import {
+  formatAmount,
+  formatBytes,
+  formatLabel,
+  formatParameterValue,
+} from '../format';
 import { useI18n } from '../i18n';
 import { selectComposerModel } from '../lib/composerSelection';
 import {
@@ -29,13 +34,23 @@ import {
   buildRequestBody,
   defaultParameterValue,
   estimateAmount,
+  estimateQuantity,
+  fallbackRate,
   type MediaKind,
   type MediaSlot,
   mediaKind,
   mediaSlots,
+  resolveRate,
   slotAccepts,
+  unitAmount,
 } from '../lib/requestForm';
-import type { Asset, FormParameter, PublicModel, User } from '../types';
+import type {
+  Asset,
+  FormParameter,
+  ModelBilling,
+  PublicModel,
+  User,
+} from '../types';
 
 type Mode = 'frame' | 'reference';
 
@@ -671,6 +686,13 @@ export function GenerationComposer({
                 </div>
               )}
 
+              {!admin && selectedModel && form && (
+                <PriceTable
+                  billing={selectedModel.billing}
+                  parameters={parameters}
+                />
+              )}
+
               {!availableModels.length && (
                 <div className="warning-box">
                   <span>
@@ -700,6 +722,10 @@ export function GenerationComposer({
               ) : selectedModel?.billing.mode === 'per_output_second' ? (
                 <small className="footer-note">
                   {t('composer.estimateNote')}
+                </small>
+              ) : selectedModel?.billing.mode === 'per_request' ? (
+                <small className="footer-note">
+                  {t('composer.perImageNote')}
                 </small>
               ) : null}
               <button
@@ -1171,4 +1197,85 @@ function Picker({
 // reads as an index rather than a length.
 function formatQuantity(name: string, value: number) {
   return /duration|second/i.test(name) ? `${value}s` : String(value);
+}
+
+// PriceTable lays out every tier of the selected model so a tenant sees the
+// whole price book before touching a parameter, and which row the current
+// parameters land on. It is the same data the submit button prices from.
+function PriceTable({
+  billing,
+  parameters,
+}: {
+  billing: ModelBilling;
+  parameters: Record<string, string>;
+}) {
+  const { t } = useI18n();
+  if (billing.mode === 'free') return null;
+  const dimensions = Object.fromEntries(
+    Object.entries(parameters).filter(([, value]) => value !== ''),
+  );
+  const matched = resolveRate(billing, dimensions);
+  const fallback = fallbackRate(billing);
+  const rows = [...(billing.rates ?? []), fallback];
+  const quantity = estimateQuantity(billing, dimensions);
+  const unit = t(
+    billing.mode === 'per_output_second'
+      ? 'composer.unitSecond'
+      : 'composer.unitImage',
+  );
+  return (
+    <section className="price-table" aria-label={t('composer.priceTable')}>
+      <div className="price-table-heading">
+        <h4>{t('composer.priceTable')}</h4>
+        <small>
+          {quantity === null
+            ? t('composer.priceRule')
+            : `${t('composer.priceRule')} · ${t('composer.priceQuantity', { count: quantity, unit })}`}
+        </small>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>{t('composer.priceTier')}</th>
+            <th>{t('composer.priceSelector')}</th>
+            <th className="numeric">{t('composer.pricePerUnit', { unit })}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((rate, index) => {
+            const isFallback = index === rows.length - 1;
+            const selected =
+              rate.label === matched.label &&
+              JSON.stringify(rate.dimensions ?? {}) ===
+                JSON.stringify(matched.dimensions ?? {});
+            return (
+              <tr
+                key={`${rate.label}-${index}`}
+                className={selected ? 'selected' : undefined}
+                aria-current={selected ? 'true' : undefined}
+              >
+                <td>{isFallback ? t('composer.priceFallback') : rate.label}</td>
+                <td className="price-selector">
+                  {isFallback
+                    ? t('composer.priceFallbackNote')
+                    : Object.entries(rate.dimensions ?? {})
+                        .map(
+                          ([name, value]) =>
+                            `${formatLabel(name)} = ${formatParameterValue(value)}`,
+                        )
+                        .join(' · ')}
+                </td>
+                <td className="numeric">
+                  {formatAmount(
+                    unitAmount({ ...rate, dimensions: rate.dimensions ?? {} }),
+                    billing.currency,
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </section>
+  );
 }

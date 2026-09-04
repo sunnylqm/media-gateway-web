@@ -136,9 +136,30 @@ export function coerceParameter(
   return raw;
 }
 
+// estimateQuantity is the number of billable units a request asks for: the
+// requested seconds for per-second video, the requested image count for
+// per-image models. It mirrors the gateway's admission rule, including the
+// defaults it applies when the parameter is absent.
+export function estimateQuantity(
+  billing: ModelBilling,
+  dimensions: Record<string, string>,
+) {
+  if (billing.mode === 'per_output_second') {
+    const quantity =
+      dimensions.duration === undefined ? 5 : Number(dimensions.duration);
+    return Number.isInteger(quantity) && quantity >= 0 ? quantity : null;
+  }
+  if (billing.mode === 'per_request') {
+    const quantity = dimensions.n === undefined ? 1 : Number(dimensions.n);
+    return Number.isInteger(quantity) && quantity >= 1 ? quantity : null;
+  }
+  return 1;
+}
+
 // estimateAmount mirrors the gateway's own quote: the most specific matching
-// rate priced over the requested seconds, in currency minor units. It is shown
-// as an estimate because the final charge follows the delivered output.
+// rate multiplied by the requested quantity, in currency minor units. For a
+// per-second model it is an estimate, because the final charge follows the
+// delivered output; a per-image quote is locked at submission.
 export function estimateAmount(
   billing: ModelBilling,
   parameters: Record<string, string>,
@@ -147,47 +168,62 @@ export function estimateAmount(
   const dimensions = Object.fromEntries(
     Object.entries(parameters).filter(([, value]) => value !== ''),
   );
-  let quantity = 1;
-  let {
-    unit_price: unitPrice,
-    unit_scale: unitScale,
-    minimum_charge: minimum,
-  } = billing;
-  if (billing.mode === 'per_output_second') {
-    quantity =
-      dimensions.duration === undefined ? 5 : Number(dimensions.duration);
-    if (!Number.isInteger(quantity) || quantity < 0) return null;
-    const rate = resolveRate(billing, dimensions);
-    unitPrice = rate.unit_price;
-    unitScale = rate.unit_scale;
-    minimum = rate.minimum_charge;
-  }
-  if (unitScale <= 0 || unitPrice < 0) return null;
-  return Math.max(Math.ceil((unitPrice * quantity) / unitScale), minimum);
+  const quantity = estimateQuantity(billing, dimensions);
+  if (quantity === null) return null;
+  const rate = resolveRate(billing, dimensions);
+  if (rate.unit_scale <= 0 || rate.unit_price < 0) return null;
+  return Math.max(
+    Math.ceil((rate.unit_price * quantity) / rate.unit_scale),
+    rate.minimum_charge,
+  );
 }
 
-export function resolveRate(
-  billing: ModelBilling,
-  dimensions: Record<string, string>,
-) {
-  const fallback = {
+export type ResolvedRate = {
+  label: string;
+  dimensions: Record<string, string>;
+  unit_price: number;
+  unit_scale: number;
+  minimum_charge: number;
+};
+
+// fallbackRate is the model's base price, used when no tier selector matches.
+export function fallbackRate(billing: ModelBilling): ResolvedRate {
+  return {
     label: 'Default',
+    dimensions: {},
     unit_price: billing.unit_price,
     unit_scale: billing.unit_scale,
     minimum_charge: billing.minimum_charge,
   };
-  if (billing.mode !== 'per_output_second') return fallback;
-  let selected = fallback;
+}
+
+// resolveRate picks the tier whose selector matches the most request
+// parameters, falling back to the base price. Every priced mode carries tiers:
+// resolution for per-second video, quality and size for per-image models.
+export function resolveRate(
+  billing: ModelBilling,
+  dimensions: Record<string, string>,
+): ResolvedRate {
+  const fallback = fallbackRate(billing);
+  if (billing.mode === 'free') return fallback;
+  let selected: ResolvedRate = fallback;
   let mostSpecific = -1;
   for (const rate of billing.rates ?? []) {
     const entries = Object.entries(rate.dimensions ?? {});
     if (!entries.every(([name, expected]) => dimensions[name] === expected))
       continue;
     if (entries.length <= mostSpecific) continue;
-    selected = rate;
+    selected = { ...rate, dimensions: rate.dimensions ?? {} };
     mostSpecific = entries.length;
   }
   return selected;
+}
+
+// unitAmount is the price of one billable unit at a rate, in minor units, for a
+// price table. It ignores the minimum charge, which applies to the total.
+export function unitAmount(rate: ResolvedRate) {
+  if (rate.unit_scale <= 0) return 0;
+  return rate.unit_price / rate.unit_scale;
 }
 
 // setPointer writes value at an RFC 6901 pointer, creating the objects and
