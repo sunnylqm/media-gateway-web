@@ -129,3 +129,7 @@ export function formatDimensionOption(value: string): string {
   }
   return value;
 }
+
+export function formatQuantity(name: string, value: number) {
+  return /duration|second/i.test(name) ? `${value}s` : String(value);
+}

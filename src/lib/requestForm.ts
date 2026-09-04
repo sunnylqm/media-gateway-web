@@ -40,10 +40,17 @@ export const HIDDEN_PARAMETERS = new Set([
   'output_compression',
   'background',
   'moderation',
+  'aigc_watermark',
+  'watermark',
 ]);
 
 export function isHiddenParameter(name: string): boolean {
-  return HIDDEN_PARAMETERS.has(name.toLowerCase());
+  const lower = name.toLowerCase();
+  return (
+    HIDDEN_PARAMETERS.has(lower) ||
+    lower.includes('watermark') ||
+    lower === 'aigc_watermark'
+  );
 }
 
 export function mediaSlots(form?: RequestForm): MediaSlot[] {

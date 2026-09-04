@@ -14,6 +14,7 @@ import {
   Trash2,
   Wand2,
 } from 'lucide-react';
+import { Slider } from 'radix-ui';
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -24,13 +25,19 @@ import {
   useState,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
+import { GenerationDetails } from '../components/Generations';
 import { PriceTable } from '../components/PriceTable';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '../components/ui/tooltip';
-import { formatAmount, formatDimensionOption, formatLabel } from '../format';
+import {
+  formatAmount,
+  formatDimensionOption,
+  formatLabel,
+  formatQuantity,
+} from '../format';
 
 import { useI18n } from '../i18n';
 import {
@@ -196,6 +203,7 @@ export function ImagePlayground({
   const [activeGen, setActiveGen] = useState<Generation | null>(null);
   const [activeArtifacts, setActiveArtifacts] = useState<Artifact[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [showDetails, setShowDetails] = useState(false);
   const [thumbnails, setThumbnails] = useState<Record<string, string | null>>(
     {},
   );
@@ -923,46 +931,182 @@ export function ImagePlayground({
               {/* Any additional model parameters */}
               {otherParams.length > 0 && (
                 <div className="playground-param-row">
-                  {otherParams.map((param) => (
-                    <div key={param.name} className="playground-param-col">
-                      <span className="playground-param-label">
-                        {formatLabel(param.name)}
-                      </span>
-                      {param.enum?.length ? (
-                        <select
-                          className="playground-select"
-                          value={parameters[param.name] ?? ''}
-                          onChange={(e) =>
-                            setParameters((prev) => ({
-                              ...prev,
-                              [param.name]: e.target.value,
-                            }))
-                          }
-                        >
-                          {!param.required && (
-                            <option value="">{t('composer.auto')}</option>
-                          )}
-                          {param.enum.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={param.type === 'integer' ? 'number' : 'text'}
-                          className="playground-select"
-                          value={parameters[param.name] ?? ''}
-                          onChange={(e) =>
-                            setParameters((prev) => ({
-                              ...prev,
-                              [param.name]: e.target.value,
-                            }))
-                          }
-                        />
-                      )}
-                    </div>
-                  ))}
+                  {otherParams.map((param) => {
+                    const isDuration = /duration|second/i.test(param.name);
+                    const isRanged =
+                      param.type === 'integer' &&
+                      param.minimum !== undefined &&
+                      param.maximum !== undefined &&
+                      param.maximum > param.minimum;
+
+                    if (isDuration || isRanged) {
+                      if (param.enum?.length) {
+                        const options = param.enum;
+                        const currentVal =
+                          parameters[param.name] ??
+                          (param.default !== undefined
+                            ? String(param.default)
+                            : options[0]);
+                        const currentIndex = Math.max(
+                          0,
+                          options.indexOf(currentVal),
+                        );
+                        const currentNum = Number(
+                          options[currentIndex] ?? options[0],
+                        );
+                        return (
+                          <div
+                            key={param.name}
+                            className="playground-slider-col"
+                          >
+                            <div className="playground-slider-header">
+                              <span className="playground-param-label">
+                                {formatLabel(param.name)}
+                              </span>
+                              <span className="playground-slider-value">
+                                {Number.isNaN(currentNum)
+                                  ? (options[currentIndex] ?? options[0])
+                                  : formatQuantity(param.name, currentNum)}
+                              </span>
+                            </div>
+                            <Slider.Root
+                              className="slider"
+                              min={0}
+                              max={options.length - 1}
+                              step={1}
+                              value={[currentIndex]}
+                              onValueChange={([idx]) =>
+                                setParameters((prev) => ({
+                                  ...prev,
+                                  [param.name]: options[idx],
+                                }))
+                              }
+                            >
+                              <Slider.Track className="slider-track">
+                                <Slider.Range className="slider-range" />
+                              </Slider.Track>
+                              <Slider.Thumb
+                                className="slider-thumb"
+                                aria-label={formatLabel(param.name)}
+                              />
+                            </Slider.Root>
+                            <div className="slider-scale">
+                              <small>
+                                {Number.isNaN(Number(options[0]))
+                                  ? options[0]
+                                  : formatQuantity(
+                                      param.name,
+                                      Number(options[0]),
+                                    )}
+                              </small>
+                              <small>
+                                {Number.isNaN(
+                                  Number(options[options.length - 1]),
+                                )
+                                  ? options[options.length - 1]
+                                  : formatQuantity(
+                                      param.name,
+                                      Number(options[options.length - 1]),
+                                    )}
+                              </small>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      const min =
+                        param.minimum !== undefined ? Number(param.minimum) : 1;
+                      const max =
+                        param.maximum !== undefined
+                          ? Number(param.maximum)
+                          : 100;
+                      const rawVal =
+                        parameters[param.name] ??
+                        (param.default !== undefined
+                          ? String(param.default)
+                          : String(min));
+                      const current = Number(rawVal) || min;
+
+                      return (
+                        <div key={param.name} className="playground-slider-col">
+                          <div className="playground-slider-header">
+                            <span className="playground-param-label">
+                              {formatLabel(param.name)}
+                            </span>
+                            <span className="playground-slider-value">
+                              {formatQuantity(param.name, current)}
+                            </span>
+                          </div>
+                          <Slider.Root
+                            className="slider"
+                            min={min}
+                            max={max}
+                            step={1}
+                            value={[current]}
+                            onValueChange={([next]) =>
+                              setParameters((prev) => ({
+                                ...prev,
+                                [param.name]: String(next),
+                              }))
+                            }
+                          >
+                            <Slider.Track className="slider-track">
+                              <Slider.Range className="slider-range" />
+                            </Slider.Track>
+                            <Slider.Thumb
+                              className="slider-thumb"
+                              aria-label={formatLabel(param.name)}
+                            />
+                          </Slider.Root>
+                          <div className="slider-scale">
+                            <small>{formatQuantity(param.name, min)}</small>
+                            <small>{formatQuantity(param.name, max)}</small>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={param.name} className="playground-param-col">
+                        <span className="playground-param-label">
+                          {formatLabel(param.name)}
+                        </span>
+                        {param.enum?.length ? (
+                          <select
+                            className="playground-select"
+                            value={parameters[param.name] ?? ''}
+                            onChange={(e) =>
+                              setParameters((prev) => ({
+                                ...prev,
+                                [param.name]: e.target.value,
+                              }))
+                            }
+                          >
+                            {!param.required && (
+                              <option value="">{t('composer.auto')}</option>
+                            )}
+                            {param.enum.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={param.type === 'integer' ? 'number' : 'text'}
+                            className="playground-select"
+                            value={parameters[param.name] ?? ''}
+                            onChange={(e) =>
+                              setParameters((prev) => ({
+                                ...prev,
+                                [param.name]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 
@@ -1060,6 +1204,17 @@ export function ImagePlayground({
             </div>
 
             <div className="output-view-toggle">
+              {activeGen && (
+                <button
+                  type="button"
+                  className="output-details-btn"
+                  onClick={() => setShowDetails(true)}
+                  title={t('playground.viewDetails')}
+                >
+                  <Info size={13} />
+                  <span>{t('playground.viewDetails')}</span>
+                </button>
+              )}
               <button
                 type="button"
                 className={`output-toggle-btn ${outputTab === 'preview' ? 'active' : ''}`}
@@ -1105,6 +1260,14 @@ export function ImagePlayground({
                 <div className="canvas-media-wrap">
                   <img src={activeImageUrl} alt="Generated visual result" />
                   <div className="canvas-toolbar">
+                    <button
+                      type="button"
+                      className="canvas-toolbar-btn"
+                      title={t('playground.viewDetails')}
+                      onClick={() => setShowDetails(true)}
+                    >
+                      <Info size={15} />
+                    </button>
                     <a
                       href={activeImageUrl}
                       download={`generation-${activeGen?.id || 'image'}.png`}
@@ -1146,6 +1309,15 @@ export function ImagePlayground({
                   <AlertCircle size={28} style={{ color: '#dc2626' }} />
                   <b style={{ color: '#b91c1c' }}>Generation Failed</b>
                   <span>{activeGen.prompt}</span>
+                  <button
+                    type="button"
+                    className="output-details-btn"
+                    style={{ marginTop: 8 }}
+                    onClick={() => setShowDetails(true)}
+                  >
+                    <Info size={13} />
+                    <span>{t('playground.viewDetails')}</span>
+                  </button>
                 </div>
               ) : (
                 <div className="canvas-empty-state">
@@ -1239,6 +1411,13 @@ export function ImagePlayground({
           )}
         </div>
       </div>
+
+      <GenerationDetails
+        generation={showDetails ? activeGen : null}
+        artifacts={activeArtifacts}
+        loading={detailsLoading}
+        onClose={() => setShowDetails(false)}
+      />
     </div>
   );
 }

@@ -16,6 +16,8 @@ describe('requestForm utilities', () => {
     expect(isHiddenParameter('output_compression')).toBe(true);
     expect(isHiddenParameter('background')).toBe(true);
     expect(isHiddenParameter('moderation')).toBe(true);
+    expect(isHiddenParameter('aigc_watermark')).toBe(true);
+    expect(isHiddenParameter('watermark')).toBe(true);
     expect(isHiddenParameter('OUTPUT_COMPRESSION')).toBe(true);
     expect(isHiddenParameter('aspect_ratio')).toBe(false);
     expect(isHiddenParameter('resolution')).toBe(false);

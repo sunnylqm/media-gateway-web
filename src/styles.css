@@ -517,6 +517,9 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 
 .playground-param-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .playground-param-col { display: grid; gap: 6px; }
+.playground-slider-col { display: grid; gap: 8px; grid-column: 1 / -1; background: #fafbfa; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+.playground-slider-header { display: flex; align-items: center; justify-content: space-between; }
+.playground-slider-value { font-size: 12px; font-weight: 700; color: #7c3aed; font-variant-numeric: tabular-nums; }
 .playground-param-label { font-size: 11.5px; font-weight: 600; color: #434d49; }
 .playground-select {
   width: 100%;
@@ -558,6 +561,8 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .output-toggle-btn { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 11px; border: 0; border-radius: 4px; background: transparent; color: #59645f; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }
 .output-toggle-btn:hover { color: var(--ink); }
 .output-toggle-btn.active { background: var(--paper); color: #7c3aed; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.output-details-btn { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px; border: 1px solid var(--line); border-radius: 5px; background: var(--paper); color: #55625c; font-size: 11.5px; font-weight: 600; cursor: pointer; transition: all .15s; }
+.output-details-btn:hover { background: #f0f4f2; color: var(--ink); border-color: #a4b4ad; }
 
 .checkerboard-canvas {
   flex: 1;
