@@ -23,6 +23,7 @@ const zhTerms: Record<string, string> = {
   pending: '待处理',
   revoked: '已吊销',
   expired: '已过期',
+  paid: '已支付',
   none: '无',
   // Workspace roles
   owner: '所有者',

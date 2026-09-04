@@ -617,6 +617,78 @@ export const en = {
   'playground.viewDetails': 'Details',
   'playground.on': 'On',
   'playground.off': 'Off',
+
+  'topup.button': 'Top up',
+  'topup.dialogTitle': 'Top up balance',
+  'topup.dialogNote':
+    'Pay by card through Stripe Checkout. The balance updates as soon as the payment clears.',
+  'topup.presetLabel': 'Choose an amount',
+  'topup.customLabel': 'Custom amount',
+  'topup.customPlaceholder': 'Enter an amount',
+  'topup.customRange': 'Between {min} and {max}',
+  'topup.selectedAmount': 'Charging {amount}',
+  'topup.errorInvalid': 'Enter an amount with at most two decimals',
+  'topup.errorBelowMin': 'The smallest top-up is {min}',
+  'topup.errorAboveMax': 'The largest top-up is {max}',
+  'topup.errorCreate': 'Unable to start the payment',
+  'topup.submit': 'Continue to payment',
+  'topup.submitting': 'Opening Stripe…',
+  'topup.noticeProcessing': 'Confirming the payment…',
+  'topup.noticePaid':
+    'Top-up of {amount} received. The balance has been updated.',
+  'topup.noticePending':
+    'The payment is still processing. The balance updates once it clears — check back shortly.',
+  'topup.noticeCanceled': 'Payment not completed. Nothing was charged.',
+  'topup.noticeError': 'Unable to confirm the payment status',
+  'topup.dismiss': 'Dismiss',
+
+  'admin.navTopup': 'Top-up settings',
+  'topupAdmin.title': 'Stripe top-up',
+  'topupAdmin.note':
+    'Presets and limits for the self-service card top-up in the tenant console.',
+  'topupAdmin.enabled': 'Offer top-up in the tenant console',
+  'topupAdmin.currency': 'Currency',
+  'topupAdmin.currencyNote': 'Three-letter ISO code, for example CNY or USD.',
+  'topupAdmin.amounts': 'Preset amounts',
+  'topupAdmin.amountsNote':
+    'Major units, separated by commas. Up to 20 values; duplicates are dropped and the list is sorted.',
+  'topupAdmin.amountsPreview': 'Presets',
+  'topupAdmin.customAmount': 'Allow a custom amount',
+  'topupAdmin.minAmount': 'Minimum amount',
+  'topupAdmin.maxAmount': 'Maximum amount',
+  'topupAdmin.limitsNote':
+    'Major units. Every preset has to fall inside this range.',
+  'topupAdmin.save': 'Save top-up settings',
+  'topupAdmin.saving': 'Saving…',
+  'topupAdmin.saved': 'Top-up settings saved',
+  'topupAdmin.loading': 'Loading top-up settings…',
+  'topupAdmin.errorLoad': 'Unable to load the top-up settings',
+  'topupAdmin.errorSave': 'Unable to save the top-up settings',
+  'topupAdmin.errorAmounts':
+    'Preset amounts must be positive numbers with at most two decimals',
+  'topupAdmin.errorAmountsEmpty': 'Add at least one preset amount',
+  'topupAdmin.errorAmountsTooMany': 'At most 20 preset amounts are allowed',
+  'topupAdmin.errorMin': 'The minimum and maximum must be positive amounts',
+  'topupAdmin.errorRange':
+    'The minimum amount cannot be larger than the maximum',
+  'topupAdmin.errorOutside':
+    'Every preset amount has to fall between the minimum and the maximum',
+  'topupAdmin.errorCurrency': 'Enter a three-letter currency code',
+  'topupAdmin.serverSection': 'Server configuration',
+  'topupAdmin.stripeKey': 'STRIPE_SECRET_KEY',
+  'topupAdmin.webhookSecret': 'STRIPE_WEBHOOK_SECRET',
+  'topupAdmin.configured': 'Configured',
+  'topupAdmin.missing': 'Not set',
+  'topupAdmin.stripeHint':
+    'Top-ups stay off until the operator sets STRIPE_SECRET_KEY on the gateway.',
+  'topupAdmin.webhookURL': 'Stripe webhook endpoint',
+  'topupAdmin.webhookEvents':
+    'Point the Stripe webhook at this URL and subscribe it to checkout.session.completed and checkout.session.async_payment_succeeded.',
+  'topupAdmin.userHistory': 'Stripe top-ups',
+  'topupAdmin.userHistoryNote': 'Card payments this account started.',
+  'topupAdmin.columnTime': 'Time',
+  'topupAdmin.columnAmount': 'Amount',
+  'topupAdmin.columnStatus': 'Status',
 } as const;
 
 export type MessageKey = keyof typeof en;

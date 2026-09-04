@@ -3,6 +3,7 @@ import {
   ArrowRight,
   Check,
   Copy,
+  CreditCard,
   Eye,
   EyeOff,
   Film,
@@ -20,16 +21,19 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router';
 import { APIError, api } from '../api';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
+import { StripeTopupDialog } from '../components/StripeTopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
 import { formatAmount, formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
 import { modelPathSlug } from '../lib/requestForm';
+import { topupAmountLabel } from '../lib/topup';
 import type {
   APIKey,
   APIKeySecret,
@@ -39,11 +43,41 @@ import type {
   Generation,
   IdentityProfile,
   PublicModel,
+  Topup,
+  TopupOptions,
 } from '../types';
 import { ImagePlayground } from './ImagePlayground';
 import { VideoStudio } from './VideoStudio';
 
 type GenerationList = { data: Generation[] };
+
+type TopupNotice = { tone: 'success' | 'neutral'; message: string };
+
+type TopupReturn = { id: string; result: string } | null;
+
+// Stripe sends the browser back with `?topup=<id>&result=…`. The parameters are
+// read and stripped once per page load: a remembered result survives React's
+// development double-mount, and the console's own URL stays clean.
+let topupReturn: TopupReturn | undefined;
+
+function takeTopupReturn(): TopupReturn {
+  if (topupReturn !== undefined) return topupReturn;
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get('topup');
+  const result = params.get('result');
+  topupReturn = id && result ? { id, result } : null;
+  if (topupReturn) {
+    params.delete('topup');
+    params.delete('result');
+    const query = params.toString();
+    window.history.replaceState(
+      null,
+      '',
+      `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`,
+    );
+  }
+  return topupReturn;
+}
 
 export function TenantConsole() {
   const { t } = useI18n();
@@ -59,6 +93,10 @@ export function TenantConsole() {
   const [balanceError, setBalanceError] = useState('');
   const [balanceLoading, setBalanceLoading] = useState(true);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [topupOptions, setTopupOptions] = useState<TopupOptions | null>(null);
+  const [topupOpen, setTopupOpen] = useState(false);
+  const [topupNotice, setTopupNotice] = useState<TopupNotice | null>(null);
+  const [topupRefresh, setTopupRefresh] = useState(0);
 
   const load = useCallback(async () => {
     setError('');
@@ -112,6 +150,90 @@ export function TenantConsole() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  // A gateway with no Stripe key, or an administrator who turned top-ups off,
+  // answers `enabled: false`; either way the console shows no top-up UI.
+  useEffect(() => {
+    let active = true;
+    api<TopupOptions>('/v1/billing/topup/options').then(
+      (options) => {
+        if (active && options.enabled) setTopupOptions(options);
+      },
+      () => {
+        // Top-up simply stays hidden when the endpoint is unavailable.
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const pending = takeTopupReturn();
+    if (!pending) return;
+    if (pending.result !== 'success') {
+      setTopupNotice({ tone: 'neutral', message: t('topup.noticeCanceled') });
+      return;
+    }
+    let active = true;
+    setTopupNotice({ tone: 'neutral', message: t('topup.noticeProcessing') });
+    const deadline = Date.now() + 60_000;
+    // The webhook usually lands first, but this poll asks Stripe through the
+    // gateway so the landing page never waits on it.
+    const poll = async () => {
+      while (active) {
+        try {
+          const topup = await api<Topup>(
+            `/v1/billing/topups/${encodeURIComponent(pending.id)}`,
+          );
+          if (!active) return;
+          if (topup.status !== 'pending') {
+            if (topup.status === 'paid') {
+              setTopupNotice({
+                tone: 'success',
+                message: t('topup.noticePaid', {
+                  amount: topupAmountLabel(topup.amount, topup.currency),
+                }),
+              });
+              setTopupRefresh((value) => value + 1);
+              void loadRef.current();
+            } else {
+              setTopupNotice({
+                tone: 'neutral',
+                message: t('topup.noticeCanceled'),
+              });
+            }
+            return;
+          }
+        } catch (reason) {
+          if (!active) return;
+          setTopupNotice({
+            tone: 'neutral',
+            message:
+              reason instanceof Error ? reason.message : t('topup.noticeError'),
+          });
+          return;
+        }
+        if (Date.now() >= deadline) {
+          setTopupNotice({
+            tone: 'neutral',
+            message: t('topup.noticePending'),
+          });
+          return;
+        }
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, 2_000);
+        });
+      }
+    };
+    void poll();
+    return () => {
+      active = false;
+    };
+  }, [t]);
 
   useEffect(() => {
     if (
@@ -236,25 +358,44 @@ export function TenantConsole() {
       title={t('tenant.title')}
       description={t('tenant.description', { email: profile.user.email })}
       actions={
-        balance ? (
-          <Link
-            to="/app/billing"
-            className="button secondary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              padding: '6px 12px',
-              fontSize: '0.85rem',
-              textDecoration: 'none',
-            }}
-          >
-            <Wallet size={15} />
-            <span>
-              {t('billing.badge')}:{' '}
-              {formatAmount(balance.available, balance.currency)}
-            </span>
-          </Link>
+        balance || topupOptions ? (
+          <>
+            {balance ? (
+              <Link
+                to="/app/billing"
+                className="button secondary"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  fontSize: '0.85rem',
+                  textDecoration: 'none',
+                }}
+              >
+                <Wallet size={15} />
+                <span>
+                  {t('billing.badge')}:{' '}
+                  {formatAmount(balance.available, balance.currency)}
+                </span>
+              </Link>
+            ) : null}
+            {topupOptions && (
+              <button
+                type="button"
+                className="button primary"
+                style={{
+                  padding: '6px 12px',
+                  minHeight: '34px',
+                  fontSize: '0.85rem',
+                }}
+                onClick={() => setTopupOpen(true)}
+              >
+                <CreditCard size={15} />
+                {t('topup.button')}
+              </button>
+            )}
+          </>
         ) : undefined
       }
       onLogout={() => void logout()}
@@ -262,6 +403,23 @@ export function TenantConsole() {
       {error && (
         <div className="banner-error" role="alert">
           {error}
+        </div>
+      )}
+      {topupNotice && (
+        <div
+          className={
+            topupNotice.tone === 'success' ? 'banner-success' : 'banner-notice'
+          }
+          role="status"
+        >
+          <span>{topupNotice.message}</span>
+          <button
+            type="button"
+            className="button secondary"
+            onClick={() => setTopupNotice(null)}
+          >
+            {t('topup.dismiss')}
+          </button>
         </div>
       )}
       <Routes>
@@ -317,6 +475,9 @@ export function TenantConsole() {
               balanceLoading={balanceLoading}
               onReload={load}
               onSelectGeneration={openDetails}
+              topupEnabled={Boolean(topupOptions)}
+              onTopup={() => setTopupOpen(true)}
+              refreshToken={topupRefresh}
             />
           }
         />
@@ -328,6 +489,13 @@ export function TenantConsole() {
         loading={detailsLoading}
         onClose={() => setSelected(null)}
       />
+      {topupOptions && (
+        <StripeTopupDialog
+          options={topupOptions}
+          open={topupOpen}
+          onOpenChange={setTopupOpen}
+        />
+      )}
     </Shell>
   );
 }
@@ -814,16 +982,30 @@ function BillingView({
   balanceLoading,
   onReload,
   onSelectGeneration,
+  topupEnabled,
+  onTopup,
+  refreshToken,
 }: {
   balance: Balance | null;
   balanceError: string;
   balanceLoading: boolean;
   onReload: () => Promise<void>;
   onSelectGeneration?: (generationId: string) => void;
+  topupEnabled: boolean;
+  onTopup: () => void;
+  refreshToken: number;
 }) {
   const { t } = useI18n();
   const transactions = useTransactions('/v1/billing/transactions');
   const currency = balance?.currency || 'CNY';
+  const reloadTransactions = transactions.reload;
+
+  // A settled top-up posts a credit transaction, so the ledger is reloaded
+  // alongside the balance the console already refreshed.
+  useEffect(() => {
+    if (refreshToken === 0) return;
+    void reloadTransactions();
+  }, [refreshToken, reloadTransactions]);
 
   return (
     <div className="billing-view">
@@ -837,6 +1019,14 @@ function BillingView({
             onClick={() => void onReload()}
           >
             {t('common.retry')}
+          </button>
+        </div>
+      )}
+      {topupEnabled && (
+        <div className="billing-actions">
+          <button type="button" className="button primary" onClick={onTopup}>
+            <CreditCard size={15} />
+            {t('topup.button')}
           </button>
         </div>
       )}

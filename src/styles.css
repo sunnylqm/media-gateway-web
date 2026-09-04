@@ -624,6 +624,27 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .recent-strip-item img, .recent-strip-item video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .recent-strip-item .status-icon { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(240,244,242,.85); color: #727d78; }
 
+/* Stripe self-service top-up */
+.banner-success, .banner-notice { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 20px; padding: 12px 15px; border: 1px solid var(--line-strong); font-size: 13px; line-height: 1.45; }
+.banner-success { border-color: #b7dcc7; background: #eef7f2; color: #1e6045; }
+.banner-notice { background: #f5f7f5; color: #4a5550; }
+.banner-success .button, .banner-notice .button { flex: 0 0 auto; min-height: 32px; padding: 0 12px; font-size: 12px; }
+.billing-actions { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+.topup-amount-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.topup-amount { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--paper); color: #3c4642; cursor: pointer; font-size: 14px; font-weight: 700; transition: border-color .15s, background .15s, color .15s; }
+.topup-amount:hover:not(:disabled) { border-color: var(--accent); }
+.topup-amount:disabled { cursor: not-allowed; opacity: .55; }
+.topup-amount.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-dark); }
+.topup-switch { display: flex; align-items: center; gap: 9px; font-size: 13px; cursor: pointer; }
+.topup-switch input { width: 16px; height: 16px; }
+.topup-preview { display: grid; gap: 8px; }
+.topup-preview-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.topup-preview-chip { padding: 5px 10px; border-radius: 20px; background: #eef1ef; color: #606a65; font-size: 11px; font-weight: 700; }
+
+@media (max-width: 560px) {
+  .topup-amount-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 1040px) {
   .playground-layout { grid-template-columns: 1fr; }
   .auth-page { grid-template-columns: minmax(350px, .78fr) minmax(480px, 1.22fr); }

@@ -286,3 +286,41 @@ export type AdminUser = User & {
   last_activity_at?: string;
   last_seen_at?: string;
 };
+
+export type TopupOptions = {
+  object: 'topup_options';
+  enabled: boolean;
+  currency: string;
+  amounts: number[];
+  custom_amount: boolean;
+  min_amount: number;
+  max_amount: number;
+};
+
+export type TopupStatus = 'pending' | 'paid' | 'expired' | 'canceled';
+
+export type Topup = {
+  object: 'topup';
+  id: string;
+  amount: number;
+  currency: string;
+  status: TopupStatus;
+  credited: boolean;
+  checkout_url?: string;
+  created_at: string;
+  completed_at?: string;
+  balance?: Balance;
+};
+
+export type TopupConfig = {
+  object: 'topup_config';
+  enabled: boolean;
+  currency: string;
+  amounts: number[];
+  custom_amount: boolean;
+  min_amount: number;
+  max_amount: number;
+  stripe_configured: boolean;
+  webhook_configured: boolean;
+  updated_at?: string;
+};

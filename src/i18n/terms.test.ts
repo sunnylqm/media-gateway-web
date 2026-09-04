@@ -6,6 +6,7 @@ describe('terms localization', () => {
     expect(translateTerm('zh', 'completed')).toBe('已完成');
     expect(translateTerm('zh', 'queued')).toBe('排队中');
     expect(translateTerm('zh', 'prompt')).toBe('提示词');
+    expect(translateTerm('zh', 'paid')).toBe('已支付');
     expect(translateTerm('zh', 'output_format')).toBe('输出格式');
     expect(translateTerm('zh', 'Output format')).toBe('输出格式');
     expect(translateTerm('zh', 'unknown_term')).toBeUndefined();

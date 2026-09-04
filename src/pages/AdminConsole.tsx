@@ -8,6 +8,7 @@ import {
   CirclePause,
   CirclePlay,
   Cpu,
+  CreditCard,
   Film,
   Gauge,
   HardDrive,
@@ -41,7 +42,7 @@ import {
   useNavigate,
   useParams,
 } from 'react-router';
-import { APIError, api } from '../api';
+import { APIError, api, gatewayURL } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
@@ -51,6 +52,15 @@ import { formatAmount, formatDate, formatDay, formatStatus } from '../format';
 import { t, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
+import {
+  formatPresetAmounts,
+  majorUnitsLabel,
+  parseBoundAmount,
+  parsePresetAmounts,
+  stripeWebhookURL,
+  topupAmountLabel,
+  validateTopupConfig,
+} from '../lib/topup';
 import type {
   AdminModel,
   AdminOverview,
@@ -62,6 +72,8 @@ import type {
   ModelBilling,
   ProtocolPreset,
   Tenant,
+  Topup,
+  TopupConfig,
 } from '../types';
 import { ImagePlayground } from './ImagePlayground';
 import { VideoStudio } from './VideoStudio';
@@ -337,6 +349,11 @@ export function AdminConsole() {
           to: '/admin/storage',
           icon: <HardDrive size={17} />,
         },
+        {
+          label: translate('admin.navTopup'),
+          to: '/admin/topup',
+          icon: <CreditCard size={17} />,
+        },
       ]}
       title={translate('admin.title')}
       description={translate('admin.description', { email: profile.email })}
@@ -403,6 +420,7 @@ export function AdminConsole() {
             ) : null
           }
         />
+        <Route path="topup" element={<TopupSettingsPanel />} />
         <Route
           path="users"
           element={
@@ -851,6 +869,326 @@ function StoragePanel({
           </button>
         </div>
       </form>
+    </section>
+  );
+}
+
+type TopupForm = {
+  enabled: boolean;
+  currency: string;
+  amounts: string;
+  customAmount: boolean;
+  minAmount: string;
+  maxAmount: string;
+};
+
+function topupForm(config: TopupConfig): TopupForm {
+  return {
+    enabled: config.enabled,
+    currency: config.currency,
+    amounts: formatPresetAmounts(config.amounts),
+    customAmount: config.custom_amount,
+    minAmount: majorUnitsLabel(config.min_amount),
+    maxAmount: majorUnitsLabel(config.max_amount),
+  };
+}
+
+// The self-service top-up settings behind `GET/PUT /v1/admin/billing/topup`.
+// Amounts are edited in major units and stored in minor units, the same as
+// every other billing figure.
+function TopupSettingsPanel() {
+  const { t } = useI18n();
+  const [config, setConfig] = useState<TopupConfig | null>(null);
+  const [form, setForm] = useState<TopupForm | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const current = await api<TopupConfig>(
+        '/v1/admin/billing/topup',
+        {},
+        true,
+      );
+      setConfig(current);
+      setForm(topupForm(current));
+      setError('');
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : t('topupAdmin.errorLoad'),
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!form) return;
+    setSaved(false);
+    setError('');
+
+    const currency = form.currency.trim().toUpperCase();
+    if (!/^[A-Z]{3}$/.test(currency)) {
+      setError(t('topupAdmin.errorCurrency'));
+      return;
+    }
+    const presets = parsePresetAmounts(form.amounts);
+    if (!presets.ok) {
+      setError(
+        t(
+          presets.reason === 'empty'
+            ? 'topupAdmin.errorAmountsEmpty'
+            : presets.reason === 'too_many'
+              ? 'topupAdmin.errorAmountsTooMany'
+              : 'topupAdmin.errorAmounts',
+        ),
+      );
+      return;
+    }
+    const minAmount = parseBoundAmount(form.minAmount);
+    const maxAmount = parseBoundAmount(form.maxAmount);
+    if (minAmount === null || maxAmount === null) {
+      setError(t('topupAdmin.errorMin'));
+      return;
+    }
+    const problem = validateTopupConfig({
+      amounts: presets.amounts,
+      minAmount,
+      maxAmount,
+    });
+    if (problem) {
+      setError(
+        t(
+          problem === 'range'
+            ? 'topupAdmin.errorRange'
+            : problem === 'outside'
+              ? 'topupAdmin.errorOutside'
+              : 'topupAdmin.errorMin',
+        ),
+      );
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const updated = await api<TopupConfig>(
+        '/v1/admin/billing/topup',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            enabled: form.enabled,
+            currency,
+            amounts: presets.amounts,
+            custom_amount: form.customAmount,
+            min_amount: minAmount,
+            max_amount: maxAmount,
+          }),
+        },
+        true,
+      );
+      setConfig(updated);
+      setForm(topupForm(updated));
+      setSaved(true);
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : t('topupAdmin.errorSave'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const presets = form ? parsePresetAmounts(form.amounts) : null;
+  const currency = form?.currency.trim().toUpperCase() || 'CNY';
+  const webhook = stripeWebhookURL(gatewayURL);
+
+  return (
+    <section className="panel storage-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>{t('topupAdmin.title')}</h2>
+          <p>{t('topupAdmin.note')}</p>
+        </div>
+        <CreditCard size={19} />
+      </div>
+      {error && (
+        <div
+          className="banner-error"
+          role="alert"
+          style={{ margin: '16px 20px 0' }}
+        >
+          {error}
+        </div>
+      )}
+      {saved && (
+        <div
+          className="banner-success"
+          role="status"
+          style={{ margin: '16px 20px 0' }}
+        >
+          <span>{t('topupAdmin.saved')}</span>
+        </div>
+      )}
+      {loading || !form ? (
+        <div className="empty-state">
+          <span className="loader" />
+          {t('topupAdmin.loading')}
+        </div>
+      ) : (
+        <form className="panel-body dialog-form" onSubmit={save}>
+          {config && !config.stripe_configured && (
+            <div className="warning-box" style={{ margin: 0 }}>
+              <ShieldAlert size={16} />
+              <span>{t('topupAdmin.stripeHint')}</span>
+            </div>
+          )}
+          <label className="topup-switch">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(event) =>
+                setForm({ ...form, enabled: event.target.checked })
+              }
+            />
+            <span>{t('topupAdmin.enabled')}</span>
+          </label>
+          <div className="field-grid">
+            <label className="field">
+              <span className="field-label">{t('topupAdmin.currency')}</span>
+              <input
+                value={form.currency}
+                maxLength={3}
+                style={{ textTransform: 'uppercase' }}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    currency: event.target.value.toUpperCase(),
+                  })
+                }
+                placeholder="CNY"
+              />
+              <small>{t('topupAdmin.currencyNote')}</small>
+            </label>
+            <label className="topup-switch">
+              <input
+                type="checkbox"
+                checked={form.customAmount}
+                onChange={(event) =>
+                  setForm({ ...form, customAmount: event.target.checked })
+                }
+              />
+              <span>{t('topupAdmin.customAmount')}</span>
+            </label>
+          </div>
+          <label className="field">
+            <span className="field-label">{t('topupAdmin.amounts')}</span>
+            <input
+              value={form.amounts}
+              onChange={(event) =>
+                setForm({ ...form, amounts: event.target.value })
+              }
+              placeholder="20, 50, 100, 200, 500, 1000"
+            />
+            <small>{t('topupAdmin.amountsNote')}</small>
+          </label>
+          {presets?.ok && (
+            <div className="topup-preview">
+              <span className="field-label">
+                {t('topupAdmin.amountsPreview')}
+              </span>
+              <div className="topup-preview-chips">
+                {presets.amounts.map((amount) => (
+                  <span className="topup-preview-chip" key={amount}>
+                    {topupAmountLabel(amount, currency)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="field-grid">
+            <label className="field">
+              <span className="field-label">{t('topupAdmin.minAmount')}</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={form.minAmount}
+                onChange={(event) =>
+                  setForm({ ...form, minAmount: event.target.value })
+                }
+              />
+            </label>
+            <label className="field">
+              <span className="field-label">{t('topupAdmin.maxAmount')}</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                value={form.maxAmount}
+                onChange={(event) =>
+                  setForm({ ...form, maxAmount: event.target.value })
+                }
+              />
+            </label>
+          </div>
+          <small className="muted">{t('topupAdmin.limitsNote')}</small>
+          <div className="form-section-title">
+            {t('topupAdmin.serverSection')}
+          </div>
+          <div className="field-grid">
+            <div className="field">
+              <span className="field-label">{t('topupAdmin.stripeKey')}</span>
+              <span
+                className={`credential-state${
+                  config?.stripe_configured ? ' configured' : ''
+                }`}
+              >
+                {t(
+                  config?.stripe_configured
+                    ? 'topupAdmin.configured'
+                    : 'topupAdmin.missing',
+                )}
+              </span>
+            </div>
+            <div className="field">
+              <span className="field-label">
+                {t('topupAdmin.webhookSecret')}
+              </span>
+              <span
+                className={`credential-state${
+                  config?.webhook_configured ? ' configured' : ''
+                }`}
+              >
+                {t(
+                  config?.webhook_configured
+                    ? 'topupAdmin.configured'
+                    : 'topupAdmin.missing',
+                )}
+              </span>
+            </div>
+          </div>
+          <div className="endpoint-value">
+            <span>{t('topupAdmin.webhookURL')}</span>
+            <div className="copy-value">
+              <code>{webhook}</code>
+            </div>
+            <small className="muted">{t('topupAdmin.webhookEvents')}</small>
+          </div>
+          <div className="dialog-actions">
+            <button className="button primary" type="submit" disabled={saving}>
+              {t(saving ? 'topupAdmin.saving' : 'topupAdmin.save')}
+            </button>
+          </div>
+        </form>
+      )}
     </section>
   );
 }
@@ -2301,6 +2639,7 @@ function UserDetail() {
   const [error, setError] = useState('');
   const [topupOpen, setTopupOpen] = useState(false);
   const [capBusy, setCapBusy] = useState(false);
+  const [topups, setTopups] = useState<Topup[]>([]);
   const base = `/v1/admin/users/${encodeURIComponent(userId)}`;
   const currentUserID = useRef(userId);
   const loadSequence = useRef(0);
@@ -2314,6 +2653,7 @@ function UserDetail() {
         setLoading(true);
         setUser(null);
         setGenerations([]);
+        setTopups([]);
         setSelected(null);
         setArtifacts([]);
         setDetailsLoading(false);
@@ -2322,17 +2662,29 @@ function UserDetail() {
       }
       setError('');
       try {
-        const [profile, jobs] = await Promise.all([
+        // A gateway without Stripe answers this one with an error; the rest of
+        // the page does not depend on it, so it is kept out of the failure path.
+        const topupList = api<{ data: Topup[] }>(
+          `${base}/topups?limit=20&offset=0`,
+          signal ? { signal } : {},
+          true,
+        ).then(
+          (response) => response.data,
+          () => [] as Topup[],
+        );
+        const [profile, jobs, topupHistory] = await Promise.all([
           api<AdminUser>(base, signal ? { signal } : {}, true),
           api<{ data: Generation[] }>(
             `${base}/generations?limit=50`,
             signal ? { signal } : {},
             true,
           ),
+          topupList,
         ]);
         if (signal?.aborted || sequence !== loadSequence.current) return;
         setUser(profile);
         setGenerations(jobs.data);
+        setTopups(topupHistory);
       } catch (reason) {
         if (
           signal?.aborted ||
@@ -2780,6 +3132,49 @@ function UserDetail() {
               onSelect={openDetails}
             />
           </section>
+          {topups.length > 0 && (
+            <section className="panel table-wrap" style={{ marginTop: '24px' }}>
+              <div className="panel-heading table-heading">
+                <div>
+                  <h2>{t('topupAdmin.userHistory')}</h2>
+                  <p>{t('topupAdmin.userHistoryNote')}</p>
+                </div>
+                <CreditCard size={19} />
+              </div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t('topupAdmin.columnTime')}</th>
+                    <th>{t('topupAdmin.columnAmount')}</th>
+                    <th>{t('topupAdmin.columnStatus')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topups.map((topup) => (
+                    <tr key={topup.id}>
+                      <td>{formatDate(topup.created_at)}</td>
+                      <td>
+                        <b>{formatAmount(topup.amount, topup.currency)}</b>
+                      </td>
+                      <td>
+                        <span
+                          className={`status ${
+                            topup.status === 'paid'
+                              ? 'status-active'
+                              : topup.status === 'pending'
+                                ? 'status-submitted'
+                                : 'status-suspended'
+                          }`}
+                        >
+                          {formatStatus(topup.status)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          )}
           <section className="panel table-wrap" style={{ marginTop: '24px' }}>
             <div className="panel-heading table-heading">
               <div>
