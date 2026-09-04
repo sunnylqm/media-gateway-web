@@ -72,6 +72,8 @@ export const zh: Record<MessageKey, string> = {
   'shell.signOut': '退出登录',
   'shell.administration': '系统管理',
   'shell.mediaWorkspace': '媒体工作区',
+  'shell.openMenu': '打开导航菜单',
+  'shell.closeMenu': '关闭导航菜单',
 
   'modality.image': '生图',
   'modality.video': '生视频',
@@ -518,7 +520,8 @@ export const zh: Record<MessageKey, string> = {
   'playground.videoPromptPlaceholder': '描述你想生成的视频内容…',
   'playground.promptHint': '按 Enter 生成 · Shift+Enter 换行',
   'playground.imageReferences': '参考图像',
-  'playground.referencesTooltip': '上传参考图像以引导生成风格、构图或主体。',
+  'playground.referencesTooltip':
+    '允许上传最多三张，可以一次选三张，也可以一张张添加。',
   'playground.add': '添加',
   'playground.resolution': '分辨率',
   'playground.aspectRatio': '宽高比',

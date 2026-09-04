@@ -35,6 +35,7 @@ import { useI18n } from '../i18n';
 import {
   buildRequestBody,
   defaultParameterValue,
+  isHiddenParameter,
   type MediaSlot,
   mediaSlots,
 } from '../lib/requestForm';
@@ -634,25 +635,41 @@ export function VideoStudio({
                     className="playground-ref-list"
                     style={{ marginTop: '6px' }}
                   >
-                    <label className="ref-add-btn">
-                      <Plus size={18} />
-                      <span>{t('playground.add')}</span>
-                      <input
-                        type="file"
-                        accept="image/*,video/*"
-                        multiple
-                        style={{ display: 'none' }}
-                        onChange={(e) => {
-                          if (e.target.files) {
-                            const defaultRefSlot = referenceSlots[0];
-                            for (const f of Array.from(e.target.files)) {
-                              void uploadFile(f, defaultRefSlot);
+                    {attachments.filter((att) =>
+                      referenceSlots.some((slot) => slot.id === att.slotID),
+                    ).length < 3 && (
+                      <label className="ref-add-btn">
+                        <Plus size={18} />
+                        <span>{t('playground.add')}</span>
+                        <input
+                          type="file"
+                          accept="image/*,video/*"
+                          multiple
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              const defaultRefSlot = referenceSlots[0];
+                              const currentRefs = attachments.filter((att) =>
+                                referenceSlots.some(
+                                  (slot) => slot.id === att.slotID,
+                                ),
+                              );
+                              const remaining = Math.max(
+                                0,
+                                3 - currentRefs.length,
+                              );
+                              for (const f of Array.from(e.target.files).slice(
+                                0,
+                                remaining,
+                              )) {
+                                void uploadFile(f, defaultRefSlot);
+                              }
                             }
-                          }
-                          e.target.value = '';
-                        }}
-                      />
-                    </label>
+                            e.target.value = '';
+                          }}
+                        />
+                      </label>
+                    )}
 
                     {attachments
                       .filter((att) =>
@@ -685,46 +702,50 @@ export function VideoStudio({
               )}
 
               {/* Dynamic Parameters Grid */}
-              {(form?.parameters ?? []).length > 0 && (
+              {(form?.parameters ?? []).filter(
+                (p) => !isHiddenParameter(p.name),
+              ).length > 0 && (
                 <div className="playground-param-row">
-                  {(form?.parameters ?? []).map((param) => (
-                    <div key={param.name} className="playground-param-col">
-                      <span className="playground-param-label">
-                        {formatLabel(param.name)}
-                      </span>
-                      {param.enum?.length ? (
-                        <select
-                          className="playground-select"
-                          value={parameters[param.name] ?? ''}
-                          onChange={(e) =>
-                            setParameters((prev) => ({
-                              ...prev,
-                              [param.name]: e.target.value,
-                            }))
-                          }
-                        >
-                          {!param.required && <option value="">Auto</option>}
-                          {param.enum.map((opt) => (
-                            <option key={opt} value={opt}>
-                              {opt}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <input
-                          type={param.type === 'integer' ? 'number' : 'text'}
-                          className="playground-select"
-                          value={parameters[param.name] ?? ''}
-                          onChange={(e) =>
-                            setParameters((prev) => ({
-                              ...prev,
-                              [param.name]: e.target.value,
-                            }))
-                          }
-                        />
-                      )}
-                    </div>
-                  ))}
+                  {(form?.parameters ?? [])
+                    .filter((p) => !isHiddenParameter(p.name))
+                    .map((param) => (
+                      <div key={param.name} className="playground-param-col">
+                        <span className="playground-param-label">
+                          {formatLabel(param.name)}
+                        </span>
+                        {param.enum?.length ? (
+                          <select
+                            className="playground-select"
+                            value={parameters[param.name] ?? ''}
+                            onChange={(e) =>
+                              setParameters((prev) => ({
+                                ...prev,
+                                [param.name]: e.target.value,
+                              }))
+                            }
+                          >
+                            {!param.required && <option value="">Auto</option>}
+                            {param.enum.map((opt) => (
+                              <option key={opt} value={opt}>
+                                {opt}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input
+                            type={param.type === 'integer' ? 'number' : 'text'}
+                            className="playground-select"
+                            value={parameters[param.name] ?? ''}
+                            onChange={(e) =>
+                              setParameters((prev) => ({
+                                ...prev,
+                                [param.name]: e.target.value,
+                              }))
+                            }
+                          />
+                        )}
+                      </div>
+                    ))}
                 </div>
               )}
 

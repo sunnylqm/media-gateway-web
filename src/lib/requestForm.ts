@@ -36,6 +36,16 @@ const framePattern = /(^|[_-])(first|last|start|end)[_-]?frame$/i;
 const framePositions = ['first', 'start', 'last', 'end'];
 const kindOrder: MediaKind[] = ['image', 'video', 'audio', 'file'];
 
+export const HIDDEN_PARAMETERS = new Set([
+  'output_compression',
+  'background',
+  'moderation',
+]);
+
+export function isHiddenParameter(name: string): boolean {
+  return HIDDEN_PARAMETERS.has(name.toLowerCase());
+}
+
 export function mediaSlots(form?: RequestForm): MediaSlot[] {
   const slots = form?.prompt.content
     ? contentSlots(form.prompt.content)

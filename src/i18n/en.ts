@@ -72,6 +72,8 @@ export const en = {
   'shell.signOut': 'Sign out',
   'shell.administration': 'Administration',
   'shell.mediaWorkspace': 'Media workspace',
+  'shell.openMenu': 'Open navigation menu',
+  'shell.closeMenu': 'Close navigation menu',
 
   'modality.image': 'Image',
   'modality.video': 'Video',
@@ -554,7 +556,7 @@ export const en = {
   'playground.promptHint': 'Enter to generate · Shift+Enter for a new line',
   'playground.imageReferences': 'Image References',
   'playground.referencesTooltip':
-    'Upload reference images to guide style, composition, or subject.',
+    'Allows uploading up to three images—you can select three at once or add them one by one.',
   'playground.add': 'Add',
   'playground.resolution': 'Resolution',
   'playground.aspectRatio': 'Aspect Ratio',

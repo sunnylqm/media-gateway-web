@@ -34,6 +34,7 @@ import { useI18n } from '../i18n';
 import {
   buildRequestBody,
   defaultParameterValue,
+  isHiddenParameter,
   type MediaSlot,
   mediaSlots,
 } from '../lib/requestForm';
@@ -272,10 +273,13 @@ export function ImagePlayground({
   }
 
   function handleFiles(files: FileList | File[]) {
-    for (const file of Array.from(files)) {
-      if (file.type.startsWith('image/')) {
-        void uploadFile(file);
-      }
+    const remaining = Math.max(0, 3 - attachments.length);
+    if (remaining <= 0) return;
+    const filesToAdd = Array.from(files)
+      .filter((file) => file.type.startsWith('image/'))
+      .slice(0, remaining);
+    for (const file of filesToAdd) {
+      void uploadFile(file);
     }
   }
 
@@ -430,7 +434,8 @@ export function ImagePlayground({
       );
       const qual = params.find((p) => /^quality$/i.test(p.name));
       const others = params.filter(
-        (p) => p !== res && p !== aspect && p !== qual,
+        (p) =>
+          p !== res && p !== aspect && p !== qual && !isHiddenParameter(p.name),
       );
       return {
         resolutionParam: res,
@@ -616,15 +621,17 @@ export function ImagePlayground({
                 </div>
 
                 <div className="playground-ref-list">
-                  <button
-                    type="button"
-                    className="ref-add-btn"
-                    onClick={() => fileInputRef.current?.click()}
-                    title={t('playground.add')}
-                  >
-                    <ImageIcon size={18} />
-                    <span>{t('playground.add')}</span>
-                  </button>
+                  {attachments.length < 3 && (
+                    <button
+                      type="button"
+                      className="ref-add-btn"
+                      onClick={() => fileInputRef.current?.click()}
+                      title={t('playground.add')}
+                    >
+                      <ImageIcon size={18} />
+                      <span>{t('playground.add')}</span>
+                    </button>
+                  )}
                   <input
                     ref={fileInputRef}
                     type="file"

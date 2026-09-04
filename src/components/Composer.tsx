@@ -36,6 +36,7 @@ import {
   estimateAmount,
   estimateQuantity,
   fallbackRate,
+  isHiddenParameter,
   type MediaKind,
   type MediaSlot,
   mediaKind,
@@ -668,21 +669,25 @@ export function GenerationComposer({
                 {mediaSections}
               </Tabs.Root>
 
-              {(form?.parameters ?? []).length > 0 && (
+              {(form?.parameters ?? []).filter(
+                (parameter) => !isHiddenParameter(parameter.name),
+              ).length > 0 && (
                 <div className="parameter-grid">
-                  {(form?.parameters ?? []).map((parameter) => (
-                    <ParameterTile
-                      key={parameter.name}
-                      parameter={parameter}
-                      value={parameters[parameter.name] ?? ''}
-                      onChange={(value) =>
-                        setParameters((current) => ({
-                          ...current,
-                          [parameter.name]: value,
-                        }))
-                      }
-                    />
-                  ))}
+                  {(form?.parameters ?? [])
+                    .filter((parameter) => !isHiddenParameter(parameter.name))
+                    .map((parameter) => (
+                      <ParameterTile
+                        key={parameter.name}
+                        parameter={parameter}
+                        value={parameters[parameter.name] ?? ''}
+                        onChange={(value) =>
+                          setParameters((current) => ({
+                            ...current,
+                            [parameter.name]: value,
+                          }))
+                        }
+                      />
+                    ))}
                 </div>
               )}
 

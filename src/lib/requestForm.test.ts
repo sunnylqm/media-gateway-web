@@ -3,6 +3,7 @@ import {
   acceptAttribute,
   estimateAmount,
   estimateQuantity,
+  isHiddenParameter,
   mediaKind,
   mediaSlots,
   resolveRate,
@@ -11,6 +12,16 @@ import {
 } from './requestForm';
 
 describe('requestForm utilities', () => {
+  it('correctly identifies hidden parameters', () => {
+    expect(isHiddenParameter('output_compression')).toBe(true);
+    expect(isHiddenParameter('background')).toBe(true);
+    expect(isHiddenParameter('moderation')).toBe(true);
+    expect(isHiddenParameter('OUTPUT_COMPRESSION')).toBe(true);
+    expect(isHiddenParameter('aspect_ratio')).toBe(false);
+    expect(isHiddenParameter('resolution')).toBe(false);
+    expect(isHiddenParameter('quality')).toBe(false);
+  });
+
   it('correctly categorizes mime prefixes to media kinds', () => {
     expect(mediaKind('image/png')).toBe('image');
     expect(mediaKind('video/mp4')).toBe('video');
