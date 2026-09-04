@@ -5,6 +5,8 @@ import {
   Copy,
   Eye,
   EyeOff,
+  Film,
+  Image as ImageIcon,
   KeyRound,
   Plus,
   Sparkles,
@@ -46,6 +48,8 @@ import type {
   IdentityProfile,
   PublicModel,
 } from '../types';
+import { ImagePlayground } from './ImagePlayground';
+import { VideoStudio } from './VideoStudio';
 
 type GenerationList = { data: Generation[] };
 
@@ -195,6 +199,16 @@ export function TenantConsole() {
           icon: <Activity size={17} />,
         },
         {
+          label: t('tenant.navImage'),
+          to: '/app/image',
+          icon: <ImageIcon size={17} />,
+        },
+        {
+          label: t('tenant.navVideo'),
+          to: '/app/video',
+          icon: <Film size={17} />,
+        },
+        {
           label: t('tenant.navGenerations'),
           to: '/app/generations',
           icon: <Boxes size={17} />,
@@ -234,7 +248,9 @@ export function TenantConsole() {
               </span>
             </Link>
           )}
-          {location.pathname !== '/app/api-keys' && (
+          {!['/app/api-keys', '/app/image', '/app/video'].includes(
+            location.pathname,
+          ) && (
             <GenerationComposer
               models={models}
               user={profile.user}
@@ -259,6 +275,28 @@ export function TenantConsole() {
               balance={balance}
               generations={generations.slice(0, 6)}
               onSelect={openDetails}
+            />
+          }
+        />
+        <Route
+          path="image"
+          element={
+            <ImagePlayground
+              models={models}
+              generations={generations}
+              onCreated={load}
+              user={profile.user}
+            />
+          }
+        />
+        <Route
+          path="video"
+          element={
+            <VideoStudio
+              models={models}
+              generations={generations}
+              onCreated={load}
+              user={profile.user}
             />
           }
         />

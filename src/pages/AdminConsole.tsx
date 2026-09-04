@@ -1,6 +1,7 @@
 import {
   Activity,
   ArrowLeft,
+  Boxes,
   Building2,
   ChevronDown,
   CircleDollarSign,
@@ -10,6 +11,7 @@ import {
   Film,
   Gauge,
   HardDrive,
+  Image as ImageIcon,
   KeyRound,
   Plus,
   RotateCcw,
@@ -61,6 +63,8 @@ import type {
   ProtocolPreset,
   Tenant,
 } from '../types';
+import { ImagePlayground } from './ImagePlayground';
+import { VideoStudio } from './VideoStudio';
 
 export function AdminConsole() {
   const { t: translate } = useI18n();
@@ -303,9 +307,19 @@ export function AdminConsole() {
           icon: <Gauge size={17} />,
         },
         {
+          label: translate('admin.navImage'),
+          to: '/admin/image',
+          icon: <ImageIcon size={17} />,
+        },
+        {
+          label: translate('admin.navVideo'),
+          to: '/admin/video',
+          icon: <Film size={17} />,
+        },
+        {
           label: translate('admin.navVideoGeneration'),
           to: '/admin/generations',
-          icon: <Film size={17} />,
+          icon: <Boxes size={17} />,
         },
         {
           label: translate('admin.navAccounts'),
@@ -341,6 +355,28 @@ export function AdminConsole() {
               overview={overview}
               users={users}
               models={models}
+            />
+          }
+        />
+        <Route
+          path="image"
+          element={
+            <ImagePlayground
+              models={playableModels}
+              generations={playableGenerations}
+              onCreated={loadGenerations}
+              admin
+            />
+          }
+        />
+        <Route
+          path="video"
+          element={
+            <VideoStudio
+              models={playableModels}
+              generations={playableGenerations}
+              onCreated={loadGenerations}
+              admin
             />
           }
         />

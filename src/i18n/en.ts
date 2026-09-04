@@ -539,6 +539,53 @@ export const en = {
   'api.requestFailed': 'Request failed with HTTP {status}',
   'form.required': '{label} is required',
   'form.integer': '{label} must be a whole number',
+
+  'tenant.navImage': 'Image Generation',
+  'tenant.navVideo': 'Video Generation',
+  'admin.navImage': 'Image Playground',
+  'admin.navVideo': 'Video Playground',
+  'playground.input': 'INPUT',
+  'playground.form': 'Form',
+  'playground.json': 'JSON',
+  'playground.prompt': 'PROMPT',
+  'playground.promptPlaceholder': 'Describe the image you want to generate...',
+  'playground.videoPromptPlaceholder':
+    'Describe the video you want to generate...',
+  'playground.promptHint': 'Enter to generate · Shift+Enter for a new line',
+  'playground.imageReferences': 'Image References',
+  'playground.referencesTooltip':
+    'Upload reference images to guide style, composition, or subject.',
+  'playground.add': 'Add',
+  'playground.resolution': 'Resolution',
+  'playground.aspectRatio': 'Aspect Ratio',
+  'playground.quality': 'Quality',
+  'playground.reset': 'Reset',
+  'playground.generate': 'Generate',
+  'playground.generating': 'Generating...',
+  'playground.preview': 'Preview',
+  'playground.copyJson': 'Copy JSON',
+  'playground.download': 'Download',
+  'playground.openOriginal': 'Open original',
+  'playground.copyUrl': 'Copy URL',
+  'playground.copied': 'Copied!',
+  'playground.recentGenerations': 'Recent generations',
+  'playground.noOutputYet':
+    'No output yet. Fill in the prompt on the left and click Generate.',
+  'playground.model': 'Model',
+  'playground.noModels': 'No models available',
+  'playground.selectModel': 'Select model',
+  'playground.imageTitle': 'Image Generation',
+  'playground.videoTitle': 'Video Generation',
+  'playground.imageDescription':
+    'Generate high-fidelity images using cutting-edge models.',
+  'playground.videoDescription':
+    'Transform prompts and reference frames into fluid video.',
+  'playground.disabledModality':
+    '{modality} generation is disabled for your account',
+  'playground.duration': 'Duration',
+  'playground.frames': 'Keyframes',
+  'playground.firstFrame': 'First frame',
+  'playground.lastFrame': 'Last frame',
 } as const;
 
 export type MessageKey = keyof typeof en;
