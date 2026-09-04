@@ -689,6 +689,26 @@ export const en = {
   'topupAdmin.columnTime': 'Time',
   'topupAdmin.columnAmount': 'Amount',
   'topupAdmin.columnStatus': 'Status',
+
+  'admin.navTopupOrders': 'Top-up orders',
+  'topupOrders.title': 'Top-up orders',
+  'topupOrders.note': 'Every Stripe top-up started from the tenant console.',
+  'topupOrders.filterLabel': 'Status',
+  'topupOrders.filterAll': 'All statuses',
+  'topupOrders.summary': '{count} orders',
+  'topupOrders.columnTime': 'Created',
+  'topupOrders.columnUser': 'User',
+  'topupOrders.columnAmount': 'Amount',
+  'topupOrders.columnStatus': 'Status',
+  'topupOrders.columnCompleted': 'Completed',
+  'topupOrders.columnID': 'Order ID',
+  'topupOrders.loading': 'Loading top-up orders…',
+  'topupOrders.empty': 'No top-up orders',
+  'topupOrders.emptyNote': 'Nothing matches this filter yet.',
+  'topupOrders.errorLoad': 'Unable to load the top-up orders',
+  'topupOrders.prev': 'Previous',
+  'topupOrders.next': 'Next',
+  'topupOrders.range': '{first}–{last} of {total}',
 } as const;
 
 export type MessageKey = keyof typeof en;

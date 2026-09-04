@@ -140,3 +140,20 @@ export function topupReturnURL(location: {
 export function stripeWebhookURL(gateway: string): string {
   return `${gateway.replace(/\/$/, '')}/v1/billing/stripe/webhook`;
 }
+
+// Top-up states borrow the generic status badges: a paid order reads like an
+// active record, a pending one like work in flight, and the rest like a stop.
+export function topupStatusClass(status: string): string {
+  if (status === 'paid') return 'status-active';
+  if (status === 'pending') return 'status-submitted';
+  return 'status-suspended';
+}
+
+export const topupStatuses = [
+  'pending',
+  'paid',
+  'expired',
+  'canceled',
+] as const;
+
+export const topupOrdersPageSize = 50;

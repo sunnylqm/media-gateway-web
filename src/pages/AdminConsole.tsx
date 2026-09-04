@@ -15,6 +15,7 @@ import {
   Image as ImageIcon,
   KeyRound,
   Plus,
+  ReceiptText,
   RotateCcw,
   Server,
   ShieldAlert,
@@ -59,12 +60,17 @@ import {
   parsePresetAmounts,
   stripeWebhookURL,
   topupAmountLabel,
+  topupOrdersPageSize,
+  topupStatusClass,
+  topupStatuses,
   validateTopupConfig,
 } from '../lib/topup';
 import type {
   AdminModel,
   AdminOverview,
   AdminProfile,
+  AdminTopup,
+  AdminTopupList,
   AdminUser,
   Artifact,
   AssetStorage,
@@ -354,6 +360,11 @@ export function AdminConsole() {
           to: '/admin/topup',
           icon: <CreditCard size={17} />,
         },
+        {
+          label: translate('admin.navTopupOrders'),
+          to: '/admin/topups',
+          icon: <ReceiptText size={17} />,
+        },
       ]}
       title={translate('admin.title')}
       description={translate('admin.description', { email: profile.email })}
@@ -421,6 +432,7 @@ export function AdminConsole() {
           }
         />
         <Route path="topup" element={<TopupSettingsPanel />} />
+        <Route path="topups" element={<TopupOrdersPanel />} />
         <Route
           path="users"
           element={
@@ -1188,6 +1200,186 @@ function TopupSettingsPanel() {
             </button>
           </div>
         </form>
+      )}
+    </section>
+  );
+}
+
+// Every Stripe order across the install, behind `GET /v1/admin/billing/topups`.
+// The panel owns its own fetching: the console's start-up load would otherwise
+// wait on a list nobody has asked to see yet.
+function TopupOrdersPanel() {
+  const { t } = useI18n();
+  const [orders, setOrders] = useState<AdminTopup[]>([]);
+  const [total, setTotal] = useState(0);
+  const [status, setStatus] = useState('');
+  const [offset, setOffset] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const requestSequence = useRef(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const sequence = ++requestSequence.current;
+    setLoading(true);
+    setError('');
+    const query = new URLSearchParams({
+      limit: String(topupOrdersPageSize),
+      offset: String(offset),
+    });
+    if (status) query.set('status', status);
+    api<AdminTopupList>(
+      `/v1/admin/billing/topups?${query.toString()}`,
+      { signal: controller.signal },
+      true,
+    ).then(
+      (response) => {
+        if (sequence !== requestSequence.current) return;
+        setOrders(response.data ?? []);
+        setTotal(response.total ?? 0);
+        setLoading(false);
+      },
+      (reason: unknown) => {
+        if (
+          sequence !== requestSequence.current ||
+          (reason instanceof DOMException && reason.name === 'AbortError')
+        ) {
+          return;
+        }
+        setError(
+          reason instanceof Error ? reason.message : t('topupOrders.errorLoad'),
+        );
+        setOrders([]);
+        setTotal(0);
+        setLoading(false);
+      },
+    );
+    return () => {
+      controller.abort();
+    };
+  }, [offset, status, t]);
+
+  const first = total === 0 ? 0 : offset + 1;
+  const last = offset + orders.length;
+
+  return (
+    <section className="panel table-wrap">
+      <div className="panel-heading table-heading">
+        <div>
+          <h2>{t('topupOrders.title')}</h2>
+          <p>{t('topupOrders.note')}</p>
+        </div>
+        <label className="topup-orders-filter">
+          <span className="field-label">{t('topupOrders.filterLabel')}</span>
+          <select
+            value={status}
+            onChange={(event) => {
+              setStatus(event.target.value);
+              setOffset(0);
+            }}
+          >
+            <option value="">{t('topupOrders.filterAll')}</option>
+            {topupStatuses.map((value) => (
+              <option key={value} value={value}>
+                {formatStatus(value)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {error && (
+        <div className="banner-error" role="alert">
+          {error}
+        </div>
+      )}
+      <div className="topup-orders-summary">
+        <span className="count-pill">
+          {t('topupOrders.summary', { count: total })}
+        </span>
+      </div>
+      {loading ? (
+        <div className="empty-state">
+          <span className="loader" />
+          <span>{t('topupOrders.loading')}</span>
+        </div>
+      ) : orders.length === 0 ? (
+        error ? null : (
+          <div className="empty-state">
+            <b>{t('topupOrders.empty')}</b>
+            <span>{t('topupOrders.emptyNote')}</span>
+          </div>
+        )
+      ) : (
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('topupOrders.columnTime')}</th>
+                <th>{t('topupOrders.columnUser')}</th>
+                <th>{t('topupOrders.columnAmount')}</th>
+                <th>{t('topupOrders.columnStatus')}</th>
+                <th>{t('topupOrders.columnCompleted')}</th>
+                <th>{t('topupOrders.columnID')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr key={order.id}>
+                  <td>{formatDate(order.created_at)}</td>
+                  <td>
+                    {order.user_id ? (
+                      <Link
+                        className="text-action"
+                        to={`/admin/users/${encodeURIComponent(order.user_id)}`}
+                      >
+                        {order.email || order.user_id}
+                      </Link>
+                    ) : (
+                      (order.email ?? '—')
+                    )}
+                  </td>
+                  <td>
+                    <b>{topupAmountLabel(order.amount, order.currency)}</b>
+                  </td>
+                  <td>
+                    <span
+                      className={`status ${topupStatusClass(order.status)}`}
+                    >
+                      {formatStatus(order.status)}
+                    </span>
+                  </td>
+                  <td>
+                    {order.completed_at ? formatDate(order.completed_at) : '—'}
+                  </td>
+                  <td className="endpoint-cell">{order.id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="table-pagination spread">
+            <button
+              type="button"
+              className="button secondary"
+              disabled={offset === 0}
+              onClick={() =>
+                setOffset(Math.max(0, offset - topupOrdersPageSize))
+              }
+            >
+              {t('topupOrders.prev')}
+            </button>
+            <span className="muted">
+              {t('topupOrders.range', { first, last, total })}
+            </span>
+            <button
+              type="button"
+              className="button secondary"
+              disabled={last >= total}
+              onClick={() => setOffset(offset + topupOrdersPageSize)}
+            >
+              {t('topupOrders.next')}
+            </button>
+          </div>
+        </>
       )}
     </section>
   );
@@ -3158,13 +3350,7 @@ function UserDetail() {
                       </td>
                       <td>
                         <span
-                          className={`status ${
-                            topup.status === 'paid'
-                              ? 'status-active'
-                              : topup.status === 'pending'
-                                ? 'status-submitted'
-                                : 'status-suspended'
-                          }`}
+                          className={`status ${topupStatusClass(topup.status)}`}
                         >
                           {formatStatus(topup.status)}
                         </span>

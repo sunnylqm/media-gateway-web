@@ -312,6 +312,20 @@ export type Topup = {
   balance?: Balance;
 };
 
+// The admin list at `GET /v1/admin/billing/topups` carries the payer alongside
+// the order, which the per-user history does not need.
+export type AdminTopup = Topup & {
+  tenant_id?: string;
+  user_id: string;
+  email?: string;
+};
+
+export type AdminTopupList = {
+  object: 'list';
+  total: number;
+  data: AdminTopup[];
+};
+
 export type TopupConfig = {
   object: 'topup_config';
   enabled: boolean;

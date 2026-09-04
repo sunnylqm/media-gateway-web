@@ -640,6 +640,11 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .topup-preview { display: grid; gap: 8px; }
 .topup-preview-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .topup-preview-chip { padding: 5px 10px; border-radius: 20px; background: #eef1ef; color: #606a65; font-size: 11px; font-weight: 700; }
+.topup-orders-filter { display: grid; gap: 6px; }
+.topup-orders-filter select { height: 34px; min-width: 150px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--paper); color: var(--ink); font-size: 12px; text-transform: capitalize; }
+.topup-orders-summary { display: flex; align-items: center; gap: 10px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.table-pagination.spread { justify-content: space-between; align-items: center; gap: 12px; }
+.table-pagination.spread .muted { font-size: 11px; }
 
 @media (max-width: 560px) {
   .topup-amount-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
