@@ -597,6 +597,8 @@ export const zh: Record<MessageKey, string> = {
   'topup.noticeCanceled': '支付未完成，未产生任何扣款。',
   'topup.noticeError': '无法确认支付状态',
   'topup.dismiss': '知道了',
+  'topup.invoiceNumber': '发票号 {number}。',
+  'topup.downloadInvoice': '下载发票',
 
   'admin.navTopup': '充值设置',
   'topupAdmin.title': 'Stripe 充值',
@@ -652,6 +654,7 @@ export const zh: Record<MessageKey, string> = {
   'topupOrders.columnAmount': '金额',
   'topupOrders.columnStatus': '状态',
   'topupOrders.columnCompleted': '完成时间',
+  'topupOrders.columnInvoice': '发票',
   'topupOrders.columnID': '订单号',
   'topupOrders.loading': '正在加载充值订单…',
   'topupOrders.empty': '暂无充值订单',

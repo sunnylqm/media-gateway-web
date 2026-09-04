@@ -43,7 +43,7 @@ import {
   useNavigate,
   useParams,
 } from 'react-router';
-import { APIError, api, gatewayURL } from '../api';
+import { APIError, absoluteGatewayURL, api, gatewayURL } from '../api';
 import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
@@ -54,6 +54,7 @@ import { t, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
 import {
+  adminInvoicePath,
   formatPresetAmounts,
   majorUnitsLabel,
   parseBoundAmount,
@@ -1319,6 +1320,7 @@ function TopupOrdersPanel() {
                 <th>{t('topupOrders.columnAmount')}</th>
                 <th>{t('topupOrders.columnStatus')}</th>
                 <th>{t('topupOrders.columnCompleted')}</th>
+                <th>{t('topupOrders.columnInvoice')}</th>
                 <th>{t('topupOrders.columnID')}</th>
               </tr>
             </thead>
@@ -1350,6 +1352,20 @@ function TopupOrdersPanel() {
                   </td>
                   <td>
                     {order.completed_at ? formatDate(order.completed_at) : '—'}
+                  </td>
+                  <td>
+                    {order.invoice_number ? (
+                      <a
+                        className="text-action"
+                        href={absoluteGatewayURL(adminInvoicePath(order.id))}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {order.invoice_number}
+                      </a>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="endpoint-cell">{order.id}</td>
                 </tr>
@@ -3339,6 +3355,7 @@ function UserDetail() {
                     <th>{t('topupAdmin.columnTime')}</th>
                     <th>{t('topupAdmin.columnAmount')}</th>
                     <th>{t('topupAdmin.columnStatus')}</th>
+                    <th>{t('topupOrders.columnInvoice')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -3354,6 +3371,22 @@ function UserDetail() {
                         >
                           {formatStatus(topup.status)}
                         </span>
+                      </td>
+                      <td>
+                        {topup.invoice_number ? (
+                          <a
+                            className="text-action"
+                            href={absoluteGatewayURL(
+                              adminInvoicePath(topup.id),
+                            )}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {topup.invoice_number}
+                          </a>
+                        ) : (
+                          '—'
+                        )}
                       </td>
                     </tr>
                   ))}

@@ -157,3 +157,10 @@ export const topupStatuses = [
 ] as const;
 
 export const topupOrdersPageSize = 50;
+
+// The tenant reads its own invoice through the path the gateway hands back;
+// an administrator looking at somebody else's order needs the admin route,
+// because the tenant one only answers the tenant's own session.
+export function adminInvoicePath(topupID: string): string {
+  return `/v1/admin/billing/topups/${encodeURIComponent(topupID)}/invoice.pdf`;
+}

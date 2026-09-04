@@ -309,6 +309,10 @@ export type Topup = {
   checkout_url?: string;
   created_at: string;
   completed_at?: string;
+  // The gateway issues an invoice once the payment settles, so both fields are
+  // absent on an order that has not been paid.
+  invoice_number?: string;
+  invoice_url?: string;
   balance?: Balance;
 };
 

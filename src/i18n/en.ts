@@ -641,6 +641,8 @@ export const en = {
   'topup.noticeCanceled': 'Payment not completed. Nothing was charged.',
   'topup.noticeError': 'Unable to confirm the payment status',
   'topup.dismiss': 'Dismiss',
+  'topup.invoiceNumber': 'Invoice {number}.',
+  'topup.downloadInvoice': 'Download invoice',
 
   'admin.navTopup': 'Top-up settings',
   'topupAdmin.title': 'Stripe top-up',
@@ -701,6 +703,7 @@ export const en = {
   'topupOrders.columnAmount': 'Amount',
   'topupOrders.columnStatus': 'Status',
   'topupOrders.columnCompleted': 'Completed',
+  'topupOrders.columnInvoice': 'Invoice',
   'topupOrders.columnID': 'Order ID',
   'topupOrders.loading': 'Loading top-up orders…',
   'topupOrders.empty': 'No top-up orders',

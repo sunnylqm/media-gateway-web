@@ -25,7 +25,7 @@ import {
   useState,
 } from 'react';
 import { Link, Navigate, Route, Routes, useNavigate } from 'react-router';
-import { APIError, api } from '../api';
+import { APIError, absoluteGatewayURL, api } from '../api';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { StripeTopupDialog } from '../components/StripeTopupDialog';
@@ -51,7 +51,12 @@ import { VideoStudio } from './VideoStudio';
 
 type GenerationList = { data: Generation[] };
 
-type TopupNotice = { tone: 'success' | 'neutral'; message: string };
+type TopupNotice = {
+  tone: 'success' | 'neutral';
+  message: string;
+  invoiceNumber?: string;
+  invoiceURL?: string;
+};
 
 type TopupReturn = { id: string; result: string } | null;
 
@@ -197,6 +202,8 @@ export function TenantConsole() {
                 message: t('topup.noticePaid', {
                   amount: topupAmountLabel(topup.amount, topup.currency),
                 }),
+                invoiceNumber: topup.invoice_number,
+                invoiceURL: topup.invoice_url,
               });
               setTopupRefresh((value) => value + 1);
               void loadRef.current();
@@ -412,7 +419,27 @@ export function TenantConsole() {
           }
           role="status"
         >
-          <span>{topupNotice.message}</span>
+          <span>
+            {topupNotice.message}
+            {topupNotice.invoiceNumber && (
+              <>
+                {' '}
+                {t('topup.invoiceNumber', {
+                  number: topupNotice.invoiceNumber,
+                })}
+              </>
+            )}
+          </span>
+          {topupNotice.invoiceURL && (
+            <a
+              className="button secondary"
+              href={absoluteGatewayURL(topupNotice.invoiceURL)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {t('topup.downloadInvoice')}
+            </a>
+          )}
           <button
             type="button"
             className="button secondary"
