@@ -210,7 +210,12 @@ export const en = {
     'Estimated from the requested length. The final charge follows the delivered output.',
   'composer.perImageNote':
     'Priced per image from the quality and size tier times the requested count, locked at submission.',
+  'composer.flatImageNote':
+    'One price per image regardless of size and quality, times the requested count, locked at submission.',
   'composer.priceTable': 'Price list',
+  'composer.priceFlatRule': 'Flat price, independent of parameters',
+  'composer.priceFlat': 'Flat price',
+  'composer.priceFlatNote': 'Every size and quality',
   'composer.priceRule': 'The tier matching the most parameters applies',
   'composer.priceQuantity': '{count} {unit} this request',
   'composer.priceTier': 'Tier',
@@ -366,7 +371,7 @@ export const en = {
   'models.tiersNote':
     'The most specific matching selector wins. MiniMax lists 2K at ¥0.80/s and 768P at ¥0.50/s.',
   'models.tiersNoteImage':
-    'The most specific matching selector wins. Images are priced per image times the requested n; tier by quality and size, and price auto at the highest tier.',
+    'Images are priced per image times the requested n. The default is flat: the cost spread across quality and size is small, and the auto defaults would otherwise have to be billed at the top tier. Add quality or size tiers only when needed; the most specific selector wins.',
   'models.addTier': 'Add tier',
   'models.tier': 'Tier {index}',
   'models.removeTier': 'Remove tier {index}',

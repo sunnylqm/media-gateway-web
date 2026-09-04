@@ -198,7 +198,12 @@ export const zh: Record<MessageKey, string> = {
   'composer.errorMediaCount': '最多 {count} 个{kind}参考素材',
   'composer.estimateNote': '按请求的时长估算，最终费用以实际产出为准。',
   'composer.perImageNote': '按品质与尺寸档位 × 请求张数计价，提交时锁定。',
+  'composer.flatImageNote':
+    '每张统一价格，与分辨率、画质无关；按请求张数计价，提交时锁定。',
   'composer.priceTable': '价目表',
+  'composer.priceFlatRule': '统一单价，不区分参数',
+  'composer.priceFlat': '统一单价',
+  'composer.priceFlatNote': '所有分辨率与画质',
   'composer.priceRule': '匹配参数最多的档位生效',
   'composer.priceQuantity': '本次 {count} {unit}',
   'composer.priceTier': '档位',
@@ -346,7 +351,7 @@ export const zh: Record<MessageKey, string> = {
   'models.tiersNote':
     '匹配最精确的选择器生效。MiniMax 官方定价为 2K 每秒 ¥0.80、768P 每秒 ¥0.50。',
   'models.tiersNoteImage':
-    '匹配最精确的选择器生效。图片按张计价，数量取请求的 n；用 quality 和 size 分档，auto 建议按最高档计。',
+    '图片按张计价，数量取请求的 n。默认不分档：各画质与分辨率的成本差距不大，而 auto 默认值若分档只能按最高档收费。确有需要时可按 quality、size 添加档位，匹配最精确的选择器生效。',
   'models.addTier': '添加档位',
   'models.tier': '档位 {index}',
   'models.removeTier': '移除档位 {index}',

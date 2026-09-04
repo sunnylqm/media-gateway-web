@@ -846,40 +846,12 @@ function newBinding(alias: string, endpoint: string): BindingForm {
   };
 }
 
-// The seeded GPT Image 2 tiers: CNY minor units per image by quality. "auto" is
-// billed as the highest tier because the upstream picks the tier after the
-// quote is locked. A size surcharge is one more selector, such as
-// "quality=high, size=1536x1024".
-const officialImageRates: RateForm[] = [
-  {
-    label: 'Low quality',
-    dimensions: 'quality=low',
-    unitPrice: '15',
-    unitScale: '1',
-    minimumCharge: '0',
-  },
-  {
-    label: 'Medium quality',
-    dimensions: 'quality=medium',
-    unitPrice: '50',
-    unitScale: '1',
-    minimumCharge: '0',
-  },
-  {
-    label: 'High quality',
-    dimensions: 'quality=high',
-    unitPrice: '200',
-    unitScale: '1',
-    minimumCharge: '0',
-  },
-  {
-    label: 'Auto quality (billed as high)',
-    dimensions: 'quality=auto',
-    unitPrice: '200',
-    unitScale: '1',
-    minimumCharge: '0',
-  },
-];
+// GPT Image 2 is billed at one flat price per image, CNY 0.15 by default,
+// regardless of size and quality: the upstream's cost spread is small next to
+// the confusion a price grid causes, and the "auto" defaults would otherwise
+// have to be billed at the most expensive tier. Tiers stay available for a
+// model that needs them.
+const flatImagePrice = '15';
 
 const emptyModelForm: ModelForm = {
   id: '',
@@ -913,14 +885,12 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     rates:
       preset.name === 'minimax'
         ? officialH3Rates.map((rate) => ({ ...rate }))
-        : preset.modality === 'image'
-          ? officialImageRates.map((rate) => ({ ...rate }))
-          : [],
+        : [],
     unitPrice:
       preset.name === 'minimax'
         ? '80'
         : preset.modality === 'image'
-          ? '200'
+          ? flatImagePrice
           : '0',
   };
 }

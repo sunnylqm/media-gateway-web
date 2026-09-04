@@ -725,7 +725,11 @@ export function GenerationComposer({
                 </small>
               ) : selectedModel?.billing.mode === 'per_request' ? (
                 <small className="footer-note">
-                  {t('composer.perImageNote')}
+                  {t(
+                    selectedModel.billing.rates?.length
+                      ? 'composer.perImageNote'
+                      : 'composer.flatImageNote',
+                  )}
                 </small>
               ) : null}
               <button
@@ -1217,6 +1221,7 @@ function PriceTable({
   const matched = resolveRate(billing, dimensions);
   const fallback = fallbackRate(billing);
   const rows = [...(billing.rates ?? []), fallback];
+  const flat = rows.length === 1;
   const quantity = estimateQuantity(billing, dimensions);
   const unit = t(
     billing.mode === 'per_output_second'
@@ -1228,9 +1233,14 @@ function PriceTable({
       <div className="price-table-heading">
         <h4>{t('composer.priceTable')}</h4>
         <small>
-          {quantity === null
-            ? t('composer.priceRule')
-            : `${t('composer.priceRule')} · ${t('composer.priceQuantity', { count: quantity, unit })}`}
+          {[
+            flat ? t('composer.priceFlatRule') : t('composer.priceRule'),
+            quantity === null
+              ? ''
+              : t('composer.priceQuantity', { count: quantity, unit }),
+          ]
+            .filter(Boolean)
+            .join(' · ')}
         </small>
       </div>
       <table>
@@ -1254,10 +1264,18 @@ function PriceTable({
                 className={selected ? 'selected' : undefined}
                 aria-current={selected ? 'true' : undefined}
               >
-                <td>{isFallback ? t('composer.priceFallback') : rate.label}</td>
+                <td>
+                  {isFallback
+                    ? t(flat ? 'composer.priceFlat' : 'composer.priceFallback')
+                    : rate.label}
+                </td>
                 <td className="price-selector">
                   {isFallback
-                    ? t('composer.priceFallbackNote')
+                    ? t(
+                        flat
+                          ? 'composer.priceFlatNote'
+                          : 'composer.priceFallbackNote',
+                      )
                     : Object.entries(rate.dimensions ?? {})
                         .map(
                           ([name, value]) =>
