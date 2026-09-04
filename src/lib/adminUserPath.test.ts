@@ -10,5 +10,8 @@ describe('currentAdminUserPath', () => {
     expect(currentAdminUserPath('user/a', 'user/a', '/credits')).toBe(
       '/v1/admin/users/user%2Fa/credits',
     );
+    expect(currentAdminUserPath('user/a', 'user/a', '/balance')).toBe(
+      '/v1/admin/users/user%2Fa/balance',
+    );
   });
 });

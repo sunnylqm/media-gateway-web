@@ -120,7 +120,7 @@ export function ImagePlayground({
       const base = unitAmount(fallbackRate(billing));
       return `${formatAmount(base, currency)} / ${unit}`;
     }
-    const allRates = [...rates, fallbackRate(billing)];
+    const allRates = admin ? [...rates, fallbackRate(billing)] : rates;
     const prices = allRates.map((r) =>
       unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
     );

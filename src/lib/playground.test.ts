@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'bun:test';
+import React from 'react';
+import { renderToString } from 'react-dom/server';
+import { PriceTable } from '../components/PriceTable';
+import { LocaleProvider } from '../i18n';
 import type { PublicModel } from '../types';
 import {
   buildRequestBody,
@@ -154,5 +158,94 @@ describe('Playground model & request form utilities', () => {
     expect(estimateAmount(sampleVideoModel.billing, { duration: '10' })).toBe(
       3000000,
     );
+  });
+
+  it('does not display fallback rate (兜底单价) on user side when rates exist', () => {
+    const tieredBilling = {
+      mode: 'per_output_second' as const,
+      currency: 'CNY',
+      unit_price: 80,
+      unit_scale: 1,
+      minimum_charge: 0,
+      rates: [
+        {
+          label: '768P',
+          dimensions: { resolution: '768P' },
+          unit_price: 50,
+          unit_scale: 1,
+          minimum_charge: 0,
+        },
+        {
+          label: '2K',
+          dimensions: { resolution: '2K' },
+          unit_price: 80,
+          unit_scale: 1,
+          minimum_charge: 0,
+        },
+      ],
+    };
+
+    const userHtml = renderToString(
+      React.createElement(
+        LocaleProvider,
+        null,
+        React.createElement(PriceTable, {
+          billing: tieredBilling,
+          parameters: {},
+          admin: false,
+        }),
+      ),
+    );
+    expect(userHtml).toContain('768P');
+    expect(userHtml).toContain('2K');
+    expect(userHtml).not.toContain('兜底单价');
+    expect(userHtml).not.toContain('Base price');
+    expect(userHtml).not.toContain('其他参数组合');
+    expect(userHtml).not.toContain('Any other combination');
+
+    const adminHtml = renderToString(
+      React.createElement(
+        LocaleProvider,
+        null,
+        React.createElement(PriceTable, {
+          billing: tieredBilling,
+          parameters: {},
+          admin: true,
+        }),
+      ),
+    );
+    expect(adminHtml).toContain('768P');
+    expect(adminHtml).toContain('2K');
+    expect(
+      adminHtml.includes('兜底单价') || adminHtml.includes('Base price'),
+    ).toBe(true);
+  });
+
+  it('displays flat rate on user side when model has no tiers', () => {
+    const flatBilling = {
+      mode: 'per_request' as const,
+      currency: 'CNY',
+      unit_price: 15,
+      unit_scale: 1,
+      minimum_charge: 0,
+      rates: [],
+    };
+
+    const userHtml = renderToString(
+      React.createElement(
+        LocaleProvider,
+        null,
+        React.createElement(PriceTable, {
+          billing: flatBilling,
+          parameters: {},
+          admin: false,
+        }),
+      ),
+    );
+    expect(
+      userHtml.includes('统一单价') || userHtml.includes('Flat price'),
+    ).toBe(true);
+    expect(userHtml).not.toContain('兜底单价');
+    expect(userHtml).not.toContain('Base price');
   });
 });

@@ -40,8 +40,10 @@ export function PriceTable({
   );
   const matched = resolveRate(billing, dimensions);
   const fallback = fallbackRate(billing);
-  const rows = [...(billing.rates ?? []), fallback];
-  const flat = rows.length === 1;
+  const hasRates = (billing.rates?.length ?? 0) > 0;
+  const flat = !hasRates;
+  const showFallback = admin || flat;
+  const rows = [...(billing.rates ?? []), ...(showFallback ? [fallback] : [])];
   const quantity = estimateQuantity(billing, dimensions);
   const unit = t(
     billing.mode === 'per_output_second'
@@ -74,7 +76,7 @@ export function PriceTable({
         </thead>
         <tbody>
           {rows.map((rate, index) => {
-            const isFallback = index === rows.length - 1;
+            const isFallback = rate === fallback;
             const selected =
               rate.label === matched.label &&
               JSON.stringify(rate.dimensions ?? {}) ===

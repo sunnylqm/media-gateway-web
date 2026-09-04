@@ -47,7 +47,7 @@ import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { TopupDialog } from '../components/TopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
-import { formatDate, formatDay, formatStatus } from '../format';
+import { formatAmount, formatDate, formatDay, formatStatus } from '../format';
 import { t, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
@@ -1947,6 +1947,7 @@ function UsersTable({
             <tr>
               <th>{t('users.columnAccount')}</th>
               <th>{t('users.columnWorkspace')}</th>
+              <th>{t('users.columnBalance')}</th>
               <th>{t('users.capabilities')}</th>
               <th>{t('users.columnRole')}</th>
               <th>{t('users.columnMembers')}</th>
@@ -1985,6 +1986,32 @@ function UsersTable({
                     </div>
                   ) : (
                     <span className="muted">{t('users.noWorkspace')}</span>
+                  )}
+                </td>
+                <td>
+                  {user.tenant.id && user.balance ? (
+                    <div>
+                      <b>
+                        {formatAmount(
+                          user.balance.available,
+                          user.balance.currency || 'CNY',
+                        )}
+                      </b>
+                      {user.balance.reserved > 0 && (
+                        <small
+                          className="muted"
+                          style={{ display: 'block', fontSize: '11px' }}
+                        >
+                          {t('billing.reserved')}:{' '}
+                          {formatAmount(
+                            user.balance.reserved,
+                            user.balance.currency || 'CNY',
+                          )}
+                        </small>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="muted">—</span>
                   )}
                 </td>
                 <td>
@@ -2515,19 +2542,48 @@ function UserDetail() {
               </label>
             </div>
             {user.tenant.id && (
-              <button
-                type="button"
-                className="button primary"
+              <div
                 style={{
-                  display: 'inline-flex',
+                  display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '16px',
                 }}
-                onClick={() => setTopupOpen(true)}
               >
-                <Wallet size={15} />
-                {t('users.topup')}
-              </button>
+                {user.balance && (
+                  <div style={{ textAlign: 'right' }}>
+                    <small
+                      className="muted"
+                      style={{ display: 'block', fontSize: '11px' }}
+                    >
+                      {t('billing.available')}
+                    </small>
+                    <strong
+                      style={{
+                        fontSize: '1.15rem',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {formatAmount(
+                        user.balance.available,
+                        user.balance.currency || 'CNY',
+                      )}
+                    </strong>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="button primary"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                  onClick={() => setTopupOpen(true)}
+                >
+                  <Wallet size={15} />
+                  {t('users.topup')}
+                </button>
+              </div>
             )}
           </div>
           <div className="admin-grid">
@@ -2638,6 +2694,56 @@ function UserDetail() {
               </div>
             </section>
           </div>
+          {user.tenant.id && user.balance && (
+            <section className="metric-grid" style={{ marginTop: '20px' }}>
+              <article className="metric green">
+                <span>{t('billing.available')}</span>
+                <strong>
+                  {formatAmount(
+                    user.balance.available,
+                    user.balance.currency || 'CNY',
+                  )}
+                </strong>
+                <small>
+                  {t(
+                    user.balance.enforced
+                      ? 'billing.enforcedOn'
+                      : 'billing.enforcedOff',
+                  )}
+                </small>
+              </article>
+              <article className="metric blue">
+                <span>{t('billing.totalCredited')}</span>
+                <strong>
+                  {formatAmount(
+                    user.balance.credited,
+                    user.balance.currency || 'CNY',
+                  )}
+                </strong>
+                <small>{t('billing.totalCreditedNote')}</small>
+              </article>
+              <article className="metric amber">
+                <span>{t('billing.totalSpent')}</span>
+                <strong>
+                  {formatAmount(
+                    user.balance.spent,
+                    user.balance.currency || 'CNY',
+                  )}
+                </strong>
+                <small>{t('billing.totalSpentNote')}</small>
+              </article>
+              <article className="metric">
+                <span>{t('billing.reserved')}</span>
+                <strong>
+                  {formatAmount(
+                    user.balance.reserved,
+                    user.balance.currency || 'CNY',
+                  )}
+                </strong>
+                <small>{t('billing.reservedNote')}</small>
+              </article>
+            </section>
+          )}
           <section className="panel table-wrap">
             <div className="panel-heading table-heading">
               <div>

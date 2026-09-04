@@ -282,6 +282,7 @@ export type AdminUser = User & {
   member_count: number;
   generation_count: number;
   api_key_count: number;
+  balance?: Balance;
   last_activity_at?: string;
   last_seen_at?: string;
 };
