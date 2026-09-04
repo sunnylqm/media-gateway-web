@@ -29,7 +29,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../components/ui/tooltip';
-import { formatAmount, formatLabel } from '../format';
+import { formatAmount, formatDimensionOption, formatLabel } from '../format';
+
 import { useI18n } from '../i18n';
 import {
   buildRequestBody,
@@ -686,7 +687,7 @@ export function ImagePlayground({
                     >
                       {resolutionParam.enum.map((opt) => (
                         <option key={opt} value={opt}>
-                          {opt}
+                          {formatDimensionOption(opt)}
                         </option>
                       ))}
                     </select>

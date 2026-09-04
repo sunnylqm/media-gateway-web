@@ -100,3 +100,32 @@ export function formatAmount(minorUnits: number, currency: string) {
     return `${(minorUnits / 100).toFixed(2)} ${currency}`;
   }
 }
+
+const dimensionExplanations: Record<string, string> = {
+  '1024x1024': '1024x1024 (square)',
+  '1536x1024': '1536x1024 (landscape)',
+  '1024x1536': '1024x1536 (portrait)',
+  '2048x2048': '2048x2048 (2K square)',
+  '2048x1152': '2048x1152 (2K landscape)',
+  '3840x2160': '3840x2160 (4K landscape)',
+  '2160x3840': '2160x3840 (4K portrait)',
+};
+
+export function formatDimensionOption(value: string): string {
+  const normalized = value.trim();
+  if (dimensionExplanations[normalized]) {
+    return dimensionExplanations[normalized];
+  }
+  const match = /^(\d+)[xX](\d+)$/.exec(normalized);
+  if (match) {
+    const width = Number(match[1]);
+    const height = Number(match[2]);
+    if (width === height) return `${normalized} (square)`;
+    if (width > height) return `${normalized} (landscape)`;
+    return `${normalized} (portrait)`;
+  }
+  if (normalized.toLowerCase() === 'auto') {
+    return 'Auto';
+  }
+  return value;
+}

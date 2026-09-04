@@ -24,6 +24,7 @@ import { absoluteGatewayURL, api } from '../api';
 import {
   formatAmount,
   formatBytes,
+  formatDimensionOption,
   formatLabel,
   formatParameterValue,
 } from '../format';
@@ -1038,6 +1039,7 @@ function ParameterTile({
 }) {
   const { t } = useI18n();
   const label = formatLabel(parameter.name);
+  const isDimension = /^(resolution|size|dimensions?)$/i.test(parameter.name);
   const options =
     parameter.type === 'boolean'
       ? [
@@ -1046,7 +1048,10 @@ function ParameterTile({
         ]
       : (parameter.enum ?? []).map((option) => ({
           value: option,
-          label: option,
+          label:
+            isDimension || /^\d+[xX]\d+$/.test(option)
+              ? formatDimensionOption(option)
+              : option,
         }));
   const chips =
     options.length > 0 &&
