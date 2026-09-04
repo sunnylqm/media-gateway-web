@@ -74,6 +74,9 @@ const zhTerms: Record<string, string> = {
   loop: '循环',
   camera: '运镜',
   motion: '运动强度',
+  square: '正方形',
+  landscape: '横版',
+  portrait: '竖版',
 };
 
 export function translateTerm(

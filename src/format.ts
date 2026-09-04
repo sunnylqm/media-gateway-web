@@ -1,4 +1,4 @@
-import { intlLocale, term } from './i18n';
+import { getLocale, intlLocale, term } from './i18n';
 
 export function formatDate(value: string) {
   return new Intl.DateTimeFormat(intlLocale(), {
@@ -101,7 +101,17 @@ export function formatAmount(minorUnits: number, currency: string) {
   }
 }
 
-const dimensionExplanations: Record<string, string> = {
+const dimensionExplanationsZh: Record<string, string> = {
+  '1024x1024': '1024x1024 (正方形)',
+  '1536x1024': '1536x1024 (横版)',
+  '1024x1536': '1024x1536 (竖版)',
+  '2048x2048': '2048x2048 (2K 正方形)',
+  '2048x1152': '2048x1152 (2K 横版)',
+  '3840x2160': '3840x2160 (4K 横版)',
+  '2160x3840': '2160x3840 (4K 竖版)',
+};
+
+const dimensionExplanationsEn: Record<string, string> = {
   '1024x1024': '1024x1024 (square)',
   '1536x1024': '1536x1024 (landscape)',
   '1024x1536': '1024x1536 (portrait)',
@@ -111,22 +121,44 @@ const dimensionExplanations: Record<string, string> = {
   '2160x3840': '2160x3840 (4K portrait)',
 };
 
-export function formatDimensionOption(value: string): string {
+export function formatDimensionOption(
+  value: string,
+  locale: string = getLocale(),
+): string {
   const normalized = value.trim();
-  if (dimensionExplanations[normalized]) {
-    return dimensionExplanations[normalized];
+  const isZh = locale.toLowerCase().startsWith('zh');
+  const explanations = isZh ? dimensionExplanationsZh : dimensionExplanationsEn;
+
+  if (explanations[normalized]) {
+    return explanations[normalized];
   }
+
+  const lower = normalized.toLowerCase();
+  if (lower === 'auto') return isZh ? '自动' : 'Auto';
+  if (lower === 'square') return isZh ? '正方形' : 'Square';
+  if (lower === 'landscape') return isZh ? '横版' : 'Landscape';
+  if (lower === 'portrait') return isZh ? '竖版' : 'Portrait';
+
   const match = /^(\d+)[xX](\d+)$/.exec(normalized);
   if (match) {
     const width = Number(match[1]);
     const height = Number(match[2]);
-    if (width === height) return `${normalized} (square)`;
-    if (width > height) return `${normalized} (landscape)`;
-    return `${normalized} (portrait)`;
+    if (width === height)
+      return `${normalized} (${isZh ? '正方形' : 'square'})`;
+    if (width > height) return `${normalized} (${isZh ? '横版' : 'landscape'})`;
+    return `${normalized} (${isZh ? '竖版' : 'portrait'})`;
   }
-  if (normalized.toLowerCase() === 'auto') {
-    return 'Auto';
+
+  const ratioMatch = /^(\d+):(\d+)$/.exec(normalized);
+  if (ratioMatch) {
+    const width = Number(ratioMatch[1]);
+    const height = Number(ratioMatch[2]);
+    if (width === height)
+      return `${normalized} (${isZh ? '正方形' : 'square'})`;
+    if (width > height) return `${normalized} (${isZh ? '横版' : 'landscape'})`;
+    return `${normalized} (${isZh ? '竖版' : 'portrait'})`;
   }
+
   return value;
 }
 

@@ -33,7 +33,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../components/ui/tooltip';
-import { formatAmount, formatLabel, formatQuantity } from '../format';
+import {
+  formatAmount,
+  formatDimensionOption,
+  formatLabel,
+  formatQuantity,
+} from '../format';
 import { useI18n } from '../i18n';
 import {
   buildRequestBody,
@@ -84,7 +89,7 @@ export function VideoStudio({
   admin?: boolean;
   user?: User;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const videoAllowed = admin || user?.video_enabled !== false;
   const videoModels = useMemo(
@@ -846,13 +851,17 @@ export function VideoStudio({
                     .filter((p) => !isHiddenParameter(p.name))
                     .map((param) => {
                       const isDuration = /duration|second/i.test(param.name);
+                      const isCount =
+                        /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
+                          param.name,
+                        ) || formatLabel(param.name) === '数量';
                       const isRanged =
                         param.type === 'integer' &&
                         param.minimum !== undefined &&
                         param.maximum !== undefined &&
                         param.maximum > param.minimum;
 
-                      if (isDuration || isRanged) {
+                      if (isDuration || isCount || isRanged) {
                         if (param.enum?.length) {
                           const options = param.enum;
                           const currentVal =
@@ -904,24 +913,49 @@ export function VideoStudio({
                                 />
                               </Slider.Root>
                               <div className="slider-scale">
-                                <small>
-                                  {Number.isNaN(Number(options[0]))
-                                    ? options[0]
-                                    : formatQuantity(
-                                        param.name,
-                                        Number(options[0]),
-                                      )}
-                                </small>
-                                <small>
-                                  {Number.isNaN(
-                                    Number(options[options.length - 1]),
-                                  )
-                                    ? options[options.length - 1]
-                                    : formatQuantity(
-                                        param.name,
+                                {options.length <= 6 ? (
+                                  options.map((opt, i) => (
+                                    <small
+                                      key={opt}
+                                      style={
+                                        i === currentIndex
+                                          ? {
+                                              fontWeight: 700,
+                                              color: 'var(--accent)',
+                                            }
+                                          : undefined
+                                      }
+                                    >
+                                      {Number.isNaN(Number(opt))
+                                        ? opt
+                                        : formatQuantity(
+                                            param.name,
+                                            Number(opt),
+                                          )}
+                                    </small>
+                                  ))
+                                ) : (
+                                  <>
+                                    <small>
+                                      {Number.isNaN(Number(options[0]))
+                                        ? options[0]
+                                        : formatQuantity(
+                                            param.name,
+                                            Number(options[0]),
+                                          )}
+                                    </small>
+                                    <small>
+                                      {Number.isNaN(
                                         Number(options[options.length - 1]),
-                                      )}
-                                </small>
+                                      )
+                                        ? options[options.length - 1]
+                                        : formatQuantity(
+                                            param.name,
+                                            Number(options[options.length - 1]),
+                                          )}
+                                    </small>
+                                  </>
+                                )}
                               </div>
                             </div>
                           );
@@ -930,11 +964,19 @@ export function VideoStudio({
                         const min =
                           param.minimum !== undefined
                             ? Number(param.minimum)
-                            : 5;
+                            : isCount
+                              ? 1
+                              : isDuration
+                                ? 5
+                                : 1;
                         const max =
                           param.maximum !== undefined
                             ? Number(param.maximum)
-                            : 10;
+                            : isCount
+                              ? 4
+                              : isDuration
+                                ? 10
+                                : 100;
                         const rawVal =
                           parameters[param.name] ??
                           (param.default !== undefined
@@ -977,8 +1019,35 @@ export function VideoStudio({
                               />
                             </Slider.Root>
                             <div className="slider-scale">
-                              <small>{formatQuantity(param.name, min)}</small>
-                              <small>{formatQuantity(param.name, max)}</small>
+                              {max - min <= 5 ? (
+                                Array.from(
+                                  { length: max - min + 1 },
+                                  (_, i) => min + i,
+                                ).map((num) => (
+                                  <small
+                                    key={num}
+                                    style={
+                                      num === current
+                                        ? {
+                                            fontWeight: 700,
+                                            color: 'var(--accent)',
+                                          }
+                                        : undefined
+                                    }
+                                  >
+                                    {formatQuantity(param.name, num)}
+                                  </small>
+                                ))
+                              ) : (
+                                <>
+                                  <small>
+                                    {formatQuantity(param.name, min)}
+                                  </small>
+                                  <small>
+                                    {formatQuantity(param.name, max)}
+                                  </small>
+                                </>
+                              )}
                             </div>
                           </div>
                         );
@@ -1005,7 +1074,7 @@ export function VideoStudio({
                               )}
                               {param.enum.map((opt) => (
                                 <option key={opt} value={opt}>
-                                  {opt}
+                                  {formatDimensionOption(opt, locale)}
                                 </option>
                               ))}
                             </select>

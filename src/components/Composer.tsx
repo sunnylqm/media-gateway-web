@@ -1028,9 +1028,12 @@ function ParameterTile({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const label = formatLabel(parameter.name);
-  const isDimension = /^(resolution|size|dimensions?)$/i.test(parameter.name);
+  const isDimension =
+    /^(resolution|size|dimensions?|aspect_ratio|aspectratio|ar|ratio)$/i.test(
+      parameter.name,
+    );
   const options =
     parameter.type === 'boolean'
       ? [
@@ -1040,8 +1043,8 @@ function ParameterTile({
       : (parameter.enum ?? []).map((option) => ({
           value: option,
           label:
-            isDimension || /^\d+[xX]\d+$/.test(option)
-              ? formatDimensionOption(option)
+            isDimension || /^\d+[xX:]\d+$/.test(option)
+              ? formatDimensionOption(option, locale)
               : option,
         }));
   const chips =
