@@ -594,10 +594,10 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .recent-strip { border-top: 1px solid var(--line); padding: 12px 18px; background: #fafbfa; display: flex; flex-direction: column; gap: 8px; }
 .recent-strip-heading { display: flex; align-items: center; justify-content: space-between; font-size: 10.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #727c77; }
 .recent-strip-scroll { display: flex; gap: 10px; overflow-x: auto; padding: 2px 2px 6px; }
-.recent-strip-item { width: 54px; height: 54px; flex: 0 0 54px; border-radius: 6px; border: 2px solid var(--line); overflow: hidden; cursor: pointer; position: relative; background: #eef1ef; transition: border-color .15s, transform .15s; }
+.recent-strip-item { width: 54px; height: 54px; flex: 0 0 54px; padding: 0; border-radius: 6px; border: 2px solid var(--line); overflow: hidden; cursor: pointer; position: relative; background: #eef1ef; transition: border-color .15s, transform .15s; }
 .recent-strip-item:hover { border-color: #7c3aed; transform: translateY(-2px); }
 .recent-strip-item.active { border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,.28); }
-.recent-strip-item img, .recent-strip-item video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.recent-strip-item img, .recent-strip-item video { width: 100%; height: 100%; object-fit: cover; display: block; pointer-events: none; }
 .recent-strip-item .status-icon { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(240,244,242,.85); color: #727d78; }
 
 @media (max-width: 1040px) {

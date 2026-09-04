@@ -60,6 +60,11 @@ type Attachment = {
   message?: string;
 };
 
+type VideoThumb = {
+  url: string;
+  isVideo: boolean;
+};
+
 export function VideoStudio({
   models,
   generations,
@@ -156,6 +161,10 @@ export function VideoStudio({
   const [activeGen, setActiveGen] = useState<Generation | null>(null);
   const [activeArtifacts, setActiveArtifacts] = useState<Artifact[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [thumbnails, setThumbnails] = useState<
+    Record<string, VideoThumb | null>
+  >({});
+  const [failedThumbs, setFailedThumbs] = useState<Record<string, boolean>>({});
 
   // Default to newest video generation
   useEffect(() => {
@@ -183,6 +192,23 @@ export function VideoStudio({
         ]);
         setActiveGen(freshGen);
         setActiveArtifacts(artifactList.data);
+        if (artifactList.data.length > 0) {
+          const imgArtifact = artifactList.data.find((a) =>
+            a.mime_type.startsWith('image/'),
+          );
+          const vidArtifact = artifactList.data.find((a) =>
+            a.mime_type.startsWith('video/'),
+          );
+          const target = imgArtifact ?? vidArtifact ?? artifactList.data[0];
+          if (target?.url) {
+            const isVideo = target.mime_type.startsWith('video/');
+            setThumbnails((prev) => {
+              const current = prev[id];
+              if (current && current.url === target.url) return prev;
+              return { ...prev, [id]: { url: target.url, isVideo } };
+            });
+          }
+        }
         return freshGen;
       } catch {
         // keep current active gen if background fetch fails
@@ -201,6 +227,63 @@ export function VideoStudio({
     setDetailsLoading(true);
     fetchActiveDetails(activeGenId).finally(() => setDetailsLoading(false));
   }, [activeGenId, fetchActiveDetails]);
+
+  // Fetch thumbnails for visible recent generations that are completed
+  const pendingThumbIds = useMemo(() => {
+    return videoGenerations
+      .slice(0, 14)
+      .filter((g) => g.status === 'completed' && thumbnails[g.id] === undefined)
+      .map((g) => g.id);
+  }, [videoGenerations, thumbnails]);
+
+  useEffect(() => {
+    if (pendingThumbIds.length === 0) return;
+    let cancelled = false;
+
+    Promise.all(
+      pendingThumbIds.map(async (id) => {
+        try {
+          const res = await api<{ data: Artifact[] }>(
+            admin
+              ? `/v1/admin/generations/${id}/artifacts`
+              : `/v1/generations/${id}/artifacts`,
+            {},
+            admin,
+          );
+          const imgArtifact = res.data.find((a) =>
+            a.mime_type.startsWith('image/'),
+          );
+          const vidArtifact = res.data.find((a) =>
+            a.mime_type.startsWith('video/'),
+          );
+          const target = imgArtifact ?? vidArtifact ?? res.data[0];
+          if (!target?.url) return { id, thumb: null };
+          return {
+            id,
+            thumb: {
+              url: target.url,
+              isVideo: target.mime_type.startsWith('video/'),
+            },
+          };
+        } catch {
+          return { id, thumb: null };
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setThumbnails((prev) => {
+        const next = { ...prev };
+        for (const item of results) {
+          next[item.id] = item.thumb;
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingThumbIds, admin]);
 
   // Poll in-flight generation
   useEffect(() => {
@@ -971,30 +1054,63 @@ export function VideoStudio({
                 <span>{videoGenerations.length}</span>
               </div>
               <div className="recent-strip-scroll">
-                {videoGenerations.slice(0, 14).map((gen) => (
-                  <button
-                    key={gen.id}
-                    type="button"
-                    className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
-                    onClick={() => setActiveGenId(gen.id)}
-                    title={`${gen.model} - ${gen.prompt || gen.id}`}
-                  >
-                    {[
-                      'queued',
-                      'submitting',
-                      'submitted',
-                      'in_progress',
-                    ].includes(gen.status) ? (
-                      <div className="status-icon">
-                        <Loader2 size={14} className="loader small" />
-                      </div>
-                    ) : (
-                      <div className="status-icon">
-                        <Video size={16} />
-                      </div>
-                    )}
-                  </button>
-                ))}
+                {videoGenerations.slice(0, 14).map((gen) => {
+                  const thumb = thumbnails[gen.id];
+                  const hasValidThumb = Boolean(thumb && !failedThumbs[gen.id]);
+                  const isInProgress = [
+                    'queued',
+                    'submitting',
+                    'submitted',
+                    'in_progress',
+                  ].includes(gen.status);
+
+                  return (
+                    <button
+                      key={gen.id}
+                      type="button"
+                      className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
+                      onClick={() => setActiveGenId(gen.id)}
+                      title={`${gen.model} - ${gen.prompt || gen.id}`}
+                    >
+                      {hasValidThumb && thumb ? (
+                        thumb.isVideo ? (
+                          <video
+                            src={`${absoluteGatewayURL(thumb.url)}#t=0.001`}
+                            muted
+                            playsInline
+                            preload="metadata"
+                            onError={() =>
+                              setFailedThumbs((prev) => ({
+                                ...prev,
+                                [gen.id]: true,
+                              }))
+                            }
+                          />
+                        ) : (
+                          <img
+                            src={absoluteGatewayURL(thumb.url)}
+                            alt={gen.prompt || gen.id}
+                            loading="lazy"
+                            onError={() =>
+                              setFailedThumbs((prev) => ({
+                                ...prev,
+                                [gen.id]: true,
+                              }))
+                            }
+                          />
+                        )
+                      ) : isInProgress ? (
+                        <div className="status-icon">
+                          <Loader2 size={14} className="loader small" />
+                        </div>
+                      ) : (
+                        <div className="status-icon">
+                          <Video size={16} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

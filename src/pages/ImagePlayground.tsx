@@ -156,6 +156,10 @@ export function ImagePlayground({
   const [activeGen, setActiveGen] = useState<Generation | null>(null);
   const [activeArtifacts, setActiveArtifacts] = useState<Artifact[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [thumbnails, setThumbnails] = useState<Record<string, string | null>>(
+    {},
+  );
+  const [failedThumbs, setFailedThumbs] = useState<Record<string, boolean>>({});
 
   // Select newest generation if none is active
   useEffect(() => {
@@ -184,6 +188,18 @@ export function ImagePlayground({
         ]);
         setActiveGen(freshGen);
         setActiveArtifacts(artifactList.data);
+        if (artifactList.data.length > 0) {
+          const firstImage =
+            artifactList.data.find((a) => a.mime_type.startsWith('image/')) ??
+            artifactList.data[0];
+          if (firstImage?.url) {
+            setThumbnails((prev) =>
+              prev[id] === firstImage.url
+                ? prev
+                : { ...prev, [id]: firstImage.url },
+            );
+          }
+        }
         return freshGen;
       } catch {
         // keep current active gen if background fetch fails
@@ -202,6 +218,52 @@ export function ImagePlayground({
     setDetailsLoading(true);
     fetchActiveDetails(activeGenId).finally(() => setDetailsLoading(false));
   }, [activeGenId, fetchActiveDetails]);
+
+  // Fetch thumbnails for visible recent generations that are completed
+  const pendingThumbIds = useMemo(() => {
+    return imageGenerations
+      .slice(0, 14)
+      .filter((g) => g.status === 'completed' && thumbnails[g.id] === undefined)
+      .map((g) => g.id);
+  }, [imageGenerations, thumbnails]);
+
+  useEffect(() => {
+    if (pendingThumbIds.length === 0) return;
+    let cancelled = false;
+
+    Promise.all(
+      pendingThumbIds.map(async (id) => {
+        try {
+          const res = await api<{ data: Artifact[] }>(
+            admin
+              ? `/v1/admin/generations/${id}/artifacts`
+              : `/v1/generations/${id}/artifacts`,
+            {},
+            admin,
+          );
+          const firstImage =
+            res.data.find((a) => a.mime_type.startsWith('image/')) ??
+            res.data[0];
+          return { id, url: firstImage?.url ?? null };
+        } catch {
+          return { id, url: null };
+        }
+      }),
+    ).then((results) => {
+      if (cancelled) return;
+      setThumbnails((prev) => {
+        const next = { ...prev };
+        for (const item of results) {
+          next[item.id] = item.url;
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingThumbIds, admin]);
 
   // Poll in-flight active generation
   useEffect(() => {
@@ -1068,30 +1130,50 @@ export function ImagePlayground({
                 <span>{imageGenerations.length}</span>
               </div>
               <div className="recent-strip-scroll">
-                {imageGenerations.slice(0, 14).map((gen) => (
-                  <button
-                    key={gen.id}
-                    type="button"
-                    className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
-                    onClick={() => setActiveGenId(gen.id)}
-                    title={`${gen.model} - ${gen.prompt || gen.id}`}
-                  >
-                    {[
-                      'queued',
-                      'submitting',
-                      'submitted',
-                      'in_progress',
-                    ].includes(gen.status) ? (
-                      <div className="status-icon">
-                        <Loader2 size={14} className="loader small" />
-                      </div>
-                    ) : (
-                      <div className="status-icon">
-                        <ImageIcon size={16} />
-                      </div>
-                    )}
-                  </button>
-                ))}
+                {imageGenerations.slice(0, 14).map((gen) => {
+                  const thumbUrl = thumbnails[gen.id];
+                  const hasValidThumb = Boolean(
+                    thumbUrl && !failedThumbs[gen.id],
+                  );
+                  const isInProgress = [
+                    'queued',
+                    'submitting',
+                    'submitted',
+                    'in_progress',
+                  ].includes(gen.status);
+
+                  return (
+                    <button
+                      key={gen.id}
+                      type="button"
+                      className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
+                      onClick={() => setActiveGenId(gen.id)}
+                      title={`${gen.model} - ${gen.prompt || gen.id}`}
+                    >
+                      {hasValidThumb && thumbUrl ? (
+                        <img
+                          src={absoluteGatewayURL(thumbUrl)}
+                          alt={gen.prompt || gen.id}
+                          loading="lazy"
+                          onError={() =>
+                            setFailedThumbs((prev) => ({
+                              ...prev,
+                              [gen.id]: true,
+                            }))
+                          }
+                        />
+                      ) : isInProgress ? (
+                        <div className="status-icon">
+                          <Loader2 size={14} className="loader small" />
+                        </div>
+                      ) : (
+                        <div className="status-icon">
+                          <ImageIcon size={16} />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
