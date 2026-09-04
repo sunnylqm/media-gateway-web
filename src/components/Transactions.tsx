@@ -1,3 +1,4 @@
+import { Eye } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 import { formatAmount, formatDate, formatStatus } from '../format';
@@ -115,6 +116,7 @@ export function TransactionsTable({
   hasMore,
   onLoadMore,
   onReload,
+  onSelectGeneration,
 }: {
   transactions: TransactionRecord[];
   loading: boolean;
@@ -123,6 +125,7 @@ export function TransactionsTable({
   hasMore: boolean;
   onLoadMore: () => Promise<void>;
   onReload: () => Promise<void>;
+  onSelectGeneration?: (generationId: string) => void;
 }) {
   const { t } = useI18n();
 
@@ -155,6 +158,7 @@ export function TransactionsTable({
                 <th>{t('billing.columnType')}</th>
                 <th>{t('billing.columnAmount')}</th>
                 <th>{t('billing.columnDetails')}</th>
+                {onSelectGeneration && <th />}
               </tr>
             </thead>
             <tbody>
@@ -198,14 +202,48 @@ export function TransactionsTable({
                         {transaction.reason && (
                           <span>{transaction.reason}</span>
                         )}
-                        {transaction.model && (
-                          <small className="transaction-model">
-                            {t('billing.modelLabel')}: {transaction.model}{' '}
-                            {prompt ? `· ${prompt}` : ''}
-                          </small>
+                        {transaction.generation_id && onSelectGeneration ? (
+                          <button
+                            type="button"
+                            className="transaction-task-link"
+                            onClick={() =>
+                              onSelectGeneration(transaction.generation_id!)
+                            }
+                            title={t('billing.viewTask')}
+                          >
+                            <small className="transaction-model">
+                              {t('billing.modelLabel')}:{' '}
+                              {transaction.model || transaction.generation_id}{' '}
+                              {prompt ? `· ${prompt}` : ''}
+                            </small>
+                          </button>
+                        ) : (
+                          transaction.model && (
+                            <small className="transaction-model">
+                              {t('billing.modelLabel')}: {transaction.model}{' '}
+                              {prompt ? `· ${prompt}` : ''}
+                            </small>
+                          )
                         )}
                       </div>
                     </td>
+                    {onSelectGeneration && (
+                      <td>
+                        {transaction.generation_id ? (
+                          <button
+                            type="button"
+                            className="row-action"
+                            onClick={() =>
+                              onSelectGeneration(transaction.generation_id!)
+                            }
+                            title={t('billing.viewTask')}
+                            aria-label={t('billing.viewTask')}
+                          >
+                            <Eye size={15} />
+                          </button>
+                        ) : null}
+                      </td>
+                    )}
                   </tr>
                 );
               })}

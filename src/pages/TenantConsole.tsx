@@ -128,23 +128,41 @@ export function TenantConsole() {
     return () => window.clearInterval(timer);
   }, [generations, load]);
 
-  async function openDetails(generation: Generation) {
-    setSelected(generation);
+  async function openDetails(generationOrId: Generation | string) {
+    const id =
+      typeof generationOrId === 'string' ? generationOrId : generationOrId.id;
+    const initial =
+      typeof generationOrId === 'string'
+        ? (generations.find((item) => item.id === id) ??
+          ({
+            id,
+            status: 'queued',
+            modality: 'image',
+            model: '',
+            created_at: '',
+            updated_at: '',
+            parameters: {},
+          } as Generation))
+        : generationOrId;
+    setSelected(initial);
     setArtifacts([]);
     setDetailsLoading(true);
     try {
       const [freshGeneration, artifactList] = await Promise.all([
-        api<Generation>(`/v1/generations/${generation.id}`),
-        api<{ data: Artifact[] }>(`/v1/generations/${generation.id}/artifacts`),
+        api<Generation>(`/v1/generations/${id}`),
+        api<{ data: Artifact[] }>(`/v1/generations/${id}/artifacts`),
       ]);
       setSelected(freshGeneration);
       setGenerations((current) =>
-        current.map((item) =>
-          item.id === freshGeneration.id ? freshGeneration : item,
-        ),
+        current.some((item) => item.id === freshGeneration.id)
+          ? current.map((item) =>
+              item.id === freshGeneration.id ? freshGeneration : item,
+            )
+          : [freshGeneration, ...current],
       );
       setArtifacts(artifactList.data);
     } catch (reason) {
+      setSelected(null);
       setError(
         reason instanceof Error ? reason.message : t('tenant.errorDetails'),
       );
@@ -298,6 +316,7 @@ export function TenantConsole() {
               balanceError={balanceError}
               balanceLoading={balanceLoading}
               onReload={load}
+              onSelectGeneration={openDetails}
             />
           }
         />
@@ -794,11 +813,13 @@ function BillingView({
   balanceError,
   balanceLoading,
   onReload,
+  onSelectGeneration,
 }: {
   balance: Balance | null;
   balanceError: string;
   balanceLoading: boolean;
   onReload: () => Promise<void>;
+  onSelectGeneration?: (generationId: string) => void;
 }) {
   const { t } = useI18n();
   const transactions = useTransactions('/v1/billing/transactions');
@@ -870,6 +891,7 @@ function BillingView({
           hasMore={transactions.hasMore}
           onLoadMore={transactions.loadMore}
           onReload={transactions.reload}
+          onSelectGeneration={onSelectGeneration}
         />
       </section>
     </div>

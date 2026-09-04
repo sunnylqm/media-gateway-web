@@ -482,6 +482,7 @@ export const zh: Record<MessageKey, string> = {
   'billing.columnDetails': '说明 / 任务',
   'billing.typeCredit': '充值入账',
   'billing.typeCapture': '生成扣费',
+  'billing.viewTask': '查看任务详情',
   'billing.modelLabel': '模型',
   'billing.loadMore': '加载更多',
   'billing.loadingMore': '正在加载…',

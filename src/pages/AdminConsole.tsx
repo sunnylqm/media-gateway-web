@@ -2410,17 +2410,32 @@ function UserDetail() {
     }
   }
 
-  async function openDetails(generation: Generation) {
+  async function openDetails(generationOrId: Generation | string) {
     const target = user;
+    const id =
+      typeof generationOrId === 'string' ? generationOrId : generationOrId.id;
     const path = target
       ? currentAdminUserPath(
           target.id,
           currentUserID.current,
-          `/generations/${encodeURIComponent(generation.id)}`,
+          `/generations/${encodeURIComponent(id)}`,
         )
       : null;
     if (!target || !path) return;
-    setSelected(generation);
+    const initial =
+      typeof generationOrId === 'string'
+        ? (generations.find((item) => item.id === id) ??
+          ({
+            id,
+            status: 'queued',
+            modality: 'image',
+            model: '',
+            created_at: '',
+            updated_at: '',
+            parameters: {},
+          } as Generation))
+        : generationOrId;
+    setSelected(initial);
     setArtifacts([]);
     setDetailsLoading(true);
     setError('');
@@ -2431,9 +2446,13 @@ function UserDetail() {
       ]);
       if (currentUserID.current !== target.id) return;
       setSelected(details);
+      setGenerations((current) =>
+        current.map((item) => (item.id === details.id ? details : item)),
+      );
       setArtifacts(artifactList.data);
     } catch (reason) {
       if (currentUserID.current === target.id) {
+        setSelected(null);
         setError(
           reason instanceof Error ? reason.message : t('tenant.errorDetails'),
         );
@@ -2781,6 +2800,7 @@ function UserDetail() {
               hasMore={transactions.hasMore}
               onLoadMore={transactions.loadMore}
               onReload={transactions.reload}
+              onSelectGeneration={openDetails}
             />
           </section>
 

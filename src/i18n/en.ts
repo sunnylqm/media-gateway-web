@@ -514,6 +514,7 @@ export const en = {
   'billing.columnDetails': 'Details / Task',
   'billing.typeCredit': 'Recharge',
   'billing.typeCapture': 'Usage Deduction',
+  'billing.viewTask': 'View task details',
   'billing.modelLabel': 'Model',
   'billing.loadMore': 'Load more',
   'billing.loadingMore': 'Loading…',

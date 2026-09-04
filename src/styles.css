@@ -238,6 +238,8 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .table-heading { min-width: 720px; }
 .count-pill { white-space: nowrap; padding: 5px 9px; border-radius: 20px; background: #eef1ef; color: #606a65; font-size: 10px; font-weight: 700; }
 .transaction-model { display: block; color: var(--muted); }
+.transaction-task-link { display: inline-block; padding: 0; border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.transaction-task-link:hover .transaction-model { color: var(--accent); }
 .table-pagination { display: flex; justify-content: center; padding: 14px 20px; border-top: 1px solid var(--line); }
 .row-menu { white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 3px; background: white; color: #56615c; cursor: pointer; font-size: 10px; font-weight: 700; }
 .row-action { width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 3px; background: white; color: #68736d; cursor: pointer; }
