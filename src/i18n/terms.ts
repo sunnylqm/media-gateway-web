@@ -51,6 +51,7 @@ const zhTerms: Record<string, string> = {
   resolution: '分辨率',
   ratio: '画面比例',
   aspect_ratio: '画面比例',
+  generate_audio: '生成音频',
   quality: '画质',
   seed: '随机种子',
   fps: '帧率',
