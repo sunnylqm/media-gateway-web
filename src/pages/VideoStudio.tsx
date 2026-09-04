@@ -183,8 +183,10 @@ export function VideoStudio({
         ]);
         setActiveGen(freshGen);
         setActiveArtifacts(artifactList.data);
+        return freshGen;
       } catch {
-        // keep current active gen on background fetch error
+        // keep current active gen if background fetch fails
+        return null;
       }
     },
     [admin],
@@ -210,11 +212,14 @@ export function VideoStudio({
     ) {
       return;
     }
-    const timer = window.setInterval(() => {
-      void fetchActiveDetails(activeGen.id);
+    const timer = window.setInterval(async () => {
+      const freshGen = await fetchActiveDetails(activeGen.id);
+      if (freshGen && ['completed', 'failed'].includes(freshGen.status)) {
+        await onCreated();
+      }
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [activeGen, fetchActiveDetails]);
+  }, [activeGen, fetchActiveDetails, onCreated]);
 
   async function uploadFile(file: File, slot: MediaSlot) {
     const key = crypto.randomUUID();

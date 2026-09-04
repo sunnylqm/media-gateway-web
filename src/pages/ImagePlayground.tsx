@@ -184,8 +184,10 @@ export function ImagePlayground({
         ]);
         setActiveGen(freshGen);
         setActiveArtifacts(artifactList.data);
+        return freshGen;
       } catch {
         // keep current active gen if background fetch fails
+        return null;
       }
     },
     [admin],
@@ -211,11 +213,14 @@ export function ImagePlayground({
     ) {
       return;
     }
-    const timer = window.setInterval(() => {
-      void fetchActiveDetails(activeGen.id);
+    const timer = window.setInterval(async () => {
+      const freshGen = await fetchActiveDetails(activeGen.id);
+      if (freshGen && ['completed', 'failed'].includes(freshGen.status)) {
+        await onCreated();
+      }
     }, 2000);
     return () => window.clearInterval(timer);
-  }, [activeGen, fetchActiveDetails]);
+  }, [activeGen, fetchActiveDetails, onCreated]);
 
   // Reference upload
   async function uploadFile(file: File) {
