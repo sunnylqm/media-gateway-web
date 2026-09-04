@@ -81,7 +81,7 @@ export const zh: Record<MessageKey, string> = {
   'modality.file': '文件',
 
   'generations.emptyHint': '创建第一个任务，看看网关如何运转。',
-  'generations.emptyTitle': '还没有生成任务',
+  'generations.emptyTitle': '还没有历史记录',
   'generations.columnJob': '任务',
   'generations.columnType': '类型',
   'generations.columnModel': '模型',
@@ -106,7 +106,7 @@ export const zh: Record<MessageKey, string> = {
   'details.inputAlt': '{role} 输入',
 
   'tenant.navOverview': '概览',
-  'tenant.navGenerations': '生成任务',
+  'tenant.navGenerations': '历史记录',
   'tenant.navAPIKeys': 'API 密钥',
   'tenant.title': '你的工作区',
   'tenant.description': '当前登录：{email}',

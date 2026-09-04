@@ -81,7 +81,7 @@ export const en = {
   'modality.file': 'File',
 
   'generations.emptyHint': 'Create the first job to see the gateway in motion.',
-  'generations.emptyTitle': 'No generations yet',
+  'generations.emptyTitle': 'No history yet',
   'generations.columnJob': 'Job',
   'generations.columnType': 'Type',
   'generations.columnModel': 'Model',
@@ -107,7 +107,7 @@ export const en = {
   'details.inputAlt': '{role} input',
 
   'tenant.navOverview': 'Overview',
-  'tenant.navGenerations': 'Generations',
+  'tenant.navGenerations': 'History',
   'tenant.navAPIKeys': 'API keys',
   'tenant.title': 'Your workspace',
   'tenant.description': 'Signed in as {email}',

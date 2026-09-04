@@ -1,11 +1,11 @@
 import {
   Activity,
-  Boxes,
   Check,
   Copy,
   Eye,
   EyeOff,
   Film,
+  History,
   Image as ImageIcon,
   KeyRound,
   Plus,
@@ -211,7 +211,7 @@ export function TenantConsole() {
         {
           label: t('tenant.navGenerations'),
           to: '/app/generations',
-          icon: <Boxes size={17} />,
+          icon: <History size={17} />,
         },
         {
           label: t('tenant.navAPIKeys'),
