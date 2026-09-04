@@ -122,8 +122,10 @@ export const zh: Record<MessageKey, string> = {
   'overview.completedNote': '产物已就绪',
   'overview.failed': '需要关注',
   'overview.failedNote': '失败或状态不明',
-  'overview.recent': '最近动态',
+  'overview.recent': '最近任务',
   'overview.recentNote': '图像与视频的最新任务。',
+  'overview.viewAll': '查看全部',
+  'overview.emptyHint': '暂无最近任务，可前往图片画板或视频工作室开始生成。',
 
   'apiKeys.errorLoad': '无法加载 API 密钥',
   'apiKeys.errorCreate': '无法创建 API 密钥',

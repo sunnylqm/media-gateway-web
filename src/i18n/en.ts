@@ -123,8 +123,11 @@ export const en = {
   'overview.completedNote': 'Ready artifacts',
   'overview.failed': 'Needs attention',
   'overview.failedNote': 'Failed or ambiguous',
-  'overview.recent': 'Recent activity',
+  'overview.recent': 'Recent tasks',
   'overview.recentNote': 'The latest jobs across image and video.',
+  'overview.viewAll': 'View all',
+  'overview.emptyHint':
+    'No recent tasks yet. Head to Image Playground or Video Studio to start generating.',
 
   'apiKeys.errorLoad': 'Unable to load API keys',
   'apiKeys.errorCreate': 'Unable to create API key',

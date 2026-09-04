@@ -49,7 +49,24 @@ export function GenerationsTable({
           {generations.map((item) => (
             <tr key={item.id}>
               <td>
-                <code>{item.id.slice(0, 18)}…</code>
+                <div style={{ display: 'grid', gap: '2px' }}>
+                  <code>{item.id.slice(0, 18)}…</code>
+                  {item.prompt && (
+                    <small
+                      style={{
+                        color: 'var(--muted)',
+                        fontSize: '11px',
+                        maxWidth: '200px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={item.prompt}
+                    >
+                      {item.prompt}
+                    </small>
+                  )}
+                </div>
               </td>
               <td>
                 <span className="type-cell">

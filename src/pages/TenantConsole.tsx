@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowRight,
   Check,
   Copy,
   Eye,
@@ -9,7 +10,6 @@ import {
   Image as ImageIcon,
   KeyRound,
   Plus,
-  Sparkles,
   Trash2,
   Wallet,
   X,
@@ -22,16 +22,8 @@ import {
   useMemo,
   useState,
 } from 'react';
-import {
-  Link,
-  Navigate,
-  Route,
-  Routes,
-  useLocation,
-  useNavigate,
-} from 'react-router';
+import { Link, Navigate, Route, Routes, useNavigate } from 'react-router';
 import { APIError, api } from '../api';
-import { GenerationComposer } from '../components/Composer';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
@@ -56,7 +48,6 @@ type GenerationList = { data: Generation[] };
 export function TenantConsole() {
   const { t } = useI18n();
   const navigate = useNavigate();
-  const location = useLocation();
   const [profile, setProfile] = useState<IdentityProfile | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [models, setModels] = useState<PublicModel[]>([]);
@@ -227,37 +218,26 @@ export function TenantConsole() {
       title={t('tenant.title')}
       description={t('tenant.description', { email: profile.user.email })}
       actions={
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {balance && (
-            <Link
-              to="/app/billing"
-              className="button secondary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 12px',
-                fontSize: '0.85rem',
-                textDecoration: 'none',
-              }}
-            >
-              <Wallet size={15} />
-              <span>
-                {t('billing.badge')}:{' '}
-                {formatAmount(balance.available, balance.currency)}
-              </span>
-            </Link>
-          )}
-          {!['/app/api-keys', '/app/image', '/app/video'].includes(
-            location.pathname,
-          ) && (
-            <GenerationComposer
-              models={models}
-              user={profile.user}
-              onCreated={load}
-            />
-          )}
-        </div>
+        balance ? (
+          <Link
+            to="/app/billing"
+            className="button secondary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              fontSize: '0.85rem',
+              textDecoration: 'none',
+            }}
+          >
+            <Wallet size={15} />
+            <span>
+              {t('billing.badge')}:{' '}
+              {formatAmount(balance.available, balance.currency)}
+            </span>
+          </Link>
+        ) : undefined
       }
       onLogout={() => void logout()}
     >
@@ -780,11 +760,28 @@ function Overview({
             <h2>{t('overview.recent')}</h2>
             <p>{t('overview.recentNote')}</p>
           </div>
-          <Sparkles size={19} />
+          {generations.length > 0 && (
+            <Link
+              to="/app/generations"
+              className="button secondary"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                fontSize: '12px',
+                padding: '5px 12px',
+                textDecoration: 'none',
+              }}
+            >
+              <span>{t('overview.viewAll')}</span>
+              <ArrowRight size={13} />
+            </Link>
+          )}
         </div>
         <GenerationsTable
           generations={generations}
           compact
+          emptyHint={t('overview.emptyHint')}
           onSelect={onSelect}
         />
       </section>
