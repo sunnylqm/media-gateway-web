@@ -31,8 +31,9 @@ import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { StripeTopupDialog } from '../components/StripeTopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
-import { formatAmount, formatDate, formatStatus } from '../format';
+import { formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
+import { CurrencyNote, CurrencyProvider, useMoney } from '../lib/money';
 import { modelPathSlug } from '../lib/requestForm';
 import { topupAmountLabel } from '../lib/topup';
 import type {
@@ -85,7 +86,17 @@ function takeTopupReturn(): TopupReturn {
   return topupReturn;
 }
 
+// The tenant sees money in the currency it is charged in, so everything under
+// the console reads its presentation from one provider fetched per session.
 export function TenantConsole() {
+  return (
+    <CurrencyProvider>
+      <TenantWorkspace />
+    </CurrencyProvider>
+  );
+}
+
+function TenantWorkspace() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<IdentityProfile | null>(null);
@@ -198,11 +209,22 @@ export function TenantConsole() {
           if (!active) return;
           if (topup.status !== 'pending') {
             if (topup.status === 'paid') {
+              // A converted payment settles in one currency and credits the
+              // balance in another, so the banner states both rather than
+              // leaving the tenant to guess which figure reached the ledger.
+              const paid = topupAmountLabel(topup.amount, topup.currency);
+              const credited =
+                topup.credit_amount !== undefined &&
+                topup.credit_currency &&
+                (topup.credit_amount !== topup.amount ||
+                  topup.credit_currency !== topup.currency)
+                  ? topupAmountLabel(topup.credit_amount, topup.credit_currency)
+                  : '';
               setTopupNotice({
                 tone: 'success',
-                message: t('topup.noticePaid', {
-                  amount: topupAmountLabel(topup.amount, topup.currency),
-                }),
+                message: credited
+                  ? t('topup.noticePaidConverted', { amount: paid, credited })
+                  : t('topup.noticePaid', { amount: paid }),
                 invoiceNumber: topup.invoice_number,
                 invoiceURL: topup.invoice_url,
               });
@@ -902,6 +924,7 @@ function Overview({
   onTopup: () => void;
 }) {
   const { t } = useI18n();
+  const { money } = useMoney();
   const summary = [
     { key: 'total', label: t('overview.total'), value: stats.total, tone: '' },
     {
@@ -971,9 +994,7 @@ function Overview({
     <section className="overview-grid">
       <Metric
         label={t('billing.available')}
-        value={
-          balance ? formatAmount(balance.available, balance.currency) : '—'
-        }
+        value={balance ? money(balance.available, balance.currency) : '—'}
         note={
           balanceLoading
             ? t('billing.loadingBalance')
@@ -1020,6 +1041,7 @@ function BillingView({
   refreshToken: number;
 }) {
   const { t } = useI18n();
+  const { money, converted } = useMoney();
   const transactions = useTransactions('/v1/billing/transactions');
   const currency = balance?.currency || 'CNY';
   const reloadTransactions = transactions.reload;
@@ -1049,7 +1071,7 @@ function BillingView({
       <section className="metric-grid">
         <Metric
           label={t('billing.available')}
-          value={balance ? formatAmount(balance.available, currency) : '—'}
+          value={balance ? money(balance.available, currency) : '—'}
           note={
             balanceLoading
               ? t('billing.loadingBalance')
@@ -1077,21 +1099,26 @@ function BillingView({
         />
         <Metric
           label={t('billing.totalCredited')}
-          value={balance ? formatAmount(balance.credited, currency) : '—'}
+          value={balance ? money(balance.credited, currency) : '—'}
           note={t('billing.totalCreditedNote')}
         />
         <Metric
           label={t('billing.totalSpent')}
-          value={balance ? formatAmount(balance.spent, currency) : '—'}
+          value={balance ? money(balance.spent, currency) : '—'}
           note={t('billing.totalSpentNote')}
           tone="amber"
         />
         <Metric
           label={t('billing.reserved')}
-          value={balance ? formatAmount(balance.reserved, currency) : '—'}
+          value={balance ? money(balance.reserved, currency) : '—'}
           note={t('billing.reservedNote')}
         />
       </section>
+      {converted && (
+        <div className="billing-currency-note">
+          <CurrencyNote />
+        </div>
+      )}
 
       <section className="panel table-wrap" style={{ marginTop: '24px' }}>
         <div className="panel-heading">

@@ -1,9 +1,10 @@
 import { Eye } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api';
-import { formatAmount, formatDate, formatStatus } from '../format';
+import { formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
 import { transactionKind, transactionPageSize } from '../lib/billing';
+import { useMoney } from '../lib/money';
 import type { TransactionRecord } from '../types';
 
 type TransactionFeed = {
@@ -128,6 +129,9 @@ export function TransactionsTable({
   onSelectGeneration?: (generationId: string) => void;
 }) {
   const { t } = useI18n();
+  // Ledger records are base-currency minor units; a tenant reading them inside
+  // the currency provider sees them converted, an administrator does not.
+  const { money } = useMoney();
 
   return (
     <>
@@ -194,7 +198,7 @@ export function TransactionsTable({
                         {kind === 'credit' && transaction.amount >= 0
                           ? '+'
                           : ''}
-                        {formatAmount(transaction.amount, transaction.currency)}
+                        {money(transaction.amount, transaction.currency)}
                       </b>
                     </td>
                     <td>

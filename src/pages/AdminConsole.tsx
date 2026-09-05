@@ -54,6 +54,11 @@ import { t, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
 import {
+  exchangeRateLabel,
+  formatExchangeRate,
+  parseExchangeRate,
+} from '../lib/currency';
+import {
   adminInvoicePath,
   formatPresetAmounts,
   majorUnitsLabel,
@@ -893,9 +898,19 @@ type TopupForm = {
   customAmount: boolean;
   minAmount: string;
   maxAmount: string;
+  // The alternate offer shown outside the base-currency regions. `altEnabled`
+  // is the console's own switch: the gateway reads an empty `alt_currency` as
+  // off, so the other fields are only sent when the switch is on.
+  altEnabled: boolean;
+  altCurrency: string;
+  altAmounts: string;
+  altMinAmount: string;
+  altMaxAmount: string;
+  altRate: string;
 };
 
 function topupForm(config: TopupConfig): TopupForm {
+  const altCurrency = config.alt_currency ?? '';
   return {
     enabled: config.enabled,
     currency: config.currency,
@@ -903,6 +918,16 @@ function topupForm(config: TopupConfig): TopupForm {
     customAmount: config.custom_amount,
     minAmount: majorUnitsLabel(config.min_amount),
     maxAmount: majorUnitsLabel(config.max_amount),
+    altEnabled: altCurrency !== '',
+    altCurrency,
+    altAmounts: formatPresetAmounts(config.alt_amounts ?? []),
+    altMinAmount: config.alt_min_amount
+      ? majorUnitsLabel(config.alt_min_amount)
+      : '',
+    altMaxAmount: config.alt_max_amount
+      ? majorUnitsLabel(config.alt_max_amount)
+      : '',
+    altRate: config.alt_rate ? formatExchangeRate(config.alt_rate) : '',
   };
 }
 
@@ -990,6 +1015,71 @@ function TopupSettingsPanel() {
       return;
     }
 
+    // The alternate offer is validated exactly like the base one, and is sent
+    // as empty rather than as leftover values when the switch is off.
+    let alt = {
+      alt_currency: '',
+      alt_amounts: [] as number[],
+      alt_min_amount: 0,
+      alt_max_amount: 0,
+      alt_rate: 0,
+    };
+    if (form.altEnabled) {
+      const altCurrency = form.altCurrency.trim().toUpperCase();
+      if (!/^[A-Z]{3}$/.test(altCurrency) || altCurrency === currency) {
+        setError(t('topupAdmin.errorAltCurrency'));
+        return;
+      }
+      const altPresets = parsePresetAmounts(form.altAmounts);
+      if (!altPresets.ok) {
+        setError(
+          t(
+            altPresets.reason === 'empty'
+              ? 'topupAdmin.errorAmountsEmpty'
+              : altPresets.reason === 'too_many'
+                ? 'topupAdmin.errorAmountsTooMany'
+                : 'topupAdmin.errorAmounts',
+          ),
+        );
+        return;
+      }
+      const altMin = parseBoundAmount(form.altMinAmount);
+      const altMax = parseBoundAmount(form.altMaxAmount);
+      if (altMin === null || altMax === null) {
+        setError(t('topupAdmin.errorMin'));
+        return;
+      }
+      const altProblem = validateTopupConfig({
+        amounts: altPresets.amounts,
+        minAmount: altMin,
+        maxAmount: altMax,
+      });
+      if (altProblem) {
+        setError(
+          t(
+            altProblem === 'range'
+              ? 'topupAdmin.errorRange'
+              : altProblem === 'outside'
+                ? 'topupAdmin.errorOutside'
+                : 'topupAdmin.errorMin',
+          ),
+        );
+        return;
+      }
+      const altRate = parseExchangeRate(form.altRate);
+      if (altRate === null) {
+        setError(t('topupAdmin.errorAltRate'));
+        return;
+      }
+      alt = {
+        alt_currency: altCurrency,
+        alt_amounts: altPresets.amounts,
+        alt_min_amount: altMin,
+        alt_max_amount: altMax,
+        alt_rate: altRate,
+      };
+    }
+
     setSaving(true);
     try {
       const updated = await api<TopupConfig>(
@@ -1003,6 +1093,7 @@ function TopupSettingsPanel() {
             custom_amount: form.customAmount,
             min_amount: minAmount,
             max_amount: maxAmount,
+            ...alt,
           }),
         },
         true,
@@ -1021,6 +1112,23 @@ function TopupSettingsPanel() {
 
   const presets = form ? parsePresetAmounts(form.amounts) : null;
   const currency = form?.currency.trim().toUpperCase() || 'CNY';
+  const altPresets =
+    form?.altEnabled && form.altAmounts
+      ? parsePresetAmounts(form.altAmounts)
+      : null;
+  const altCurrency = form?.altCurrency.trim().toUpperCase() || '';
+  const altRate = form ? parseExchangeRate(form.altRate) : null;
+  // The preview reads the rate back the way a tenant sees it, so the
+  // administrator can tell 7.15 from 0.0715 without saving first.
+  const altRateLabel =
+    altRate !== null && /^[A-Z]{3}$/.test(altCurrency)
+      ? exchangeRateLabel({
+          currency: altCurrency,
+          base_currency: currency,
+          rate: altRate,
+        })
+      : '';
+  const baseCountries = config?.base_countries ?? [];
   const webhook = stripeWebhookURL(gatewayURL);
 
   return (
@@ -1153,6 +1261,142 @@ function TopupSettingsPanel() {
             </label>
           </div>
           <small className="muted">{t('topupAdmin.limitsNote')}</small>
+          <div className="form-section-title">{t('topupAdmin.altSection')}</div>
+          <p className="muted">{t('topupAdmin.altNote')}</p>
+          <div className="field">
+            <span className="field-label">{t('topupAdmin.baseCountries')}</span>
+            <div className="topup-preview-chips">
+              {baseCountries.length > 0 ? (
+                baseCountries.map((code) => (
+                  <span className="topup-preview-chip" key={code}>
+                    {code}
+                  </span>
+                ))
+              ) : (
+                <span className="muted">
+                  {t('topupAdmin.baseCountriesEmpty')}
+                </span>
+              )}
+            </div>
+            <small>{t('topupAdmin.baseCountriesNote')}</small>
+          </div>
+          <label className="topup-switch">
+            <input
+              type="checkbox"
+              checked={form.altEnabled}
+              onChange={(event) =>
+                setForm({ ...form, altEnabled: event.target.checked })
+              }
+            />
+            <span>{t('topupAdmin.altEnabled')}</span>
+          </label>
+          {!form.altEnabled && (
+            <small className="muted">{t('topupAdmin.altOff')}</small>
+          )}
+          {form.altEnabled && (
+            <>
+              <div className="field-grid">
+                <label className="field">
+                  <span className="field-label">
+                    {t('topupAdmin.altCurrency')}
+                  </span>
+                  <input
+                    value={form.altCurrency}
+                    maxLength={3}
+                    style={{ textTransform: 'uppercase' }}
+                    onChange={(event) =>
+                      setForm({
+                        ...form,
+                        altCurrency: event.target.value.toUpperCase(),
+                      })
+                    }
+                    placeholder="USD"
+                  />
+                  <small>{t('topupAdmin.altCurrencyNote')}</small>
+                </label>
+                <label className="field">
+                  <span className="field-label">{t('topupAdmin.altRate')}</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.altRate}
+                    onChange={(event) =>
+                      setForm({ ...form, altRate: event.target.value })
+                    }
+                    placeholder="7.15"
+                  />
+                  <small>
+                    {t('topupAdmin.altRateNote', {
+                      rate: altRateLabel || '¥7.15 = $1.00',
+                    })}
+                  </small>
+                </label>
+              </div>
+              <label className="field">
+                <span className="field-label">
+                  {t('topupAdmin.altAmounts')}
+                </span>
+                <input
+                  value={form.altAmounts}
+                  onChange={(event) =>
+                    setForm({ ...form, altAmounts: event.target.value })
+                  }
+                  placeholder="5, 10, 20, 50, 100"
+                />
+                <small>{t('topupAdmin.amountsNote')}</small>
+              </label>
+              {altPresets?.ok && altCurrency && (
+                <div className="topup-preview">
+                  <span className="field-label">
+                    {t('topupAdmin.amountsPreview')}
+                  </span>
+                  <div className="topup-preview-chips">
+                    {altPresets.amounts.map((amount) => (
+                      <span className="topup-preview-chip" key={amount}>
+                        {topupAmountLabel(amount, altCurrency)}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="field-grid">
+                <label className="field">
+                  <span className="field-label">
+                    {t('topupAdmin.altMinAmount')}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.altMinAmount}
+                    onChange={(event) =>
+                      setForm({ ...form, altMinAmount: event.target.value })
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span className="field-label">
+                    {t('topupAdmin.altMaxAmount')}
+                  </span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={form.altMaxAmount}
+                    onChange={(event) =>
+                      setForm({ ...form, altMaxAmount: event.target.value })
+                    }
+                  />
+                </label>
+              </div>
+              {altRateLabel && (
+                <small className="muted">
+                  {t('topupAdmin.altRatePreview', { rate: altRateLabel })}
+                </small>
+              )}
+            </>
+          )}
           <div className="form-section-title">
             {t('topupAdmin.serverSection')}
           </div>

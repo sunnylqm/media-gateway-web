@@ -2,26 +2,11 @@
 // billing figure the gateway sends. The console shows major units, so parsing
 // and formatting live here where they can be tested without a browser.
 
-const currencySymbols: Record<string, string> = {
-  AUD: 'A$',
-  CAD: 'C$',
-  CNY: '¥',
-  EUR: '€',
-  GBP: '£',
-  HKD: 'HK$',
-  JPY: '¥',
-  KRW: '₩',
-  SGD: 'S$',
-  TWD: 'NT$',
-  USD: '$',
-};
+import { currencySymbol } from './currency';
 
-// A currency with no symbol of its own keeps its code, printed after the value
-// so `20 AED` still reads as an amount rather than a product name.
-export function currencySymbol(currency: string): string {
-  const code = currency.trim().toUpperCase();
-  return currencySymbols[code] ?? code;
-}
+// The symbol table lives with the conversion helpers, next to the presentation
+// it belongs to; top-up labels keep importing it from here.
+export { currencySymbol };
 
 export function majorUnitsLabel(minorUnits: number): string {
   const major = minorUnits / 100;

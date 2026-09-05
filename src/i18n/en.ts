@@ -620,6 +620,9 @@ export const en = {
   'playground.on': 'On',
   'playground.off': 'Off',
 
+  'currency.priceNote':
+    'Prices are billed in {base} and shown in {display} at {rate}.',
+
   'topup.button': 'Top up',
   'topup.dialogTitle': 'Top up balance',
   'topup.dialogNote':
@@ -638,6 +641,8 @@ export const en = {
   'topup.noticeProcessing': 'Confirming the payment…',
   'topup.noticePaid':
     'Top-up of {amount} received. The balance has been updated.',
+  'topup.noticePaidConverted':
+    'Paid {amount}, {credited} added to your balance.',
   'topup.noticePending':
     'The payment is still processing. The balance updates once it clears — check back shortly.',
   'topup.noticeCanceled': 'Payment not completed. Nothing was charged.',
@@ -678,6 +683,29 @@ export const en = {
   'topupAdmin.errorOutside':
     'Every preset amount has to fall between the minimum and the maximum',
   'topupAdmin.errorCurrency': 'Enter a three-letter currency code',
+  'topupAdmin.altSection': 'Alternate currency offer',
+  'topupAdmin.altEnabled': 'Offer a second currency outside the base regions',
+  'topupAdmin.altNote':
+    'Viewers outside the regions billed in the base currency see this offer instead, and are charged in it. The balance is still credited in the base currency.',
+  'topupAdmin.altOff':
+    'The alternate offer is off. Everyone is charged in the base currency.',
+  'topupAdmin.altCurrency': 'Alternate currency',
+  'topupAdmin.altCurrencyNote':
+    'Three-letter ISO code, and not the same as the base currency.',
+  'topupAdmin.altAmounts': 'Alternate preset amounts',
+  'topupAdmin.altMinAmount': 'Alternate minimum amount',
+  'topupAdmin.altMaxAmount': 'Alternate maximum amount',
+  'topupAdmin.altRate': 'Exchange rate',
+  'topupAdmin.altRateNote':
+    'How much of the base currency one unit of the alternate currency is worth, for example 7.15 for {rate}.',
+  'topupAdmin.altRatePreview': 'Charged at {rate}.',
+  'topupAdmin.baseCountries': 'Regions billed in the base currency',
+  'topupAdmin.baseCountriesNote':
+    'Set on the gateway. Every other region sees the alternate offer.',
+  'topupAdmin.baseCountriesEmpty': 'None configured',
+  'topupAdmin.errorAltCurrency':
+    'Enter a three-letter alternate currency code that differs from the base currency',
+  'topupAdmin.errorAltRate': 'Enter a positive exchange rate',
   'topupAdmin.serverSection': 'Server configuration',
   'topupAdmin.stripeKey': 'STRIPE_SECRET_KEY',
   'topupAdmin.webhookSecret': 'STRIPE_WEBHOOK_SECRET',

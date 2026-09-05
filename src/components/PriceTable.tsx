@@ -1,5 +1,6 @@
-import { formatAmount, formatLabel, formatParameterValue } from '../format';
+import { formatLabel, formatParameterValue } from '../format';
 import { useI18n } from '../i18n';
+import { CurrencyNote, useMoney } from '../lib/money';
 import {
   estimateQuantity,
   fallbackRate,
@@ -20,6 +21,8 @@ export function PriceTable({
   showNote?: boolean;
 }) {
   const { t } = useI18n();
+  // Model prices arrive as base-currency minor units like every other amount.
+  const { money, converted } = useMoney();
 
   if (!billing) return null;
 
@@ -107,7 +110,7 @@ export function PriceTable({
                         .join(' · ')}
                 </td>
                 <td className="numeric">
-                  {formatAmount(
+                  {money(
                     unitAmount({ ...rate, dimensions: rate.dimensions ?? {} }),
                     billing.currency,
                   )}
@@ -117,6 +120,11 @@ export function PriceTable({
           })}
         </tbody>
       </table>
+      {converted && (
+        <div className="price-table-footer-note">
+          <CurrencyNote />
+        </div>
+      )}
       {showNote && (
         <div className="price-table-footer-note">
           {admin ? (

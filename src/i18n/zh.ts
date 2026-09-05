@@ -578,6 +578,8 @@ export const zh: Record<MessageKey, string> = {
   'playground.on': '开启',
   'playground.off': '关闭',
 
+  'currency.priceNote': '价格以 {base} 计费，按 {rate} 折算为 {display} 显示。',
+
   'topup.button': '充值',
   'topup.dialogTitle': '账户充值',
   'topup.dialogNote':
@@ -595,6 +597,7 @@ export const zh: Record<MessageKey, string> = {
   'topup.submitting': '正在跳转 Stripe…',
   'topup.noticeProcessing': '正在确认支付结果…',
   'topup.noticePaid': '已收到 {amount} 充值，余额已更新。',
+  'topup.noticePaidConverted': '已支付 {amount}，到账 {credited}。',
   'topup.noticePending': '支付仍在处理中，到账后余额会自动更新，请稍后再查看。',
   'topup.noticeCanceled': '支付未完成，未产生任何扣款。',
   'topup.noticeError': '无法确认支付状态',
@@ -629,6 +632,25 @@ export const zh: Record<MessageKey, string> = {
   'topupAdmin.errorRange': '最小金额不能大于最大金额',
   'topupAdmin.errorOutside': '所有预设金额都必须介于最小与最大金额之间',
   'topupAdmin.errorCurrency': '请输入三位币种代码',
+  'topupAdmin.altSection': '备用货币方案',
+  'topupAdmin.altEnabled': '为本位币地区以外的用户提供第二种货币',
+  'topupAdmin.altNote':
+    '本位币结算地区以外的用户会看到并按该货币付款，余额仍以本位币入账。',
+  'topupAdmin.altOff': '备用方案已关闭，所有用户均按本位币付款。',
+  'topupAdmin.altCurrency': '备用货币',
+  'topupAdmin.altCurrencyNote': '三位 ISO 代码，且不能与本位币相同。',
+  'topupAdmin.altAmounts': '备用预设金额',
+  'topupAdmin.altMinAmount': '备用最小金额',
+  'topupAdmin.altMaxAmount': '备用最大金额',
+  'topupAdmin.altRate': '折算汇率',
+  'topupAdmin.altRateNote':
+    '1 单位备用货币折合多少本位币，例如填 7.15 表示 {rate}。',
+  'topupAdmin.altRatePreview': '按 {rate} 折算收款。',
+  'topupAdmin.baseCountries': '按本位币计费的地区',
+  'topupAdmin.baseCountriesNote': '由网关配置，其余地区都会看到备用方案。',
+  'topupAdmin.baseCountriesEmpty': '未配置',
+  'topupAdmin.errorAltCurrency': '请输入三位备用货币代码，且不能与本位币相同',
+  'topupAdmin.errorAltRate': '请输入大于 0 的折算汇率',
   'topupAdmin.serverSection': '服务端配置',
   'topupAdmin.stripeKey': 'STRIPE_SECRET_KEY',
   'topupAdmin.webhookSecret': 'STRIPE_WEBHOOK_SECRET',

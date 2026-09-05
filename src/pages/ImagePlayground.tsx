@@ -32,14 +32,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '../components/ui/tooltip';
-import {
-  formatAmount,
-  formatDimensionOption,
-  formatLabel,
-  formatQuantity,
-} from '../format';
-
+import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
+import { useMoney } from '../lib/money';
 import {
   buildRequestBody,
   defaultParameterValue,
@@ -84,6 +79,7 @@ export function ImagePlayground({
   user?: User;
 }) {
   const { t, locale } = useI18n();
+  const { money } = useMoney();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const imageAllowed = admin || user?.image_enabled !== false;
@@ -117,7 +113,7 @@ export function ImagePlayground({
     const rates = billing.rates ?? [];
     if (rates.length === 0) {
       const base = unitAmount(fallbackRate(billing));
-      return `${formatAmount(base, currency)} / ${unit}`;
+      return `${money(base, currency)} / ${unit}`;
     }
     const prices = rates.map((r) =>
       unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
@@ -125,10 +121,10 @@ export function ImagePlayground({
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     if (min === max) {
-      return `${formatAmount(min, currency)} / ${unit}`;
+      return `${money(min, currency)} / ${unit}`;
     }
-    return `${formatAmount(min, currency)} ~ ${formatAmount(max, currency)} / ${unit}`;
-  }, [selectedModel, t]);
+    return `${money(min, currency)} ~ ${money(max, currency)} / ${unit}`;
+  }, [selectedModel, t, money]);
 
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -142,7 +138,7 @@ export function ImagePlayground({
       ? ''
       : estimate === 0
         ? t('composer.free')
-        : formatAmount(estimate, currency);
+        : money(estimate, currency);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -593,11 +589,11 @@ export function ImagePlayground({
     // Cost
     const amt = activeGen.final_amount ?? activeGen.quote_amount;
     if (amt !== undefined && activeGen.currency) {
-      parts.push(formatAmount(amt, activeGen.currency));
+      parts.push(money(amt, activeGen.currency));
     }
 
     return parts.join(' · ');
-  }, [activeGen, aspectParam, resolutionParam, parameters]);
+  }, [activeGen, aspectParam, resolutionParam, parameters, money]);
 
   const activeArtifact = activeArtifacts[0];
   const activeImageUrl = activeArtifact?.url

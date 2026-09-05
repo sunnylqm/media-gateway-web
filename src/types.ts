@@ -19,6 +19,18 @@ export type User = {
   created_at: string;
 };
 
+// `GET /v1/billing/currency` tells the console which currency this viewer is
+// shown and charged in, and at what fixed rate the gateway converts the base
+// currency it settles in. `rate` is base minor units per 100 display minor
+// units, so USD 1.00 = CNY 7.15 arrives as 715 and an unconverted viewer as 100.
+export type CurrencyPresentation = {
+  object?: 'presentation';
+  country?: string;
+  currency: string;
+  base_currency: string;
+  rate: number;
+};
+
 export type Balance = {
   object: 'balance';
   tenant_id: string;
@@ -292,6 +304,9 @@ export type AdminUser = User & {
   last_seen_at?: string;
 };
 
+// The offer already arrives in the viewer's currency: `amounts`, `min_amount`
+// and `max_amount` are display minor units and must not be converted again.
+// `rate` and `base_currency` are carried only so the dialog can explain itself.
 export type TopupOptions = {
   object: 'topup_options';
   enabled: boolean;
@@ -300,6 +315,8 @@ export type TopupOptions = {
   custom_amount: boolean;
   min_amount: number;
   max_amount: number;
+  base_currency?: string;
+  rate?: number;
 };
 
 export type TopupStatus = 'pending' | 'paid' | 'expired' | 'canceled';
@@ -318,6 +335,10 @@ export type Topup = {
   // absent on an order that has not been paid.
   invoice_number?: string;
   invoice_url?: string;
+  // What actually reached the balance, in the base currency. Present only when
+  // the payment currency was not the currency the ledger settles in.
+  credit_amount?: number;
+  credit_currency?: string;
   balance?: Balance;
 };
 
@@ -343,6 +364,15 @@ export type TopupConfig = {
   custom_amount: boolean;
   min_amount: number;
   max_amount: number;
+  // The alternate offer shown to viewers outside `base_countries`. An empty
+  // `alt_currency` turns it off, and the other alt fields are then ignored.
+  alt_currency?: string;
+  alt_amounts?: number[];
+  alt_min_amount?: number;
+  alt_max_amount?: number;
+  alt_rate?: number;
+  // Read-only: the regions billed in the base currency.
+  base_countries?: string[];
   stripe_configured: boolean;
   webhook_configured: boolean;
   updated_at?: string;

@@ -21,14 +21,10 @@ import {
   useState,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
-import {
-  formatAmount,
-  formatBytes,
-  formatDimensionOption,
-  formatLabel,
-} from '../format';
+import { formatBytes, formatDimensionOption, formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import { selectComposerModel } from '../lib/composerSelection';
+import { useMoney } from '../lib/money';
 import {
   acceptAttribute,
   buildRequestBody,
@@ -95,6 +91,7 @@ export function GenerationComposer({
   user?: User;
 }) {
   const { t } = useI18n();
+  const { money } = useMoney();
   const [open, setOpen] = useState(false);
   const imageAllowed = admin || user?.image_enabled !== false;
   const videoAllowed = admin || user?.video_enabled !== false;
@@ -429,7 +426,7 @@ export function GenerationComposer({
       ? ''
       : estimate === 0
         ? t('composer.free')
-        : formatAmount(estimate, currency);
+        : money(estimate, currency);
 
   async function submit(event: FormEvent) {
     event.preventDefault();

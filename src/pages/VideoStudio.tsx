@@ -37,13 +37,9 @@ import {
   VideoCompressDialog,
   type VideoCompressRequest,
 } from '../components/VideoCompressDialog';
-import {
-  formatAmount,
-  formatDimensionOption,
-  formatLabel,
-  formatQuantity,
-} from '../format';
+import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
+import { useMoney } from '../lib/money';
 import {
   buildRequestBody,
   defaultParameterValue,
@@ -95,6 +91,7 @@ export function VideoStudio({
   user?: User;
 }) {
   const { t, locale } = useI18n();
+  const { money } = useMoney();
 
   const videoAllowed = admin || user?.video_enabled !== false;
   const videoModels = useMemo(
@@ -127,7 +124,7 @@ export function VideoStudio({
     const rates = billing.rates ?? [];
     if (rates.length === 0) {
       const base = unitAmount(fallbackRate(billing));
-      return `${formatAmount(base, currency)} / ${unit}`;
+      return `${money(base, currency)} / ${unit}`;
     }
     const prices = rates.map((r) =>
       unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
@@ -135,10 +132,10 @@ export function VideoStudio({
     const min = Math.min(...prices);
     const max = Math.max(...prices);
     if (min === max) {
-      return `${formatAmount(min, currency)} / ${unit}`;
+      return `${money(min, currency)} / ${unit}`;
     }
-    return `${formatAmount(min, currency)} ~ ${formatAmount(max, currency)} / ${unit}`;
-  }, [selectedModel, t]);
+    return `${money(min, currency)} ~ ${money(max, currency)} / ${unit}`;
+  }, [selectedModel, t, money]);
 
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -152,7 +149,7 @@ export function VideoStudio({
       ? ''
       : estimate === 0
         ? t('composer.free')
-        : formatAmount(estimate, currency);
+        : money(estimate, currency);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
@@ -599,11 +596,11 @@ export function VideoStudio({
     // Cost
     const amt = activeGen.final_amount ?? activeGen.quote_amount;
     if (amt !== undefined && activeGen.currency) {
-      parts.push(formatAmount(amt, activeGen.currency));
+      parts.push(money(amt, activeGen.currency));
     }
 
     return parts.join(' · ');
-  }, [activeGen, parameters]);
+  }, [activeGen, parameters, money]);
 
   const activeArtifact =
     activeArtifacts.find((a) => a.mime_type.startsWith('video/')) ??
