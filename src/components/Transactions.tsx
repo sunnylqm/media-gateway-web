@@ -129,8 +129,8 @@ export function TransactionsTable({
   onSelectGeneration?: (generationId: string) => void;
 }) {
   const { t } = useI18n();
-  // Ledger records are base-currency minor units; a tenant reading them inside
-  // the currency provider sees them converted, an administrator does not.
+  // Every ledger record carries the currency it was written in, which is the
+  // one currency the workspace is billed in. Nothing is converted.
   const { money } = useMoney();
 
   return (

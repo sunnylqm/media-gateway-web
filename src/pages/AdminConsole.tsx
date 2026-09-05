@@ -54,15 +54,18 @@ import { t, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
 import {
+  convertToAlternate,
   exchangeRateLabel,
   formatExchangeRate,
   parseExchangeRate,
 } from '../lib/currency';
 import {
   adminInvoicePath,
+  formatPaymentMethods,
   formatPresetAmounts,
   majorUnitsLabel,
   parseBoundAmount,
+  parsePaymentMethods,
   parsePresetAmounts,
   stripeWebhookURL,
   topupAmountLabel,
@@ -649,6 +652,10 @@ type ModelForm = {
   unitPrice: string;
   unitScale: string;
   minimumCharge: string;
+  // Prices in the alternate currency, as minor units of it. Empty means unset:
+  // the gateway then converts the base price at the configured rate.
+  altUnitPrice?: string;
+  altMinimumCharge?: string;
   rates: RateForm[];
 };
 
@@ -667,6 +674,8 @@ type RateForm = {
   unitPrice: string;
   unitScale: string;
   minimumCharge: string;
+  altUnitPrice?: string;
+  altMinimumCharge?: string;
 };
 
 type StorageForm = {
@@ -898,15 +907,17 @@ type TopupForm = {
   customAmount: boolean;
   minAmount: string;
   maxAmount: string;
-  // The alternate offer shown outside the base-currency regions. `altEnabled`
-  // is the console's own switch: the gateway reads an empty `alt_currency` as
-  // off, so the other fields are only sent when the switch is on.
+  paymentMethods: string;
+  // The offer for a workspace billed in the alternate currency. `altEnabled` is
+  // the console's own switch: the gateway reads an empty `alt_currency` as off,
+  // so the other fields are only sent when the switch is on.
   altEnabled: boolean;
   altCurrency: string;
   altAmounts: string;
   altMinAmount: string;
   altMaxAmount: string;
   altRate: string;
+  altPaymentMethods: string;
 };
 
 function topupForm(config: TopupConfig): TopupForm {
@@ -918,6 +929,7 @@ function topupForm(config: TopupConfig): TopupForm {
     customAmount: config.custom_amount,
     minAmount: majorUnitsLabel(config.min_amount),
     maxAmount: majorUnitsLabel(config.max_amount),
+    paymentMethods: formatPaymentMethods(config.payment_methods),
     altEnabled: altCurrency !== '',
     altCurrency,
     altAmounts: formatPresetAmounts(config.alt_amounts ?? []),
@@ -928,6 +940,7 @@ function topupForm(config: TopupConfig): TopupForm {
       ? majorUnitsLabel(config.alt_max_amount)
       : '',
     altRate: config.alt_rate ? formatExchangeRate(config.alt_rate) : '',
+    altPaymentMethods: formatPaymentMethods(config.alt_payment_methods),
   };
 }
 
@@ -1023,6 +1036,7 @@ function TopupSettingsPanel() {
       alt_min_amount: 0,
       alt_max_amount: 0,
       alt_rate: 0,
+      alt_payment_methods: [] as string[],
     };
     if (form.altEnabled) {
       const altCurrency = form.altCurrency.trim().toUpperCase();
@@ -1077,6 +1091,7 @@ function TopupSettingsPanel() {
         alt_min_amount: altMin,
         alt_max_amount: altMax,
         alt_rate: altRate,
+        alt_payment_methods: parsePaymentMethods(form.altPaymentMethods),
       };
     }
 
@@ -1093,6 +1108,7 @@ function TopupSettingsPanel() {
             custom_amount: form.customAmount,
             min_amount: minAmount,
             max_amount: maxAmount,
+            payment_methods: parsePaymentMethods(form.paymentMethods),
             ...alt,
           }),
         },
@@ -1119,7 +1135,7 @@ function TopupSettingsPanel() {
   const altCurrency = form?.altCurrency.trim().toUpperCase() || '';
   const altRate = form ? parseExchangeRate(form.altRate) : null;
   // The preview reads the rate back the way a tenant sees it, so the
-  // administrator can tell 7.15 from 0.0715 without saving first.
+  // administrator can tell 7.00 from 0.07 without saving first.
   const altRateLabel =
     altRate !== null && /^[A-Z]{3}$/.test(altCurrency)
       ? exchangeRateLabel({
@@ -1128,7 +1144,6 @@ function TopupSettingsPanel() {
           rate: altRate,
         })
       : '';
-  const baseCountries = config?.base_countries ?? [];
   const webhook = stripeWebhookURL(gatewayURL);
 
   return (
@@ -1261,25 +1276,21 @@ function TopupSettingsPanel() {
             </label>
           </div>
           <small className="muted">{t('topupAdmin.limitsNote')}</small>
+          <label className="field">
+            <span className="field-label">
+              {t('topupAdmin.paymentMethods', { currency })}
+            </span>
+            <input
+              value={form.paymentMethods}
+              onChange={(event) =>
+                setForm({ ...form, paymentMethods: event.target.value })
+              }
+              placeholder="card, wechat_pay, alipay"
+            />
+            <small>{t('topupAdmin.paymentMethodsNote')}</small>
+          </label>
           <div className="form-section-title">{t('topupAdmin.altSection')}</div>
           <p className="muted">{t('topupAdmin.altNote')}</p>
-          <div className="field">
-            <span className="field-label">{t('topupAdmin.baseCountries')}</span>
-            <div className="topup-preview-chips">
-              {baseCountries.length > 0 ? (
-                baseCountries.map((code) => (
-                  <span className="topup-preview-chip" key={code}>
-                    {code}
-                  </span>
-                ))
-              ) : (
-                <span className="muted">
-                  {t('topupAdmin.baseCountriesEmpty')}
-                </span>
-              )}
-            </div>
-            <small>{t('topupAdmin.baseCountriesNote')}</small>
-          </div>
           <label className="topup-switch">
             <input
               type="checkbox"
@@ -1324,11 +1335,11 @@ function TopupSettingsPanel() {
                     onChange={(event) =>
                       setForm({ ...form, altRate: event.target.value })
                     }
-                    placeholder="7.15"
+                    placeholder="7.00"
                   />
                   <small>
                     {t('topupAdmin.altRateNote', {
-                      rate: altRateLabel || '¥7.15 = $1.00',
+                      rate: altRateLabel || '¥7.00 = $1.00',
                     })}
                   </small>
                 </label>
@@ -1390,6 +1401,21 @@ function TopupSettingsPanel() {
                   />
                 </label>
               </div>
+              <label className="field">
+                <span className="field-label">
+                  {t('topupAdmin.altPaymentMethods', {
+                    currency: altCurrency || t('topupAdmin.altCurrency'),
+                  })}
+                </span>
+                <input
+                  value={form.altPaymentMethods}
+                  onChange={(event) =>
+                    setForm({ ...form, altPaymentMethods: event.target.value })
+                  }
+                  placeholder="card, link"
+                />
+                <small>{t('topupAdmin.altPaymentMethodsNote')}</small>
+              </label>
               {altRateLabel && (
                 <small className="muted">
                   {t('topupAdmin.altRatePreview', { rate: altRateLabel })}
@@ -1795,6 +1821,40 @@ function ModelsPanel({
   const [editing, setEditing] = useState<AdminModel | null>(null);
   const [form, setForm] = useState<ModelForm>(emptyModelForm);
   const [saving, setSaving] = useState(false);
+  // A model can be priced a second time in the alternate currency, so the
+  // editor needs to know what that currency is and what rate a blank field
+  // would be converted at. An installation with no alternate currency shows no
+  // alternate inputs at all.
+  const [alternate, setAlternate] = useState({ currency: '', rate: 0 });
+
+  useEffect(() => {
+    let active = true;
+    api<TopupConfig>('/v1/admin/billing/topup', {}, true).then(
+      (config) => {
+        if (!active) return;
+        setAlternate({
+          currency: config.alt_currency ?? '',
+          rate: config.alt_rate ?? 0,
+        });
+      },
+      () => {
+        // Without the billing configuration the editor simply keeps to the
+        // base currency, which is always priced explicitly.
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  // What the gateway would charge for a price left blank, so the administrator
+  // reads the consequence of an empty field rather than guessing at it.
+  function alternateHint(baseMinorUnits: string): string {
+    if (!alternate.rate) return '';
+    return String(
+      convertToAlternate(Number(baseMinorUnits) || 0, alternate.rate),
+    );
+  }
 
   function edit(model?: AdminModel, preset?: ProtocolPreset) {
     setEditing(model ?? null);
@@ -1823,6 +1883,12 @@ function ModelsPanel({
             unitPrice: String(model.billing.unit_price),
             unitScale: String(model.billing.unit_scale),
             minimumCharge: String(model.billing.minimum_charge),
+            altUnitPrice: model.billing.alt_unit_price
+              ? String(model.billing.alt_unit_price)
+              : '',
+            altMinimumCharge: model.billing.alt_minimum_charge
+              ? String(model.billing.alt_minimum_charge)
+              : '',
             rates: (model.billing.rates ?? []).map((rate) => ({
               label: rate.label,
               dimensions: Object.entries(rate.dimensions)
@@ -1831,6 +1897,12 @@ function ModelsPanel({
               unitPrice: String(rate.unit_price),
               unitScale: String(rate.unit_scale),
               minimumCharge: String(rate.minimum_charge),
+              altUnitPrice: rate.alt_unit_price
+                ? String(rate.alt_unit_price)
+                : '',
+              altMinimumCharge: rate.alt_minimum_charge
+                ? String(rate.alt_minimum_charge)
+                : '',
             })),
           }
         : preset
@@ -1875,6 +1947,8 @@ function ModelsPanel({
       unitPrice: defaults.unitPrice,
       unitScale: defaults.unitScale,
       minimumCharge: defaults.minimumCharge,
+      altUnitPrice: '',
+      altMinimumCharge: '',
       rates: defaults.rates,
     }));
   }
@@ -1972,12 +2046,18 @@ function ModelsPanel({
               unit_price: Number(form.unitPrice),
               unit_scale: Number(form.unitScale),
               minimum_charge: Number(form.minimumCharge),
+              // A blank alternate price is sent as 0, which is how the gateway
+              // is told to convert the base price at the configured rate.
+              alt_unit_price: Number(form.altUnitPrice) || 0,
+              alt_minimum_charge: Number(form.altMinimumCharge) || 0,
               rates: form.rates.map((rate) => ({
                 label: rate.label,
                 dimensions: parseRateDimensions(rate.dimensions),
                 unit_price: Number(rate.unitPrice),
                 unit_scale: Number(rate.unitScale),
                 minimum_charge: Number(rate.minimumCharge),
+                alt_unit_price: Number(rate.altUnitPrice) || 0,
+                alt_minimum_charge: Number(rate.altMinimumCharge) || 0,
               })),
             },
           }),
@@ -2406,6 +2486,47 @@ function ModelsPanel({
                   />
                 </label>
               </div>
+              {alternate.currency && form.billingMode !== 'free' && (
+                <div className="field-grid two">
+                  <label className="field">
+                    <span className="field-label">
+                      {t('models.altUnitPrice', {
+                        currency: alternate.currency,
+                      })}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.altUnitPrice ?? ''}
+                      placeholder={alternateHint(form.unitPrice)}
+                      onChange={(event) =>
+                        field('altUnitPrice', event.target.value)
+                      }
+                    />
+                    <small>
+                      {t('models.altPriceNote', {
+                        currency: alternate.currency,
+                      })}
+                    </small>
+                  </label>
+                  <label className="field">
+                    <span className="field-label">
+                      {t('models.altMinimumCharge', {
+                        currency: alternate.currency,
+                      })}
+                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      value={form.altMinimumCharge ?? ''}
+                      placeholder={alternateHint(form.minimumCharge)}
+                      onChange={(event) =>
+                        field('altMinimumCharge', event.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+              )}
               {form.billingMode !== 'free' && (
                 <section className="rate-editor">
                   <div className="rate-editor-heading">
@@ -2538,6 +2659,57 @@ function ModelsPanel({
                               />
                             </label>
                           </div>
+                          {alternate.currency && (
+                            <div className="field-grid two">
+                              <label className="field">
+                                <span className="field-label">
+                                  {t('models.altUnitPrice', {
+                                    currency: alternate.currency,
+                                  })}
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={rate.altUnitPrice ?? ''}
+                                  placeholder={alternateHint(rate.unitPrice)}
+                                  onChange={(event) =>
+                                    updateRate(
+                                      index,
+                                      'altUnitPrice',
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                                <small>
+                                  {t('models.altPriceNote', {
+                                    currency: alternate.currency,
+                                  })}
+                                </small>
+                              </label>
+                              <label className="field">
+                                <span className="field-label">
+                                  {t('models.altMinimumCharge', {
+                                    currency: alternate.currency,
+                                  })}
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={rate.altMinimumCharge ?? ''}
+                                  placeholder={alternateHint(
+                                    rate.minimumCharge,
+                                  )}
+                                  onChange={(event) =>
+                                    updateRate(
+                                      index,
+                                      'altMinimumCharge',
+                                      event.target.value,
+                                    )
+                                  }
+                                />
+                              </label>
+                            </div>
+                          )}
                         </article>
                       ))}
                     </div>
@@ -2771,7 +2943,12 @@ function UsersTable({
                     <div className="tenant-cell">
                       <div>
                         <b>{user.tenant.name}</b>
-                        <small>{user.tenant.slug}</small>
+                        <small>
+                          {user.tenant.slug}
+                          {user.tenant.billing_currency
+                            ? ` · ${user.tenant.billing_currency}`
+                            : ''}
+                        </small>
                       </div>
                     </div>
                   ) : (
@@ -3489,6 +3666,14 @@ function UserDetail() {
                     <div>
                       <dt>{t('userDetail.status')}</dt>
                       <dd>{formatStatus(user.tenant.status)}</dd>
+                    </div>
+                    <div>
+                      <dt>{t('userDetail.billingCurrency')}</dt>
+                      <dd>
+                        {user.tenant.billing_currency || (
+                          <span className="muted">—</span>
+                        )}
+                      </dd>
                     </div>
                     <div>
                       <dt>{t('userDetail.generations')}</dt>

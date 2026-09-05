@@ -47,6 +47,9 @@ export const zh: Record<MessageKey, string> = {
   'login.resendIn': '{seconds} 秒后可重新发送',
   'login.resend': '重新发送验证码',
   'login.changeEmail': '换一个邮箱',
+  'login.currency': '结算货币',
+  'login.currencyHint':
+    '仅对新账号生效：价格与付款都使用该货币，一经创建即固定，之后无法更改。登录已有账号时沿用其原有货币。',
   'login.errorContinue': '无法继续',
   'login.errorResend': '无法重新发送验证码',
 
@@ -364,6 +367,10 @@ export const zh: Record<MessageKey, string> = {
   'models.unitPriceFallbackNote':
     '没有参数档位匹配时使用，单位为货币最小单位。',
   'models.unitScale': '每单价对应的单位数',
+  'models.altUnitPrice': '单价（{currency}）',
+  'models.altMinimumCharge': '最低计费（{currency}）',
+  'models.altPriceNote':
+    '{currency} 的最小货币单位。留空则按配置汇率从本位币价格折算。',
   'models.minimumCharge': '最低收费',
   'models.tiers': '参数计费档位',
   'models.tiersNote': '匹配最精确的选择器生效；没有档位匹配时使用兜底单价。',
@@ -511,6 +518,7 @@ export const zh: Record<MessageKey, string> = {
   'userDetail.workspaceNote': '其生成任务与 API 密钥所属的租户。',
   'userDetail.name': '名称',
   'userDetail.slug': '标识',
+  'userDetail.billingCurrency': '结算货币',
   'userDetail.tenantID': '租户 ID',
   'userDetail.status': '状态',
   'userDetail.generations': '生成任务',
@@ -578,8 +586,6 @@ export const zh: Record<MessageKey, string> = {
   'playground.on': '开启',
   'playground.off': '关闭',
 
-  'currency.priceNote': '价格以 {base} 计费，按 {rate} 折算为 {display} 显示。',
-
   'topup.button': '充值',
   'topup.dialogTitle': '账户充值',
   'topup.dialogNote':
@@ -597,7 +603,6 @@ export const zh: Record<MessageKey, string> = {
   'topup.submitting': '正在跳转 Stripe…',
   'topup.noticeProcessing': '正在确认支付结果…',
   'topup.noticePaid': '已收到 {amount} 充值，余额已更新。',
-  'topup.noticePaidConverted': '已支付 {amount}，到账 {credited}。',
   'topup.noticePending': '支付仍在处理中，到账后余额会自动更新，请稍后再查看。',
   'topup.noticeCanceled': '支付未完成，未产生任何扣款。',
   'topup.noticeError': '无法确认支付状态',
@@ -633,10 +638,10 @@ export const zh: Record<MessageKey, string> = {
   'topupAdmin.errorOutside': '所有预设金额都必须介于最小与最大金额之间',
   'topupAdmin.errorCurrency': '请输入三位币种代码',
   'topupAdmin.altSection': '备用货币方案',
-  'topupAdmin.altEnabled': '为本位币地区以外的用户提供第二种货币',
+  'topupAdmin.altEnabled': '提供第二种结算货币',
   'topupAdmin.altNote':
-    '本位币结算地区以外的用户会看到并按该货币付款，余额仍以本位币入账。',
-  'topupAdmin.altOff': '备用方案已关闭，所有用户均按本位币付款。',
+    '每个工作区在创建时选定一种结算货币并终身固定。这里配置的是新账号可选的第二种货币：定价、余额与付款都使用该货币。',
+  'topupAdmin.altOff': '备用方案已关闭，所有工作区均按本位币结算。',
   'topupAdmin.altCurrency': '备用货币',
   'topupAdmin.altCurrencyNote': '三位 ISO 代码，且不能与本位币相同。',
   'topupAdmin.altAmounts': '备用预设金额',
@@ -644,11 +649,14 @@ export const zh: Record<MessageKey, string> = {
   'topupAdmin.altMaxAmount': '备用最大金额',
   'topupAdmin.altRate': '折算汇率',
   'topupAdmin.altRateNote':
-    '1 单位备用货币折合多少本位币，例如填 7.15 表示 {rate}。',
+    '1 单位备用货币折合多少本位币，例如填 7.00 表示 {rate}。模型未单独填写备用货币价格时也按该汇率折算。',
   'topupAdmin.altRatePreview': '按 {rate} 折算收款。',
-  'topupAdmin.baseCountries': '按本位币计费的地区',
-  'topupAdmin.baseCountriesNote': '由网关配置，其余地区都会看到备用方案。',
-  'topupAdmin.baseCountriesEmpty': '未配置',
+  'topupAdmin.paymentMethods': '支付方式（{currency}）',
+  'topupAdmin.paymentMethodsNote':
+    'Stripe 支付方式 ID，以逗号分隔，例如 card、link、wechat_pay、alipay。留空则使用 Stripe 后台为该货币启用的全部方式。',
+  'topupAdmin.altPaymentMethods': '支付方式（{currency}）',
+  'topupAdmin.altPaymentMethodsNote':
+    '备用货币的支付方式列表，用于避免向美元工作区展示微信支付或支付宝。默认 card, link；留空则交由 Stripe 后台决定。',
   'topupAdmin.errorAltCurrency': '请输入三位备用货币代码，且不能与本位币相同',
   'topupAdmin.errorAltRate': '请输入大于 0 的折算汇率',
   'topupAdmin.serverSection': '服务端配置',

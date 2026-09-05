@@ -47,6 +47,9 @@ export const en = {
   'login.resendIn': 'Resend in {seconds}s',
   'login.resend': 'Resend code',
   'login.changeEmail': 'Use another email',
+  'login.currency': 'Billing currency',
+  'login.currencyHint':
+    'New accounts only: this sets the currency your prices are quoted in and your payments are made in. It is fixed for the life of the workspace and cannot be changed later. Signing in to an existing account keeps its currency.',
   'login.errorContinue': 'Unable to continue',
   'login.errorResend': 'Unable to resend the code',
 
@@ -387,6 +390,10 @@ export const en = {
   'models.unitPriceFallbackNote':
     'Currency minor units when no parameter tier matches.',
   'models.unitScale': 'Units per price',
+  'models.altUnitPrice': 'Unit price ({currency})',
+  'models.altMinimumCharge': 'Minimum charge ({currency})',
+  'models.altPriceNote':
+    'Minor units of {currency}. Leave it empty to convert the base price at the configured rate.',
   'models.minimumCharge': 'Minimum charge',
   'models.tiers': 'Parameter rate tiers',
   'models.tiersNote':
@@ -547,6 +554,7 @@ export const en = {
     'The tenant its generations and API keys belong to.',
   'userDetail.name': 'Name',
   'userDetail.slug': 'Slug',
+  'userDetail.billingCurrency': 'Billing currency',
   'userDetail.tenantID': 'Tenant ID',
   'userDetail.status': 'Status',
   'userDetail.generations': 'Generations',
@@ -620,9 +628,6 @@ export const en = {
   'playground.on': 'On',
   'playground.off': 'Off',
 
-  'currency.priceNote':
-    'Prices are billed in {base} and shown in {display} at {rate}.',
-
   'topup.button': 'Top up',
   'topup.dialogTitle': 'Top up balance',
   'topup.dialogNote':
@@ -641,8 +646,6 @@ export const en = {
   'topup.noticeProcessing': 'Confirming the payment…',
   'topup.noticePaid':
     'Top-up of {amount} received. The balance has been updated.',
-  'topup.noticePaidConverted':
-    'Paid {amount}, {credited} added to your balance.',
   'topup.noticePending':
     'The payment is still processing. The balance updates once it clears — check back shortly.',
   'topup.noticeCanceled': 'Payment not completed. Nothing was charged.',
@@ -684,11 +687,11 @@ export const en = {
     'Every preset amount has to fall between the minimum and the maximum',
   'topupAdmin.errorCurrency': 'Enter a three-letter currency code',
   'topupAdmin.altSection': 'Alternate currency offer',
-  'topupAdmin.altEnabled': 'Offer a second currency outside the base regions',
+  'topupAdmin.altEnabled': 'Offer a second billing currency',
   'topupAdmin.altNote':
-    'Viewers outside the regions billed in the base currency see this offer instead, and are charged in it. The balance is still credited in the base currency.',
+    'A workspace is billed in one currency for its whole life, chosen when the account is created. This is the second currency an account may be created in: its prices, its balance, and its payments are all in it.',
   'topupAdmin.altOff':
-    'The alternate offer is off. Everyone is charged in the base currency.',
+    'The alternate offer is off. Every workspace is billed in the base currency.',
   'topupAdmin.altCurrency': 'Alternate currency',
   'topupAdmin.altCurrencyNote':
     'Three-letter ISO code, and not the same as the base currency.',
@@ -697,12 +700,14 @@ export const en = {
   'topupAdmin.altMaxAmount': 'Alternate maximum amount',
   'topupAdmin.altRate': 'Exchange rate',
   'topupAdmin.altRateNote':
-    'How much of the base currency one unit of the alternate currency is worth, for example 7.15 for {rate}.',
+    'How much of the base currency one unit of the alternate currency is worth, for example 7.00 for {rate}. It is also the rate a model price left blank in the alternate currency is converted at.',
   'topupAdmin.altRatePreview': 'Charged at {rate}.',
-  'topupAdmin.baseCountries': 'Regions billed in the base currency',
-  'topupAdmin.baseCountriesNote':
-    'Set on the gateway. Every other region sees the alternate offer.',
-  'topupAdmin.baseCountriesEmpty': 'None configured',
+  'topupAdmin.paymentMethods': 'Payment methods ({currency})',
+  'topupAdmin.paymentMethodsNote':
+    'Stripe payment method ids, comma separated — card, link, wechat_pay, alipay. Leave it empty to offer whatever the Stripe Dashboard has enabled for this currency.',
+  'topupAdmin.altPaymentMethods': 'Payment methods ({currency})',
+  'topupAdmin.altPaymentMethodsNote':
+    'The same list for the alternate currency, which is how a dollar workspace is not offered WeChat Pay or Alipay. Default: card, link. Empty leaves it to the Stripe Dashboard.',
   'topupAdmin.errorAltCurrency':
     'Enter a three-letter alternate currency code that differs from the base currency',
   'topupAdmin.errorAltRate': 'Enter a positive exchange rate',

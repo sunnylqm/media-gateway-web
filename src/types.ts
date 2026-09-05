@@ -4,6 +4,10 @@ export type Tenant = {
   name: string;
   slug: string;
   status: 'active' | 'suspended' | 'closed';
+  // The currency this workspace is billed in. It is chosen when the account is
+  // created and never changes: the balance, the quoted prices, and the payment
+  // are all in it.
+  billing_currency?: string;
   created_at: string;
   updated_at: string;
 };
@@ -19,16 +23,18 @@ export type User = {
   created_at: string;
 };
 
-// `GET /v1/billing/currency` tells the console which currency this viewer is
-// shown and charged in, and at what fixed rate the gateway converts the base
-// currency it settles in. `rate` is base minor units per 100 display minor
-// units, so USD 1.00 = CNY 7.15 arrives as 715 and an unconverted viewer as 100.
+// `GET /v1/billing/currency` names the currency this workspace is billed in and
+// the currencies a new account may be created in. Amounts are never converted
+// through it — every payload already carries its own currency — so the console
+// reads it only for a payload that carries none, and for the sign-up form.
+// `rate` is base minor units per 100 alternate minor units, so USD 1.00 =
+// CNY 7.00 arrives as 700, and is used by the administrator console alone.
 export type CurrencyPresentation = {
   object?: 'presentation';
-  country?: string;
   currency: string;
   base_currency: string;
   rate: number;
+  currencies?: string[];
 };
 
 export type Balance = {
@@ -125,12 +131,18 @@ export type GenerationInput = {
   size_bytes: number;
 };
 
+// A model may be priced twice: once in the gateway's base currency and once in
+// the alternate currency. The `alt_` fields are integer minor units of the
+// alternate currency, and 0 means unset — the gateway then prices that model in
+// the alternate currency by converting the base price at the configured rate.
 export type ModelBilling = {
   mode: 'free' | 'per_request' | 'per_output_second';
   currency: string;
   unit_price: number;
   unit_scale: number;
   minimum_charge: number;
+  alt_unit_price?: number;
+  alt_minimum_charge?: number;
   rates: ModelBillingRate[];
 };
 
@@ -140,6 +152,8 @@ export type ModelBillingRate = {
   unit_price: number;
   unit_scale: number;
   minimum_charge: number;
+  alt_unit_price?: number;
+  alt_minimum_charge?: number;
 };
 
 export type PublicModel = {
@@ -304,9 +318,9 @@ export type AdminUser = User & {
   last_seen_at?: string;
 };
 
-// The offer already arrives in the viewer's currency: `amounts`, `min_amount`
-// and `max_amount` are display minor units and must not be converted again.
-// `rate` and `base_currency` are carried only so the dialog can explain itself.
+// The offer already arrives in the workspace's billing currency: `amounts`,
+// `min_amount` and `max_amount` are minor units of `currency` and are shown as
+// they are. `rate` and `base_currency` are carried only for explanation.
 export type TopupOptions = {
   object: 'topup_options';
   enabled: boolean;
@@ -335,10 +349,6 @@ export type Topup = {
   // absent on an order that has not been paid.
   invoice_number?: string;
   invoice_url?: string;
-  // What actually reached the balance, in the base currency. Present only when
-  // the payment currency was not the currency the ledger settles in.
-  credit_amount?: number;
-  credit_currency?: string;
   balance?: Balance;
 };
 
@@ -364,15 +374,17 @@ export type TopupConfig = {
   custom_amount: boolean;
   min_amount: number;
   max_amount: number;
-  // The alternate offer shown to viewers outside `base_countries`. An empty
+  // The Stripe payment methods offered for a base-currency payment. Empty
+  // means whatever the Stripe Dashboard has enabled for that currency.
+  payment_methods?: string[];
+  // The offer for a workspace billed in the alternate currency. An empty
   // `alt_currency` turns it off, and the other alt fields are then ignored.
   alt_currency?: string;
   alt_amounts?: number[];
   alt_min_amount?: number;
   alt_max_amount?: number;
   alt_rate?: number;
-  // Read-only: the regions billed in the base currency.
-  base_countries?: string[];
+  alt_payment_methods?: string[];
   stripe_configured: boolean;
   webhook_configured: boolean;
   updated_at?: string;

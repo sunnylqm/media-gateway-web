@@ -33,7 +33,7 @@ import { StripeTopupDialog } from '../components/StripeTopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
 import { formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
-import { CurrencyNote, CurrencyProvider, useMoney } from '../lib/money';
+import { CurrencyProvider, useMoney } from '../lib/money';
 import { modelPathSlug } from '../lib/requestForm';
 import { topupAmountLabel } from '../lib/topup';
 import type {
@@ -209,22 +209,13 @@ function TenantWorkspace() {
           if (!active) return;
           if (topup.status !== 'pending') {
             if (topup.status === 'paid') {
-              // A converted payment settles in one currency and credits the
-              // balance in another, so the banner states both rather than
-              // leaving the tenant to guess which figure reached the ledger.
-              const paid = topupAmountLabel(topup.amount, topup.currency);
-              const credited =
-                topup.credit_amount !== undefined &&
-                topup.credit_currency &&
-                (topup.credit_amount !== topup.amount ||
-                  topup.credit_currency !== topup.currency)
-                  ? topupAmountLabel(topup.credit_amount, topup.credit_currency)
-                  : '';
+              // The payment and the credit are the same amount in the same
+              // currency: a workspace pays in the currency it is billed in.
               setTopupNotice({
                 tone: 'success',
-                message: credited
-                  ? t('topup.noticePaidConverted', { amount: paid, credited })
-                  : t('topup.noticePaid', { amount: paid }),
+                message: t('topup.noticePaid', {
+                  amount: topupAmountLabel(topup.amount, topup.currency),
+                }),
                 invoiceNumber: topup.invoice_number,
                 invoiceURL: topup.invoice_url,
               });
@@ -1041,9 +1032,9 @@ function BillingView({
   refreshToken: number;
 }) {
   const { t } = useI18n();
-  const { money, converted } = useMoney();
+  const { money, currency: workspaceCurrency } = useMoney();
   const transactions = useTransactions('/v1/billing/transactions');
-  const currency = balance?.currency || 'CNY';
+  const currency = balance?.currency || workspaceCurrency;
   const reloadTransactions = transactions.reload;
 
   // A settled top-up posts a credit transaction, so the ledger is reloaded
@@ -1114,11 +1105,6 @@ function BillingView({
           note={t('billing.reservedNote')}
         />
       </section>
-      {converted && (
-        <div className="billing-currency-note">
-          <CurrencyNote />
-        </div>
-      )}
 
       <section className="panel table-wrap" style={{ marginTop: '24px' }}>
         <div className="panel-heading">

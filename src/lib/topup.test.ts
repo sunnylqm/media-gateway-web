@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'bun:test';
 import {
   currencySymbol,
+  formatPaymentMethods,
   formatPresetAmounts,
   majorUnitsLabel,
   parseBoundAmount,
+  parsePaymentMethods,
   parsePresetAmounts,
   parseTopupAmount,
   stripeWebhookURL,
@@ -154,5 +156,27 @@ describe('bounds and urls', () => {
     expect(stripeWebhookURL('https://sg.cresc.dev/')).toBe(
       'https://sg.cresc.dev/v1/billing/stripe/webhook',
     );
+  });
+});
+
+describe('payment methods', () => {
+  it('reads a comma separated list of Stripe identifiers', () => {
+    expect(parsePaymentMethods('card, link')).toEqual(['card', 'link']);
+    expect(parsePaymentMethods('Card WeChat_Pay,alipay')).toEqual([
+      'card',
+      'wechat_pay',
+      'alipay',
+    ]);
+  });
+
+  it('treats an empty list as no restriction rather than an error', () => {
+    expect(parsePaymentMethods('')).toEqual([]);
+    expect(parsePaymentMethods('  ,, ')).toEqual([]);
+  });
+
+  it('collapses duplicates and renders the list back', () => {
+    expect(parsePaymentMethods('card, card')).toEqual(['card']);
+    expect(formatPaymentMethods(['card', 'link'])).toBe('card, link');
+    expect(formatPaymentMethods(undefined)).toBe('');
   });
 });

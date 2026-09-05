@@ -5,6 +5,13 @@ import { api } from '../api';
 import { AuthShell } from '../components/AuthShell';
 import { Field, FormError } from '../components/Form';
 import { useI18n } from '../i18n';
+import {
+  browserLocales,
+  currencySymbol,
+  defaultBillingCurrency,
+  fallbackBillingCurrencies,
+  normalizePresentation,
+} from '../lib/currency';
 import type { IdentityProfile } from '../types';
 
 type LoginResponse = {
@@ -30,6 +37,40 @@ export function TenantLogin() {
   const [clock, setClock] = useState(Date.now());
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  // A workspace is billed in one currency for its whole life, so the choice is
+  // made here, at the only moment it can be made. An existing account ignores
+  // the field, which is why it is always sent.
+  const [currency, setCurrency] = useState(() =>
+    defaultBillingCurrency(browserLocales()),
+  );
+  const [currencies, setCurrencies] = useState<string[]>(
+    fallbackBillingCurrencies,
+  );
+
+  // The endpoint needs a session, so a signed-out visitor keeps the built-in
+  // list. It is asked anyway because a gateway that offers more currencies than
+  // the two built in should still be able to say so.
+  useEffect(() => {
+    let active = true;
+    api<unknown>('/v1/billing/currency').then(
+      (value) => {
+        if (!active) return;
+        const offered = normalizePresentation(value).currencies;
+        if (offered?.length) setCurrencies(offered);
+      },
+      () => {
+        // No session, no list: the built-in choices stand.
+      },
+    );
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (currencies.length && !currencies.includes(currency))
+      setCurrency(currencies[0]);
+  }, [currencies, currency]);
 
   useEffect(() => {
     if (!verification) return;
@@ -60,7 +101,7 @@ export function TenantLogin() {
           '/v1/auth/login',
           {
             method: 'POST',
-            body: JSON.stringify({ email, password }),
+            body: JSON.stringify({ email, password, currency }),
           },
         );
         if (
@@ -90,7 +131,11 @@ export function TenantLogin() {
         '/v1/auth/login',
         {
           method: 'POST',
-          body: JSON.stringify({ email: verification.email, password }),
+          body: JSON.stringify({
+            email: verification.email,
+            password,
+            currency,
+          }),
         },
       );
       if (
@@ -171,6 +216,22 @@ export function TenantLogin() {
               hint={t('login.passwordHint')}
               required
             />
+            <label className="field">
+              <span className="field-label">{t('login.currency')}</span>
+              <select
+                value={currency}
+                onChange={(event) => setCurrency(event.target.value)}
+              >
+                {currencies.map((code) => (
+                  <option key={code} value={code}>
+                    {currencySymbol(code) === code
+                      ? code
+                      : `${code} (${currencySymbol(code)})`}
+                  </option>
+                ))}
+              </select>
+              <span className="field-hint">{t('login.currencyHint')}</span>
+            </label>
           </>
         )}
         <FormError>{error}</FormError>

@@ -4,8 +4,8 @@
 
 import { currencySymbol } from './currency';
 
-// The symbol table lives with the conversion helpers, next to the presentation
-// it belongs to; top-up labels keep importing it from here.
+// The symbol table lives with the other currency helpers; top-up labels keep
+// importing it from here.
 export { currencySymbol };
 
 export function majorUnitsLabel(minorUnits: number): string {
@@ -80,6 +80,23 @@ export function parsePresetAmounts(value: string): PresetAmountsResult {
 
 export function formatPresetAmounts(amounts: number[]): string {
   return amounts.map(majorUnitsLabel).join(', ');
+}
+
+// Payment methods are Stripe's own identifiers — `card`, `link`, `wechat_pay`,
+// `alipay` — edited as a comma separated list. An empty list is meaningful: it
+// leaves the choice to whatever the Stripe Dashboard has enabled for that
+// currency, so parsing never fails, it just returns nothing.
+export function parsePaymentMethods(value: string): string[] {
+  const seen = new Set<string>();
+  for (const part of value.split(/[,，、\s]+/)) {
+    const method = part.trim().toLowerCase();
+    if (method) seen.add(method);
+  }
+  return [...seen];
+}
+
+export function formatPaymentMethods(methods: string[] | undefined): string {
+  return (methods ?? []).join(', ');
 }
 
 export type TopupConfigDraft = {
