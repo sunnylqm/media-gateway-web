@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowRight,
   Check,
+  Compass,
   Copy,
   CreditCard,
   Eye,
@@ -49,6 +50,7 @@ import type {
   TopupOptions,
 } from '../types';
 import { ImagePlayground } from './ImagePlayground';
+import { Plaza } from './Plaza';
 import { VideoStudio } from './VideoStudio';
 
 type GenerationList = { data: Generation[] };
@@ -271,6 +273,21 @@ function TenantWorkspace() {
     return () => window.clearInterval(timer);
   }, [generations, load]);
 
+  // A sharing change is reflected in the open dialog and in the history
+  // behind it without a reload.
+  function applyGenerationChange(updated: Generation) {
+    setSelected((current) =>
+      current && current.id === updated.id
+        ? { ...current, ...updated }
+        : current,
+    );
+    setGenerations((current) =>
+      current.map((item) =>
+        item.id === updated.id ? { ...item, ...updated } : item,
+      ),
+    );
+  }
+
   async function openDetails(generationOrId: Generation | string) {
     const id =
       typeof generationOrId === 'string' ? generationOrId : generationOrId.id;
@@ -359,6 +376,11 @@ function TenantWorkspace() {
           label: t('tenant.navVideo'),
           to: '/app/video',
           icon: <Film size={17} />,
+        },
+        {
+          label: t('tenant.navPlaza'),
+          to: '/app/plaza',
+          icon: <Compass size={17} />,
         },
         {
           label: t('tenant.navGenerations'),
@@ -459,6 +481,7 @@ function TenantWorkspace() {
             />
           }
         />
+        <Route path="plaza" element={<Plaza viewerId={profile.user.id} />} />
         <Route
           path="generations"
           element={
@@ -491,6 +514,8 @@ function TenantWorkspace() {
         artifacts={artifacts}
         loading={detailsLoading}
         onClose={() => setSelected(null)}
+        sharing
+        onGenerationChange={applyGenerationChange}
       />
       {topupOptions && (
         <StripeTopupDialog

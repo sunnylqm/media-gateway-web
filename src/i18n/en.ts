@@ -747,6 +747,37 @@ export const en = {
   'topupOrders.prev': 'Previous',
   'topupOrders.next': 'Next',
   'topupOrders.range': '{first}–{last} of {total}',
+
+  'tenant.navPlaza': 'Plaza',
+
+  'share.title': 'Plaza sharing',
+  'share.shareWork': 'Share to the plaza',
+  'share.sharePrompt': 'Also share the prompt',
+  'share.note':
+    'This controls what the plaza shows: the work, and — separately — the prompt behind it.',
+  'share.errorUpdate': 'Unable to change the sharing of this generation',
+  'share.moderationTitle': 'Plaza moderation',
+  'share.moderationNote':
+    'This generation is published on the plaza. Withdrawing removes it, and its prompt, for everyone.',
+  'share.withdraw': 'Withdraw from the plaza',
+  'share.withdrawConfirm': 'Withdraw this work from the plaza?',
+  'share.withdrawYes': 'Withdraw',
+  'share.withdrawing': 'Withdrawing…',
+  'share.errorWithdraw': 'Unable to withdraw this generation',
+
+  'plaza.title': 'Plaza',
+  'plaza.description': 'Finished work published by the people on this gateway.',
+  'plaza.filterAll': 'All',
+  'plaza.total': '{total} published',
+  'plaza.loading': 'Loading the plaza…',
+  'plaza.loadMore': 'Load more',
+  'plaza.emptyTitle': 'Nothing published yet',
+  'plaza.emptyHint': 'Share a generation and it appears here.',
+  'plaza.errorLoad': 'Unable to load the plaza',
+  'plaza.artworkAlt': 'Work published by {author}',
+  'plaza.promptWithheld': 'The author kept this prompt private.',
+  'plaza.showMore': 'Show the full prompt',
+  'plaza.showLess': 'Show less',
 } as const;
 
 export type MessageKey = keyof typeof en;

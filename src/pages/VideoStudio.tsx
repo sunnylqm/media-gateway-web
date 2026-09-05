@@ -28,6 +28,7 @@ import {
 import { absoluteGatewayURL, api } from '../api';
 import { GenerationDetails } from '../components/Generations';
 import { PriceTable } from '../components/PriceTable';
+import { ShareOptions } from '../components/ShareOptions';
 import {
   Tooltip,
   TooltipContent,
@@ -50,6 +51,12 @@ import {
   mediaSlots,
   unitAmount,
 } from '../lib/requestForm';
+import {
+  readSharePreference,
+  type SharePreference,
+  withShareParams,
+  writeSharePreference,
+} from '../lib/share';
 import { isOversizedVideo } from '../lib/videoCompression';
 import type {
   AdminModel,
@@ -152,6 +159,9 @@ export function VideoStudio({
         : money(estimate, currency);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [creating, setCreating] = useState(false);
+  // The plaza choice is remembered per browser so it is not re-made on every
+  // visit; the first visit gets share-on, prompt-off.
+  const [sharing, setSharing] = useState<SharePreference>(readSharePreference);
   const [error, setError] = useState('');
 
   const [inputTab, setInputTab] = useState<'form' | 'json'>('form');
@@ -498,7 +508,7 @@ export function VideoStudio({
       const res = await api<Generation>(
         admin
           ? `/v1/admin/models/${encodeURIComponent(modelId)}/generations`
-          : '/v1/generations',
+          : withShareParams('/v1/generations', sharing),
         {
           method: 'POST',
           headers: { 'Idempotency-Key': crypto.randomUUID() },
@@ -1165,6 +1175,17 @@ export function VideoStudio({
                 />
               )}
 
+              {/* Plaza sharing, decided before the job is created. */}
+              {!admin && (
+                <ShareOptions
+                  value={sharing}
+                  onChange={(next) => {
+                    setSharing(next);
+                    writeSharePreference(next);
+                  }}
+                />
+              )}
+
               {/* Bottom Action Bar */}
               <div className="playground-actions-bar">
                 <button
@@ -1480,6 +1501,15 @@ export function VideoStudio({
         artifacts={activeArtifacts}
         loading={detailsLoading}
         onClose={() => setShowDetails(false)}
+        sharing={!admin}
+        moderation={admin}
+        onGenerationChange={(updated) =>
+          setActiveGen((current) =>
+            current && current.id === updated.id
+              ? { ...current, ...updated }
+              : current,
+          )
+        }
       />
 
       <VideoCompressDialog request={compressRequest} />

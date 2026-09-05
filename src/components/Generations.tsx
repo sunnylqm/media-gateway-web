@@ -1,7 +1,16 @@
-import { Download, Eye, Image, Play, Sparkles, Video, X } from 'lucide-react';
+import {
+  Download,
+  Eye,
+  Image,
+  Play,
+  ShieldOff,
+  Sparkles,
+  Video,
+  X,
+} from 'lucide-react';
 import { Dialog } from 'radix-ui';
 import { useState } from 'react';
-import { absoluteGatewayURL } from '../api';
+import { absoluteGatewayURL, api } from '../api';
 import {
   formatBytes,
   formatDate,
@@ -11,6 +20,7 @@ import {
 } from '../format';
 import { useI18n } from '../i18n';
 import type { Artifact, Generation } from '../types';
+import { ShareToggles } from './ShareToggles';
 
 export function GenerationsTable({
   generations,
@@ -174,11 +184,19 @@ export function GenerationDetails({
   artifacts,
   loading,
   onClose,
+  // A tenant may change the sharing of their own finished work; an
+  // administrator may only withdraw what is already on the plaza.
+  sharing = false,
+  moderation = false,
+  onGenerationChange,
 }: {
   generation: Generation | null;
   artifacts: Artifact[];
   loading: boolean;
   onClose: () => void;
+  sharing?: boolean;
+  moderation?: boolean;
+  onGenerationChange?: (generation: Generation) => void;
 }) {
   const { t } = useI18n();
   const parameters = Object.entries(generation?.parameters ?? {}).sort(
@@ -244,6 +262,31 @@ export function GenerationDetails({
                   <p className="muted">{t('details.noParameters')}</p>
                 )}
               </section>
+              {generation &&
+              sharing &&
+              generation.status === 'completed' &&
+              artifacts.length ? (
+                <section>
+                  <h3>{t('share.title')}</h3>
+                  <ShareToggles
+                    key={generation.id}
+                    generationId={generation.id}
+                    shared={generation.shared ?? false}
+                    sharedPrompt={generation.shared_prompt ?? false}
+                    onUpdated={onGenerationChange}
+                  />
+                </section>
+              ) : null}
+              {generation && moderation && generation.shared ? (
+                <section>
+                  <h3>{t('share.moderationTitle')}</h3>
+                  <WithdrawShare
+                    key={generation.id}
+                    generation={generation}
+                    onWithdrawn={onGenerationChange}
+                  />
+                </section>
+              ) : null}
               <section>
                 <h3>{t('details.result')}</h3>
                 {artifacts.length ? (
@@ -261,6 +304,82 @@ export function GenerationDetails({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+// Moderation reaches what it did not create, so the confirmation is inline
+// rather than a second dialog stacked over this one.
+function WithdrawShare({
+  generation,
+  onWithdrawn,
+}: {
+  generation: Generation;
+  onWithdrawn?: (generation: Generation) => void;
+}) {
+  const { t } = useI18n();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function withdraw() {
+    setBusy(true);
+    setError('');
+    try {
+      await api(
+        `/v1/admin/generations/${generation.id}/share`,
+        { method: 'DELETE' },
+        true,
+      );
+      setConfirming(false);
+      onWithdrawn?.({ ...generation, shared: false, shared_prompt: false });
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : t('share.errorWithdraw'),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="withdraw-share">
+      <p className="muted">{t('share.moderationNote')}</p>
+      {confirming ? (
+        <div className="withdraw-actions">
+          <span>{t('share.withdrawConfirm')}</span>
+          <button
+            type="button"
+            className="button danger-button"
+            disabled={busy}
+            onClick={() => void withdraw()}
+          >
+            {busy ? t('share.withdrawing') : t('share.withdrawYes')}
+          </button>
+          <button
+            type="button"
+            className="button secondary"
+            disabled={busy}
+            onClick={() => setConfirming(false)}
+          >
+            {t('common.cancel')}
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => setConfirming(true)}
+        >
+          <ShieldOff size={15} />
+          {t('share.withdraw')}
+        </button>
+      )}
+      {error && (
+        <small className="share-error" role="alert">
+          {error}
+        </small>
+      )}
+    </div>
   );
 }
 

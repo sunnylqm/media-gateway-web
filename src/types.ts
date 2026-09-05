@@ -118,6 +118,10 @@ export type Generation = {
   inputs?: GenerationInput[];
   // Present only when the list endpoint is asked for `include=artifacts`.
   artifacts?: Artifact[];
+  // Whether the work — and, separately, its prompt — is published to the
+  // plaza. Both are the author's decision and neither is retroactive.
+  shared?: boolean;
+  shared_prompt?: boolean;
   progress: number;
   created_at: string;
   updated_at: string;
@@ -263,6 +267,40 @@ export type Artifact = {
   height?: number;
   duration_ms?: number;
   created_at: string;
+};
+
+// The plaza carries only what is published: the result, the author's display
+// name, and the prompt when its author shared it. An email address is never
+// part of the listing.
+export type PlazaArtifact = {
+  id: string;
+  url: string;
+  mime_type: string;
+  width?: number;
+  height?: number;
+  duration_ms?: number;
+  role: string;
+};
+
+export type PlazaItem = {
+  object: 'plaza_item';
+  // The item id is the generation id, so a viewer looking at their own work
+  // can change its sharing from the plaza itself.
+  id: string;
+  modality: 'image' | 'video';
+  model: string;
+  prompt?: string;
+  author_id?: string;
+  author_name: string;
+  artifacts: PlazaArtifact[];
+  created_at: string;
+};
+
+export type PlazaList = {
+  object: 'list';
+  data: PlazaItem[];
+  next_cursor?: string;
+  total: number;
 };
 
 export type ProviderIO = {

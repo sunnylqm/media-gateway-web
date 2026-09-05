@@ -6,6 +6,7 @@ import {
   formatLabel,
   formatParameterName,
   formatParameterValue,
+  formatRelativeTime,
   formatStatus,
 } from './format';
 
@@ -14,6 +15,15 @@ describe('format utilities', () => {
     expect(formatBytes(500)).toContain('500');
     expect(formatBytes(1500)).toContain('1.5');
     expect(formatBytes(2000000)).toContain('2');
+  });
+
+  it('formats relative times and falls back to a date past a year', () => {
+    const now = Date.parse('2026-01-01T00:00:00Z');
+    expect(formatRelativeTime('2025-12-31T21:00:00Z', now)).toContain('3');
+    expect(formatRelativeTime('2024-01-01T00:00:00Z', now)).not.toContain(
+      'ago',
+    );
+    expect(formatRelativeTime('not a date', now)).toBe('not a date');
   });
 
   it('formats parameter names and statuses', () => {

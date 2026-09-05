@@ -695,4 +695,35 @@ export const zh: Record<MessageKey, string> = {
   'topupOrders.prev': '上一页',
   'topupOrders.next': '下一页',
   'topupOrders.range': '第 {first}–{last} 条，共 {total} 条',
+
+  'tenant.navPlaza': '广场',
+
+  'share.title': '广场分享',
+  'share.shareWork': '分享作品到广场',
+  'share.sharePrompt': '同时分享提示词',
+  'share.note':
+    '这里决定广场上展示的内容：作品本身，以及单独决定是否展示提示词。',
+  'share.errorUpdate': '无法修改该任务的分享设置',
+  'share.moderationTitle': '广场管理',
+  'share.moderationNote':
+    '该任务已发布到广场。撤回后，作品及其提示词对所有人不再可见。',
+  'share.withdraw': '从广场撤回',
+  'share.withdrawConfirm': '确认将该作品从广场撤回？',
+  'share.withdrawYes': '撤回',
+  'share.withdrawing': '正在撤回…',
+  'share.errorWithdraw': '无法撤回该任务',
+
+  'plaza.title': '广场',
+  'plaza.description': '本网关上大家公开发布的作品。',
+  'plaza.filterAll': '全部',
+  'plaza.total': '共 {total} 件作品',
+  'plaza.loading': '正在加载广场…',
+  'plaza.loadMore': '加载更多',
+  'plaza.emptyTitle': '还没有公开的作品',
+  'plaza.emptyHint': '分享一次生成结果，作品就会出现在这里。',
+  'plaza.errorLoad': '无法加载广场',
+  'plaza.artworkAlt': '{author} 发布的作品',
+  'plaza.promptWithheld': '作者未公开该提示词。',
+  'plaza.showMore': '展开完整提示词',
+  'plaza.showLess': '收起',
 };

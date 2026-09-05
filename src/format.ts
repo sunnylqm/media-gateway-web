@@ -15,6 +15,33 @@ export function formatDay(value: string) {
   );
 }
 
+const relativeUnits: [Intl.RelativeTimeFormatUnit, number][] = [
+  ['year', 365 * 24 * 3600],
+  ['month', 30 * 24 * 3600],
+  ['day', 24 * 3600],
+  ['hour', 3600],
+  ['minute', 60],
+];
+
+// The plaza reads better with "3 hours ago" than a timestamp, but anything
+// older than a year is easier to place by its date.
+export function formatRelativeTime(value: string, now: number = Date.now()) {
+  const at = new Date(value).getTime();
+  if (Number.isNaN(at)) return value;
+  const seconds = Math.round((at - now) / 1000);
+  const magnitude = Math.abs(seconds);
+  if (magnitude >= relativeUnits[0][1]) return formatDay(value);
+  const formatter = new Intl.RelativeTimeFormat(intlLocale(), {
+    numeric: 'auto',
+  });
+  for (const [unit, size] of relativeUnits) {
+    if (magnitude >= size) {
+      return formatter.format(Math.round(seconds / size), unit);
+    }
+  }
+  return formatter.format(Math.min(seconds, 0), 'second');
+}
+
 const byteUnits = [
   'byte',
   'kilobyte',

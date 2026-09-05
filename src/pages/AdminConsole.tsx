@@ -190,6 +190,21 @@ export function AdminConsole() {
     return () => window.clearInterval(timer);
   }, [generations, loadGenerations]);
 
+  // A withdrawal from the plaza changes the generation in place, in the open
+  // dialog and in the list behind it.
+  function applyGenerationChange(updated: Generation) {
+    setSelected((current) =>
+      current && current.id === updated.id
+        ? { ...current, ...updated }
+        : current,
+    );
+    setGenerations((current) =>
+      current.map((item) =>
+        item.id === updated.id ? { ...item, ...updated } : item,
+      ),
+    );
+  }
+
   async function openGenerationDetails(generation: Generation) {
     setSelected(generation);
     setArtifacts([]);
@@ -476,6 +491,8 @@ export function AdminConsole() {
         artifacts={artifacts}
         loading={detailsLoading}
         onClose={() => setSelected(null)}
+        moderation
+        onGenerationChange={applyGenerationChange}
       />
     </Shell>
   );
@@ -3391,6 +3408,21 @@ function UserDetail() {
     }
   }
 
+  // A withdrawal from the plaza changes the generation in place, in the open
+  // dialog and in the list behind it.
+  function applyGenerationChange(updated: Generation) {
+    setSelected((current) =>
+      current && current.id === updated.id
+        ? { ...current, ...updated }
+        : current,
+    );
+    setGenerations((current) =>
+      current.map((item) =>
+        item.id === updated.id ? { ...item, ...updated } : item,
+      ),
+    );
+  }
+
   async function openDetails(generationOrId: Generation | string) {
     const target = user;
     const id =
@@ -3860,6 +3892,8 @@ function UserDetail() {
         artifacts={artifacts}
         loading={detailsLoading}
         onClose={() => setSelected(null)}
+        moderation
+        onGenerationChange={applyGenerationChange}
       />
     </div>
   );
