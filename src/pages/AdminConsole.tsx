@@ -1776,8 +1776,9 @@ function newBinding(alias: string, endpoint: string): BindingForm {
 // model that needs them.
 const flatImagePrice = '15';
 
-// Sunburst is the slower, more detailed GPT Image 2.5 variant and costs more
-// upstream, so it is the one image model seeded above the flat default.
+// Sunburst is the premium GPT Image 2.5 variant, for editing workflows that
+// need tighter control across edits, and costs more upstream. It is the one
+// image model seeded above the flat default.
 const flatImagePrices: Record<string, string> = {
   'gpt-image-2.5-sunburst': '45',
 };

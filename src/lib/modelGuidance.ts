@@ -5,8 +5,8 @@ type CatalogModel = PublicModel | AdminModel;
 
 // Models the playground reaches for first, best choice first. The catalog is
 // ordered by when each model was added, which is not the order a user wants to
-// be offered: GPT Image 2.5 Flare is the fast, inexpensive default even though
-// GPT Image 2 was seeded before it.
+// be offered: GPT Image 2.5 Flare is the provider's default for most work even
+// though GPT Image 2 was seeded before it.
 const preferredModelIDs = ['gpt-image-2.5-flare'];
 
 // Where two models on the same page are a genuine trade-off rather than a

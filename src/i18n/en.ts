@@ -607,9 +607,9 @@ export const en = {
     'No output yet. Fill in the prompt on the left and click Generate.',
   'playground.model': 'Model',
   'playground.hintFlare':
-    'Flare is the fast, lower-cost variant: good for iterating on a prompt. Switch to Sunburst when you need finer detail and closer prompt adherence.',
+    'Flare is the default for most work: higher-quality images than GPT Image 2 at about half the latency. It suits creator and social content, product experiences, visual search, rapid prototyping, and high-volume generation.',
   'playground.hintSunburst':
-    'Sunburst takes longer and costs more per image, in exchange for finer detail and closer prompt adherence. Flare is the faster, cheaper choice for drafts.',
+    'Sunburst is built for premium visual workflows that need tighter control across edits, such as production-ready campaign creative and polished product imagery. It costs more per image.',
   'playground.noModels': 'No models available',
   'playground.selectModel': 'Select model',
   'playground.imageTitle': 'Image Generation',

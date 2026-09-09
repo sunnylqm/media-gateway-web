@@ -567,9 +567,9 @@ export const zh: Record<MessageKey, string> = {
   'playground.noOutputYet': '暂无生成产物，在左侧输入提示词后点击生成。',
   'playground.model': '模型',
   'playground.hintFlare':
-    'Flare 出图更快、单价更低，适合反复打磨提示词；需要更细腻的细节和更强的提示词还原时切换到 Sunburst。',
+    'Flare 是多数场景的默认选择：画质优于 GPT Image 2，延迟约低一半。适合创作者与社交内容、产品体验、视觉搜索、快速原型和大批量出图。',
   'playground.hintSunburst':
-    'Sunburst 用更长的出图时间和更高的单价换取更细腻的细节与更强的提示词还原；打草稿用更快更便宜的 Flare。',
+    'Sunburst 面向需要在多轮编辑中保持精细控制的高端视觉流程，例如可直接投放的营销创意和精修产品图，单价更高。',
   'playground.noModels': '暂无可用模型',
   'playground.selectModel': '选择模型',
   'playground.imageTitle': '生图工作台',
