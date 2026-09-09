@@ -609,7 +609,7 @@ export const en = {
   'playground.hintFlare':
     'Flare is the default for most work: higher-quality images than GPT Image 2 at about half the latency. It suits creator and social content, product experiences, visual search, rapid prototyping, and high-volume generation.',
   'playground.hintSunburst':
-    'Sunburst is built for premium visual workflows that need tighter control across edits, such as production-ready campaign creative and polished product imagery. It costs more per image.',
+    'Sunburst is built for premium visual workflows that need tighter control across edits, such as production-ready campaign creative and polished product imagery.',
   'playground.noModels': 'No models available',
   'playground.selectModel': 'Select model',
   'playground.imageTitle': 'Image Generation',

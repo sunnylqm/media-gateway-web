@@ -569,7 +569,7 @@ export const zh: Record<MessageKey, string> = {
   'playground.hintFlare':
     'Flare 是多数场景的默认选择：画质优于 GPT Image 2，延迟约低一半。适合创作者与社交内容、产品体验、视觉搜索、快速原型和大批量出图。',
   'playground.hintSunburst':
-    'Sunburst 面向需要在多轮编辑中保持精细控制的高端视觉流程，例如可直接投放的营销创意和精修产品图，单价更高。',
+    'Sunburst 面向需要在多轮编辑中保持精细控制的高端视觉流程，例如可直接投放的营销创意和精修产品图。',
   'playground.noModels': '暂无可用模型',
   'playground.selectModel': '选择模型',
   'playground.imageTitle': '生图工作台',

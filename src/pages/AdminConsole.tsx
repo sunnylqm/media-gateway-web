@@ -1776,13 +1776,6 @@ function newBinding(alias: string, endpoint: string): BindingForm {
 // model that needs them.
 const flatImagePrice = '15';
 
-// Sunburst is the premium GPT Image 2.5 variant, for editing workflows that
-// need tighter control across edits, and costs more upstream. It is the one
-// image model seeded above the flat default.
-const flatImagePrices: Record<string, string> = {
-  'gpt-image-2.5-sunburst': '45',
-};
-
 const emptyModelForm: ModelForm = {
   id: '',
   displayName: '',
@@ -1824,7 +1817,7 @@ function presetForm(preset: ProtocolPreset): ModelForm {
         : preset.name === 'xai'
           ? '120'
           : preset.modality === 'image'
-            ? (flatImagePrices[preset.model_id] ?? flatImagePrice)
+            ? flatImagePrice
             : '0',
   };
 }
