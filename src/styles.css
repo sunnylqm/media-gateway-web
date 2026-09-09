@@ -520,6 +520,8 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .playground-panel { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); box-shadow: 0 3px 12px rgba(24,39,33,.03); }
 .playground-input-panel { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 18px; }
 .playground-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.playground-model-hint { flex: 1 0 100%; margin: 0; display: flex; align-items: flex-start; gap: 6px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.playground-model-hint svg { flex-shrink: 0; margin-top: 2px; }
 .playground-tag { font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #79837e; }
 .playground-tab-group { display: inline-flex; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: #f2f4f3; gap: 2px; flex-shrink: 0; margin-left: auto; }
 .playground-tab-btn { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px; border: 0; border-radius: 4px; background: transparent; color: #5d6762; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .15s; }

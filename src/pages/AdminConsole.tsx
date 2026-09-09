@@ -1776,6 +1776,12 @@ function newBinding(alias: string, endpoint: string): BindingForm {
 // model that needs them.
 const flatImagePrice = '15';
 
+// Sunburst is the slower, more detailed GPT Image 2.5 variant and costs more
+// upstream, so it is the one image model seeded above the flat default.
+const flatImagePrices: Record<string, string> = {
+  'gpt-image-2.5-sunburst': '45',
+};
+
 const emptyModelForm: ModelForm = {
   id: '',
   displayName: '',
@@ -1817,7 +1823,7 @@ function presetForm(preset: ProtocolPreset): ModelForm {
         : preset.name === 'xai'
           ? '120'
           : preset.modality === 'image'
-            ? flatImagePrice
+            ? (flatImagePrices[preset.model_id] ?? flatImagePrice)
             : '0',
   };
 }
@@ -1941,11 +1947,16 @@ function ModelsPanel({
     }));
   }
 
-  const resetPreset = presets.find(
-    (candidate) =>
-      candidate.name === form.provider &&
-      (candidate.modality === 'image' ? 'image' : 'video') === form.modality,
-  );
+  // A provider can ship more than one preset of the same modality (the two GPT
+  // Image 2.5 variants), so the model being edited picks its own preset and
+  // only falls back to the provider's first when it matches none.
+  const resetPreset =
+    presets.find((candidate) => candidate.model_id === form.id) ??
+    presets.find(
+      (candidate) =>
+        candidate.name === form.provider &&
+        (candidate.modality === 'image' ? 'image' : 'video') === form.modality,
+    );
 
   // Resetting puts the shipped preset back into the form: display name,
   // protocol profile, and the whole billing rule with its tiers. The upstream
@@ -2108,7 +2119,7 @@ function ModelsPanel({
               {presets.map((preset) => (
                 <DropdownMenu.Item
                   className="menu-item stacked"
-                  key={preset.name}
+                  key={preset.model_id}
                   onSelect={() => edit(undefined, preset)}
                 >
                   <b>{preset.display_name}</b>

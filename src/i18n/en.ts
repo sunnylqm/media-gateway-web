@@ -606,6 +606,10 @@ export const en = {
   'playground.noOutputYet':
     'No output yet. Fill in the prompt on the left and click Generate.',
   'playground.model': 'Model',
+  'playground.hintFlare':
+    'Flare is the fast, lower-cost variant: good for iterating on a prompt. Switch to Sunburst when you need finer detail and closer prompt adherence.',
+  'playground.hintSunburst':
+    'Sunburst takes longer and costs more per image, in exchange for finer detail and closer prompt adherence. Flare is the faster, cheaper choice for drafts.',
   'playground.noModels': 'No models available',
   'playground.selectModel': 'Select model',
   'playground.imageTitle': 'Image Generation',

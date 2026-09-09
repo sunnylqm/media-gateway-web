@@ -35,6 +35,7 @@ import {
 } from '../components/ui/tooltip';
 import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
+import { defaultModelID, modelHintKey } from '../lib/modelGuidance';
 import { useMoney } from '../lib/money';
 import {
   buildRequestBody,
@@ -95,13 +96,13 @@ export function ImagePlayground({
     [models],
   );
 
-  const [modelId, setModelId] = useState<string>(
-    () => imageModels[0]?.id ?? '',
+  const [modelId, setModelId] = useState<string>(() =>
+    defaultModelID(imageModels),
   );
   useEffect(() => {
     if (!imageModels.length) return;
     if (!modelId || !imageModels.some((m) => m.id === modelId)) {
-      setModelId(imageModels[0].id);
+      setModelId(defaultModelID(imageModels));
     }
   }, [imageModels, modelId]);
 
@@ -110,6 +111,10 @@ export function ImagePlayground({
     [imageModels, modelId],
   );
   const form = selectedModel?.request_form;
+  // Some models are a trade-off against a sibling rather than a strict upgrade.
+  // The note under the selector says what the choice costs, so a user does not
+  // have to infer it from the name and the price badge.
+  const modelHint = modelHintKey(modelId);
 
   const modelPriceTag = useMemo(() => {
     if (!selectedModel) return '';
@@ -660,6 +665,12 @@ export function ImagePlayground({
                 </span>
               )}
             </div>
+            {modelHint && (
+              <p className="playground-model-hint">
+                <Info size={13} aria-hidden="true" />
+                <span>{t(modelHint)}</span>
+              </p>
+            )}
             <div className="playground-tab-group" role="tablist">
               <button
                 type="button"

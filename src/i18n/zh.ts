@@ -566,6 +566,10 @@ export const zh: Record<MessageKey, string> = {
   'playground.recentGenerations': '最近生成',
   'playground.noOutputYet': '暂无生成产物，在左侧输入提示词后点击生成。',
   'playground.model': '模型',
+  'playground.hintFlare':
+    'Flare 出图更快、单价更低，适合反复打磨提示词；需要更细腻的细节和更强的提示词还原时切换到 Sunburst。',
+  'playground.hintSunburst':
+    'Sunburst 用更长的出图时间和更高的单价换取更细腻的细节与更强的提示词还原；打草稿用更快更便宜的 Flare。',
   'playground.noModels': '暂无可用模型',
   'playground.selectModel': '选择模型',
   'playground.imageTitle': '生图工作台',
