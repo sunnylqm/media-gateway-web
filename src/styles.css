@@ -326,6 +326,11 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .prompt-card { display: grid; gap: 7px; padding: 13px 14px; border: 1px solid var(--line); background: #fafbfa; }
 .prompt-card > span { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
 .prompt-card > p { margin: 0; color: #34423b; font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.failure-card { display: grid; gap: 7px; padding: 13px 14px; border: 1px solid #e6cdcf; background: #fdf6f6; }
+.failure-card > code { justify-self: start; color: #993b42; font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.failure-card > p { margin: 0; color: #7a3138; font-size: 12px; line-height: 1.65; white-space: pre-wrap; overflow-wrap: anywhere; }
+.status-with-reason { display: grid; gap: 4px; justify-items: start; }
+.status-with-reason > small { max-width: 190px; overflow: hidden; color: #993b42; text-overflow: ellipsis; white-space: nowrap; font: 10px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .input-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px; margin-top: 8px; }
 .input-card { min-width: 0; overflow: hidden; border: 1px solid var(--line); background: #fafbfa; }
 .input-media { width: 100%; height: 150px; display: block; background: #edf0ee; object-fit: contain; }

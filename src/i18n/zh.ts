@@ -101,6 +101,8 @@ export const zh: Record<MessageKey, string> = {
   'details.noPrompt': '未记录提示词。',
   'details.parameters': '参数',
   'details.noParameters': '未记录其他参数。',
+  'details.failure': '失败原因',
+  'details.failureNoMessage': '除错误码外，网关没有记录更多信息。',
   'details.result': '结果',
   'details.noArtifact': '尚未生成任何产物。',
   'details.download': '下载',

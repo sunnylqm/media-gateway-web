@@ -119,6 +119,11 @@ export type Generation = {
   prompt?: string;
   // Only administrator views carry the upstream binding that served the job.
   binding_alias?: string;
+  // Why a job ended badly. The gateway clears both once an attempt succeeds,
+  // and the message can quote the upstream verbatim, so only administrator
+  // views render them.
+  error_code?: string;
+  error_message?: string;
   inputs?: GenerationInput[];
   // Present only when the list endpoint is asked for `include=artifacts`.
   artifacts?: Artifact[];

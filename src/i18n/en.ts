@@ -101,6 +101,9 @@ export const en = {
   'details.noPrompt': 'No prompt was recorded.',
   'details.parameters': 'Parameters',
   'details.noParameters': 'No additional parameters were recorded.',
+  'details.failure': 'Why it failed',
+  'details.failureNoMessage':
+    'The gateway recorded no message beyond the code.',
   'details.result': 'Result',
   'details.noArtifact': 'No artifact has been stored yet.',
   'details.download': 'Download',

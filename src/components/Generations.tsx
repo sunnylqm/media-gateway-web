@@ -19,6 +19,7 @@ import {
   formatStatus,
 } from '../format';
 import { useI18n } from '../i18n';
+import { generationFailure } from '../lib/failure';
 import type { Artifact, Generation } from '../types';
 import { ShareToggles } from './ShareToggles';
 
@@ -28,6 +29,7 @@ export function GenerationsTable({
   thumbnails = false,
   emptyHint,
   onSelect,
+  diagnostics = false,
 }: {
   generations: Generation[];
   compact?: boolean;
@@ -35,6 +37,9 @@ export function GenerationsTable({
   thumbnails?: boolean;
   emptyHint?: string;
   onSelect: (generation: Generation) => void;
+  // Administrator lists name the failure beside the status, so a run of bad
+  // jobs can be read without opening each one.
+  diagnostics?: boolean;
 }) {
   const { t } = useI18n();
   if (!generations.length)
@@ -99,7 +104,10 @@ export function GenerationsTable({
               </td>
               <td>{item.model}</td>
               <td>
-                <GenerationStatus value={item.status} />
+                <GenerationStatusCell
+                  generation={item}
+                  diagnostics={diagnostics}
+                />
               </td>
               <td>{formatDate(item.created_at)}</td>
               <td>
@@ -179,6 +187,27 @@ export function GenerationStatus({ value }: { value: string }) {
   );
 }
 
+// The status, and under it the reason when there is one to give. The code
+// leads because it is the short, stable half; the message is the hover text.
+function GenerationStatusCell({
+  generation,
+  diagnostics,
+}: {
+  generation: Generation;
+  diagnostics: boolean;
+}) {
+  const failure = diagnostics ? generationFailure(generation) : null;
+  if (!failure) return <GenerationStatus value={generation.status} />;
+  return (
+    <div className="status-with-reason">
+      <GenerationStatus value={generation.status} />
+      <small title={failure.message || failure.code}>
+        {failure.code || failure.message}
+      </small>
+    </div>
+  );
+}
+
 export function GenerationDetails({
   generation,
   artifacts,
@@ -188,6 +217,7 @@ export function GenerationDetails({
   // administrator may only withdraw what is already on the plaza.
   sharing = false,
   moderation = false,
+  diagnostics = false,
   onGenerationChange,
 }: {
   generation: Generation | null;
@@ -196,9 +226,13 @@ export function GenerationDetails({
   onClose: () => void;
   sharing?: boolean;
   moderation?: boolean;
+  // An administrator sees why a job failed, message and all; a tenant sees
+  // only that it did, because the message can quote the upstream verbatim.
+  diagnostics?: boolean;
   onGenerationChange?: (generation: Generation) => void;
 }) {
   const { t } = useI18n();
+  const failure = diagnostics ? generationFailure(generation) : null;
   const parameters = Object.entries(generation?.parameters ?? {}).sort(
     ([left], [right]) => left.localeCompare(right),
   );
@@ -230,6 +264,15 @@ export function GenerationDetails({
             </div>
           ) : (
             <div className="detail-sections">
+              {failure ? (
+                <section>
+                  <h3>{t('details.failure')}</h3>
+                  <div className="failure-card">
+                    {failure.code ? <code>{failure.code}</code> : null}
+                    <p>{failure.message || t('details.failureNoMessage')}</p>
+                  </div>
+                </section>
+              ) : null}
               <section>
                 <h3>{t('details.input')}</h3>
                 <div className="prompt-card">

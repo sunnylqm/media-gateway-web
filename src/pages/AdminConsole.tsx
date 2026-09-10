@@ -497,6 +497,7 @@ export function AdminConsole() {
           loading={detailsLoading}
           onClose={() => setSelected(null)}
           moderation
+          diagnostics
           onGenerationChange={applyGenerationChange}
         />
       </Shell>
@@ -530,6 +531,7 @@ function AdminGenerationsView({
         compact
         emptyHint={t('adminGenerations.empty')}
         onSelect={onSelect}
+        diagnostics
       />
     </section>
   );
@@ -3810,6 +3812,7 @@ function UserDetail() {
               compact
               emptyHint={t('userDetail.generationsEmpty')}
               onSelect={openDetails}
+              diagnostics
             />
           </section>
           {topups.length > 0 && (
@@ -3904,6 +3907,7 @@ function UserDetail() {
         loading={detailsLoading}
         onClose={() => setSelected(null)}
         moderation
+        diagnostics
         onGenerationChange={applyGenerationChange}
       />
     </div>
