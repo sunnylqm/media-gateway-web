@@ -730,9 +730,12 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 
 @media (max-width: 1040px) {
   .playground-layout, .playground-layout.input-right { grid-template-columns: 1fr; }
-  /* Stacked, there are no sides to swap, and the controls belong on top. */
+  /* Stacked, there are no sides to swap, and the controls belong on top, so
+     the switch has nothing to offer and does not appear. The account's choice
+     is kept, not cleared: a wider screen honours it again. */
   .playground-layout.input-right .playground-input-panel,
   .playground-layout.input-right .playground-output-panel { order: 0; }
+  .playground-layout-switch { display: none; }
   .auth-page { grid-template-columns: minmax(350px, .78fr) minmax(480px, 1.22fr); }
   .auth-story { padding: 36px; }
   .auth-story-copy h1 { font-size: 48px; }
