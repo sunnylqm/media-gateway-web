@@ -485,6 +485,9 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .playground-page { display: flex; flex-direction: column; gap: 18px; }
 .playground-top-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 2px; }
 .playground-title-box { display: flex; align-items: center; gap: 10px; font-size: 15px; font-weight: 700; color: var(--ink); }
+.playground-layout-switch { display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 11px; border: 1px solid var(--line); border-radius: 999px; background: var(--paper); color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1; cursor: pointer; transition: color .15s, border-color .15s, background .15s; }
+.playground-layout-switch:hover { color: var(--ink); border-color: #cbd5d0; background: #f8faf8; }
+.playground-layout-switch svg { flex-shrink: 0; }
 .playground-icon-badge { width: 30px; height: 30px; border-radius: 6px; background: #ede9fe; color: #7c3aed; display: grid; place-items: center; }
 .playground-model-select-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 1; }
 .playground-model-select-wrap .playground-param-label { flex-shrink: 0; white-space: nowrap; }
@@ -517,6 +520,11 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .playground-model-select-wrap select:focus { border-color: #7c3aed; box-shadow: 0 0 0 3px rgba(124,58,237,.14); }
 
 .playground-layout { display: grid; grid-template-columns: minmax(360px, 440px) minmax(0, 1fr); gap: 20px; align-items: start; }
+/* Controls on the right: the columns trade widths and the panels trade order,
+   so the preview keeps the flexible column it needs either way. */
+.playground-layout.input-right { grid-template-columns: minmax(0, 1fr) minmax(360px, 440px); }
+.playground-layout.input-right .playground-input-panel { order: 2; }
+.playground-layout.input-right .playground-output-panel { order: 1; }
 .playground-panel { border: 1px solid var(--line); border-radius: 10px; background: var(--paper); box-shadow: 0 3px 12px rgba(24,39,33,.03); }
 .playground-input-panel { padding: 20px 22px 22px; display: flex; flex-direction: column; gap: 18px; }
 .playground-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -721,7 +729,10 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 }
 
 @media (max-width: 1040px) {
-  .playground-layout { grid-template-columns: 1fr; }
+  .playground-layout, .playground-layout.input-right { grid-template-columns: 1fr; }
+  /* Stacked, there are no sides to swap, and the controls belong on top. */
+  .playground-layout.input-right .playground-input-panel,
+  .playground-layout.input-right .playground-output-panel { order: 0; }
   .auth-page { grid-template-columns: minmax(350px, .78fr) minmax(480px, 1.22fr); }
   .auth-story { padding: 36px; }
   .auth-story-copy h1 { font-size: 48px; }
@@ -798,6 +809,25 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   transition: width 0.2s ease-out;
 }
 
+/* The swap is animated by a view transition rather than a CSS transition: the
+   two panels change grid column, which nothing else could tween. React drives
+   it, so the panels only need to be named and paced here. */
+::view-transition-group(playground-input),
+::view-transition-group(playground-output) { animation-duration: .28s; animation-timing-function: cubic-bezier(.4, 0, .2, 1); }
+::view-transition-old(playground-input),
+::view-transition-new(playground-input),
+::view-transition-old(playground-output),
+::view-transition-new(playground-output) {
+  /* The panels keep their content across the swap, so cross-fading two
+     snapshots of the same thing only makes it flicker. Let the group move
+     them and hold the new frame throughout. */
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-old(playground-input),
+::view-transition-old(playground-output) { display: none; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .01ms !important; }
 }

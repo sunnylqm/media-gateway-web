@@ -24,9 +24,11 @@ import {
   useEffect,
   useMemo,
   useState,
+  ViewTransition,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
 import { GenerationDetails } from '../components/Generations';
+import { LayoutSwitch } from '../components/LayoutSwitch';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
 import {
@@ -41,6 +43,7 @@ import {
 import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
 import { useMoney } from '../lib/money';
+import { usePreferences } from '../lib/preferencesContext';
 import {
   buildRequestBody,
   defaultParameterValue,
@@ -99,6 +102,7 @@ export function VideoStudio({
 }) {
   const { t, locale } = useI18n();
   const { money } = useMoney();
+  const { preferences } = usePreferences();
 
   const videoAllowed = admin || user?.video_enabled !== false;
   const videoModels = useMemo(
@@ -629,6 +633,7 @@ export function VideoStudio({
           </span>
           <span>{t('playground.videoTitle')}</span>
         </div>
+        <LayoutSwitch />
       </div>
 
       {!videoAllowed && (
@@ -645,268 +650,387 @@ export function VideoStudio({
         </div>
       )}
 
-      {/* Main split 2-column layout */}
-      <div className="playground-layout">
-        {/* Left Column: INPUT */}
-        <div className="playground-panel playground-input-panel">
-          <div className="playground-panel-header">
-            <div className="playground-model-select-wrap">
-              <select
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value)}
-                disabled={!videoAllowed || !videoModels.length}
-                aria-label={t('playground.model')}
-              >
-                {videoModels.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.display_name} ({item.provider})
-                  </option>
-                ))}
-              </select>
-              {modelPriceTag && (
-                <span className="playground-model-price-badge">
-                  {modelPriceTag}
-                </span>
-              )}
-            </div>
-            <div className="playground-tab-group" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={inputTab === 'form'}
-                className={`playground-tab-btn ${inputTab === 'form' ? 'active' : ''}`}
-                onClick={() => setInputTab('form')}
-              >
-                <SlidersHorizontal size={13} />
-                <span>{t('playground.form')}</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={inputTab === 'json'}
-                className={`playground-tab-btn ${inputTab === 'json' ? 'active' : ''}`}
-                onClick={() => setInputTab('json')}
-              >
-                <Code2 size={13} />
-                <span>{t('playground.json')}</span>
-              </button>
-            </div>
-          </div>
-
-          {inputTab === 'form' ? (
-            <form
-              onSubmit={handleGenerate}
-              style={{ display: 'grid', gap: '18px' }}
-            >
-              {/* PROMPT section */}
-              <div>
-                <label
-                  className="playground-field-label"
-                  htmlFor="video-prompt-input"
+      {/* Two columns, either way round: the account chooses the side. */}
+      <div
+        className={`playground-layout${
+          preferences.playgroundLayout === 'input_right' ? ' input-right' : ''
+        }`}
+      >
+        {/* INPUT */}
+        <ViewTransition name="playground-input">
+          <div className="playground-panel playground-input-panel">
+            <div className="playground-panel-header">
+              <div className="playground-model-select-wrap">
+                <select
+                  value={modelId}
+                  onChange={(e) => setModelId(e.target.value)}
+                  disabled={!videoAllowed || !videoModels.length}
+                  aria-label={t('playground.model')}
                 >
-                  {t('playground.prompt')}
-                </label>
-                <div
-                  className="playground-prompt-area"
-                  style={{ marginTop: '6px' }}
-                >
-                  <textarea
-                    id="video-prompt-input"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={handlePromptKeyDown}
-                    placeholder={t('playground.videoPromptPlaceholder')}
-                    rows={4}
-                  />
-                  <div className="playground-prompt-hint">
-                    <span>{t('playground.promptHint')}</span>
-                    {form?.prompt.max_runes ? (
-                      <span>
-                        {prompt.length} / {form.prompt.max_runes}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+                  {videoModels.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.display_name} ({item.provider})
+                    </option>
+                  ))}
+                </select>
+                {modelPriceTag && (
+                  <span className="playground-model-price-badge">
+                    {modelPriceTag}
+                  </span>
+                )}
               </div>
+              <div className="playground-tab-group" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inputTab === 'form'}
+                  className={`playground-tab-btn ${inputTab === 'form' ? 'active' : ''}`}
+                  onClick={() => setInputTab('form')}
+                >
+                  <SlidersHorizontal size={13} />
+                  <span>{t('playground.form')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inputTab === 'json'}
+                  className={`playground-tab-btn ${inputTab === 'json' ? 'active' : ''}`}
+                  onClick={() => setInputTab('json')}
+                >
+                  <Code2 size={13} />
+                  <span>{t('playground.json')}</span>
+                </button>
+              </div>
+            </div>
 
-              {/* Frame Inputs (e.g. First frame, Last frame) */}
-              {frameSlots.length > 0 && (
+            {inputTab === 'form' ? (
+              <form
+                onSubmit={handleGenerate}
+                style={{ display: 'grid', gap: '18px' }}
+              >
+                {/* PROMPT section */}
                 <div>
-                  <div className="playground-field-label">
-                    <span>{t('playground.frames')}</span>
-                  </div>
-                  <div className="frame-grid" style={{ marginTop: '8px' }}>
-                    {frameSlots.map((slot) => {
-                      const att = attachments.find((a) => a.slotID === slot.id);
-                      return (
-                        <div key={slot.id}>
-                          {att ? (
-                            <div
-                              className="ref-item-thumb"
-                              style={{ width: '100%', height: '110px' }}
-                            >
-                              <img src={att.preview} alt={att.file.name} />
-                              <button
-                                type="button"
-                                className="ref-remove-btn"
-                                onClick={() => removeAttachment(att.key)}
-                                title={t('common.cancel')}
-                              >
-                                <Trash2 size={11} />
-                              </button>
-                              {att.status === 'uploading' && (
-                                <div className="ref-spinner">
-                                  <Loader2 size={18} className="loader small" />
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <label
-                              className="ref-add-btn"
-                              style={{ width: '100%', height: '110px' }}
-                            >
-                              <ImageIcon size={20} />
-                              <span>{slot.label}</span>
-                              <input
-                                type="file"
-                                accept={`${slot.mimePrefix}*`}
-                                style={{ display: 'none' }}
-                                onChange={(e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) void handleSelectFile(f, slot);
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              {/* Reference Media (if model supports references) */}
-              {referenceSlots.length > 0 && (
-                <div>
-                  <div className="playground-field-label">
-                    <span>{t('playground.imageReferences')}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="playground-tooltip-icon">
-                          <Info size={13} />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        {t('playground.referencesTooltip')}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-
+                  <label
+                    className="playground-field-label"
+                    htmlFor="video-prompt-input"
+                  >
+                    {t('playground.prompt')}
+                  </label>
                   <div
-                    className="playground-ref-list"
+                    className="playground-prompt-area"
                     style={{ marginTop: '6px' }}
                   >
-                    {attachments.filter((att) =>
-                      referenceSlots.some((slot) => slot.id === att.slotID),
-                    ).length < 3 && (
-                      <label className="ref-add-btn">
-                        <Plus size={18} />
-                        <span>{t('playground.add')}</span>
-                        <input
-                          type="file"
-                          accept="image/*,video/*"
-                          multiple
-                          style={{ display: 'none' }}
-                          onChange={(e) => {
-                            if (e.target.files) {
-                              const defaultRefSlot = referenceSlots[0];
-                              const currentRefs = attachments.filter((att) =>
-                                referenceSlots.some(
-                                  (slot) => slot.id === att.slotID,
-                                ),
-                              );
-                              const remaining = Math.max(
-                                0,
-                                3 - currentRefs.length,
-                              );
-                              for (const f of Array.from(e.target.files).slice(
-                                0,
-                                remaining,
-                              )) {
-                                handleSelectFile(f, defaultRefSlot);
-                              }
-                            }
-                            e.target.value = '';
-                          }}
-                        />
-                      </label>
-                    )}
-
-                    {attachments
-                      .filter((att) =>
-                        referenceSlots.some((slot) => slot.id === att.slotID),
-                      )
-                      .map((att) => (
-                        <div key={att.key} className="ref-item-thumb">
-                          {att.file.type.startsWith('video/') ? (
-                            <video src={att.preview} muted />
-                          ) : (
-                            <img src={att.preview} alt={att.file.name} />
-                          )}
-                          <button
-                            type="button"
-                            className="ref-remove-btn"
-                            onClick={() => removeAttachment(att.key)}
-                            title={t('common.cancel')}
-                          >
-                            <Trash2 size={10} />
-                          </button>
-                          {att.status === 'uploading' && (
-                            <div className="ref-spinner">
-                              <Loader2 size={18} className="loader small" />
-                            </div>
-                          )}
-                        </div>
-                      ))}
+                    <textarea
+                      id="video-prompt-input"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={handlePromptKeyDown}
+                      placeholder={t('playground.videoPromptPlaceholder')}
+                      rows={4}
+                    />
+                    <div className="playground-prompt-hint">
+                      <span>{t('playground.promptHint')}</span>
+                      {form?.prompt.max_runes ? (
+                        <span>
+                          {prompt.length} / {form.prompt.max_runes}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              )}
 
-              {/* Dynamic Parameters Grid */}
-              {(form?.parameters ?? []).filter(
-                (p) => !isHiddenParameter(p.name),
-              ).length > 0 && (
-                <div className="playground-param-row">
-                  {(form?.parameters ?? [])
-                    .filter((p) => !isHiddenParameter(p.name))
-                    .map((param) => {
-                      const isDuration = /duration|second/i.test(param.name);
-                      const isCount =
-                        /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
-                          param.name,
-                        ) || formatLabel(param.name) === '数量';
-                      const isRanged =
-                        param.type === 'integer' &&
-                        param.minimum !== undefined &&
-                        param.maximum !== undefined &&
-                        param.maximum > param.minimum;
+                {/* Frame Inputs (e.g. First frame, Last frame) */}
+                {frameSlots.length > 0 && (
+                  <div>
+                    <div className="playground-field-label">
+                      <span>{t('playground.frames')}</span>
+                    </div>
+                    <div className="frame-grid" style={{ marginTop: '8px' }}>
+                      {frameSlots.map((slot) => {
+                        const att = attachments.find(
+                          (a) => a.slotID === slot.id,
+                        );
+                        return (
+                          <div key={slot.id}>
+                            {att ? (
+                              <div
+                                className="ref-item-thumb"
+                                style={{ width: '100%', height: '110px' }}
+                              >
+                                <img src={att.preview} alt={att.file.name} />
+                                <button
+                                  type="button"
+                                  className="ref-remove-btn"
+                                  onClick={() => removeAttachment(att.key)}
+                                  title={t('common.cancel')}
+                                >
+                                  <Trash2 size={11} />
+                                </button>
+                                {att.status === 'uploading' && (
+                                  <div className="ref-spinner">
+                                    <Loader2
+                                      size={18}
+                                      className="loader small"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <label
+                                className="ref-add-btn"
+                                style={{ width: '100%', height: '110px' }}
+                              >
+                                <ImageIcon size={20} />
+                                <span>{slot.label}</span>
+                                <input
+                                  type="file"
+                                  accept={`${slot.mimePrefix}*`}
+                                  style={{ display: 'none' }}
+                                  onChange={(e) => {
+                                    const f = e.target.files?.[0];
+                                    if (f) void handleSelectFile(f, slot);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-                      if (isDuration || isCount || isRanged) {
-                        if (param.enum?.length) {
-                          const options = param.enum;
-                          const currentVal =
+                {/* Reference Media (if model supports references) */}
+                {referenceSlots.length > 0 && (
+                  <div>
+                    <div className="playground-field-label">
+                      <span>{t('playground.imageReferences')}</span>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="playground-tooltip-icon">
+                            <Info size={13} />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top">
+                          {t('playground.referencesTooltip')}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+
+                    <div
+                      className="playground-ref-list"
+                      style={{ marginTop: '6px' }}
+                    >
+                      {attachments.filter((att) =>
+                        referenceSlots.some((slot) => slot.id === att.slotID),
+                      ).length < 3 && (
+                        <label className="ref-add-btn">
+                          <Plus size={18} />
+                          <span>{t('playground.add')}</span>
+                          <input
+                            type="file"
+                            accept="image/*,video/*"
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              if (e.target.files) {
+                                const defaultRefSlot = referenceSlots[0];
+                                const currentRefs = attachments.filter((att) =>
+                                  referenceSlots.some(
+                                    (slot) => slot.id === att.slotID,
+                                  ),
+                                );
+                                const remaining = Math.max(
+                                  0,
+                                  3 - currentRefs.length,
+                                );
+                                for (const f of Array.from(
+                                  e.target.files,
+                                ).slice(0, remaining)) {
+                                  handleSelectFile(f, defaultRefSlot);
+                                }
+                              }
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      )}
+
+                      {attachments
+                        .filter((att) =>
+                          referenceSlots.some((slot) => slot.id === att.slotID),
+                        )
+                        .map((att) => (
+                          <div key={att.key} className="ref-item-thumb">
+                            {att.file.type.startsWith('video/') ? (
+                              <video src={att.preview} muted />
+                            ) : (
+                              <img src={att.preview} alt={att.file.name} />
+                            )}
+                            <button
+                              type="button"
+                              className="ref-remove-btn"
+                              onClick={() => removeAttachment(att.key)}
+                              title={t('common.cancel')}
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                            {att.status === 'uploading' && (
+                              <div className="ref-spinner">
+                                <Loader2 size={18} className="loader small" />
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Parameters Grid */}
+                {(form?.parameters ?? []).filter(
+                  (p) => !isHiddenParameter(p.name),
+                ).length > 0 && (
+                  <div className="playground-param-row">
+                    {(form?.parameters ?? [])
+                      .filter((p) => !isHiddenParameter(p.name))
+                      .map((param) => {
+                        const isDuration = /duration|second/i.test(param.name);
+                        const isCount =
+                          /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
+                            param.name,
+                          ) || formatLabel(param.name) === '数量';
+                        const isRanged =
+                          param.type === 'integer' &&
+                          param.minimum !== undefined &&
+                          param.maximum !== undefined &&
+                          param.maximum > param.minimum;
+
+                        if (isDuration || isCount || isRanged) {
+                          if (param.enum?.length) {
+                            const options = param.enum;
+                            const currentVal =
+                              parameters[param.name] ??
+                              (param.default !== undefined
+                                ? String(param.default)
+                                : options[0]);
+                            const currentIndex = Math.max(
+                              0,
+                              options.indexOf(currentVal),
+                            );
+                            const currentNum = Number(
+                              options[currentIndex] ?? options[0],
+                            );
+                            return (
+                              <div
+                                key={param.name}
+                                className="playground-slider-col"
+                              >
+                                <div className="playground-slider-header">
+                                  <span className="playground-param-label">
+                                    {formatLabel(param.name)}
+                                  </span>
+                                  <span className="playground-slider-value">
+                                    {Number.isNaN(currentNum)
+                                      ? (options[currentIndex] ?? options[0])
+                                      : formatQuantity(param.name, currentNum)}
+                                  </span>
+                                </div>
+                                <Slider.Root
+                                  className="slider"
+                                  min={0}
+                                  max={options.length - 1}
+                                  step={1}
+                                  value={[currentIndex]}
+                                  onValueChange={([idx]) =>
+                                    setParameters((prev) => ({
+                                      ...prev,
+                                      [param.name]: options[idx],
+                                    }))
+                                  }
+                                >
+                                  <Slider.Track className="slider-track">
+                                    <Slider.Range className="slider-range" />
+                                  </Slider.Track>
+                                  <Slider.Thumb
+                                    className="slider-thumb"
+                                    aria-label={formatLabel(param.name)}
+                                  />
+                                </Slider.Root>
+                                <div className="slider-scale">
+                                  {options.length <= 6 ? (
+                                    options.map((opt, i) => (
+                                      <small
+                                        key={opt}
+                                        style={
+                                          i === currentIndex
+                                            ? {
+                                                fontWeight: 700,
+                                                color: 'var(--accent)',
+                                              }
+                                            : undefined
+                                        }
+                                      >
+                                        {Number.isNaN(Number(opt))
+                                          ? opt
+                                          : formatQuantity(
+                                              param.name,
+                                              Number(opt),
+                                            )}
+                                      </small>
+                                    ))
+                                  ) : (
+                                    <>
+                                      <small>
+                                        {Number.isNaN(Number(options[0]))
+                                          ? options[0]
+                                          : formatQuantity(
+                                              param.name,
+                                              Number(options[0]),
+                                            )}
+                                      </small>
+                                      <small>
+                                        {Number.isNaN(
+                                          Number(options[options.length - 1]),
+                                        )
+                                          ? options[options.length - 1]
+                                          : formatQuantity(
+                                              param.name,
+                                              Number(
+                                                options[options.length - 1],
+                                              ),
+                                            )}
+                                      </small>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          const min =
+                            param.minimum !== undefined
+                              ? Number(param.minimum)
+                              : isCount
+                                ? 1
+                                : isDuration
+                                  ? 5
+                                  : 1;
+                          const max =
+                            param.maximum !== undefined
+                              ? Number(param.maximum)
+                              : isCount
+                                ? 4
+                                : isDuration
+                                  ? 10
+                                  : 100;
+                          const rawVal =
                             parameters[param.name] ??
                             (param.default !== undefined
                               ? String(param.default)
-                              : options[0]);
-                          const currentIndex = Math.max(
-                            0,
-                            options.indexOf(currentVal),
-                          );
-                          const currentNum = Number(
-                            options[currentIndex] ?? options[0],
-                          );
+                              : String(min));
+                          const current = Number(rawVal) || min;
+
                           return (
                             <div
                               key={param.name}
@@ -917,21 +1041,19 @@ export function VideoStudio({
                                   {formatLabel(param.name)}
                                 </span>
                                 <span className="playground-slider-value">
-                                  {Number.isNaN(currentNum)
-                                    ? (options[currentIndex] ?? options[0])
-                                    : formatQuantity(param.name, currentNum)}
+                                  {formatQuantity(param.name, current)}
                                 </span>
                               </div>
                               <Slider.Root
                                 className="slider"
-                                min={0}
-                                max={options.length - 1}
+                                min={min}
+                                max={max}
                                 step={1}
-                                value={[currentIndex]}
-                                onValueChange={([idx]) =>
+                                value={[current]}
+                                onValueChange={([next]) =>
                                   setParameters((prev) => ({
                                     ...prev,
-                                    [param.name]: options[idx],
+                                    [param.name]: String(next),
                                   }))
                                 }
                               >
@@ -944,12 +1066,15 @@ export function VideoStudio({
                                 />
                               </Slider.Root>
                               <div className="slider-scale">
-                                {options.length <= 6 ? (
-                                  options.map((opt, i) => (
+                                {max - min <= 5 ? (
+                                  Array.from(
+                                    { length: max - min + 1 },
+                                    (_, i) => min + i,
+                                  ).map((num) => (
                                     <small
-                                      key={opt}
+                                      key={num}
                                       style={
-                                        i === currentIndex
+                                        num === current
                                           ? {
                                               fontWeight: 700,
                                               color: 'var(--accent)',
@@ -957,33 +1082,16 @@ export function VideoStudio({
                                           : undefined
                                       }
                                     >
-                                      {Number.isNaN(Number(opt))
-                                        ? opt
-                                        : formatQuantity(
-                                            param.name,
-                                            Number(opt),
-                                          )}
+                                      {formatQuantity(param.name, num)}
                                     </small>
                                   ))
                                 ) : (
                                   <>
                                     <small>
-                                      {Number.isNaN(Number(options[0]))
-                                        ? options[0]
-                                        : formatQuantity(
-                                            param.name,
-                                            Number(options[0]),
-                                          )}
+                                      {formatQuantity(param.name, min)}
                                     </small>
                                     <small>
-                                      {Number.isNaN(
-                                        Number(options[options.length - 1]),
-                                      )
-                                        ? options[options.length - 1]
-                                        : formatQuantity(
-                                            param.name,
-                                            Number(options[options.length - 1]),
-                                          )}
+                                      {formatQuantity(param.name, max)}
                                     </small>
                                   </>
                                 )}
@@ -992,99 +1100,44 @@ export function VideoStudio({
                           );
                         }
 
-                        const min =
-                          param.minimum !== undefined
-                            ? Number(param.minimum)
-                            : isCount
-                              ? 1
-                              : isDuration
-                                ? 5
-                                : 1;
-                        const max =
-                          param.maximum !== undefined
-                            ? Number(param.maximum)
-                            : isCount
-                              ? 4
-                              : isDuration
-                                ? 10
-                                : 100;
-                        const rawVal =
-                          parameters[param.name] ??
-                          (param.default !== undefined
-                            ? String(param.default)
-                            : String(min));
-                        const current = Number(rawVal) || min;
-
-                        return (
-                          <div
-                            key={param.name}
-                            className="playground-slider-col"
-                          >
-                            <div className="playground-slider-header">
+                        if (param.type === 'boolean') {
+                          return (
+                            <div
+                              key={param.name}
+                              className="playground-param-col"
+                            >
                               <span className="playground-param-label">
                                 {formatLabel(param.name)}
                               </span>
-                              <span className="playground-slider-value">
-                                {formatQuantity(param.name, current)}
-                              </span>
+                              <select
+                                className="playground-select"
+                                value={
+                                  parameters[param.name] ??
+                                  (param.default !== undefined
+                                    ? String(param.default)
+                                    : '')
+                                }
+                                onChange={(e) =>
+                                  setParameters((prev) => ({
+                                    ...prev,
+                                    [param.name]: e.target.value,
+                                  }))
+                                }
+                              >
+                                {!param.required && (
+                                  <option value="">{t('composer.auto')}</option>
+                                )}
+                                <option value="true">
+                                  {t('playground.on')}
+                                </option>
+                                <option value="false">
+                                  {t('playground.off')}
+                                </option>
+                              </select>
                             </div>
-                            <Slider.Root
-                              className="slider"
-                              min={min}
-                              max={max}
-                              step={1}
-                              value={[current]}
-                              onValueChange={([next]) =>
-                                setParameters((prev) => ({
-                                  ...prev,
-                                  [param.name]: String(next),
-                                }))
-                              }
-                            >
-                              <Slider.Track className="slider-track">
-                                <Slider.Range className="slider-range" />
-                              </Slider.Track>
-                              <Slider.Thumb
-                                className="slider-thumb"
-                                aria-label={formatLabel(param.name)}
-                              />
-                            </Slider.Root>
-                            <div className="slider-scale">
-                              {max - min <= 5 ? (
-                                Array.from(
-                                  { length: max - min + 1 },
-                                  (_, i) => min + i,
-                                ).map((num) => (
-                                  <small
-                                    key={num}
-                                    style={
-                                      num === current
-                                        ? {
-                                            fontWeight: 700,
-                                            color: 'var(--accent)',
-                                          }
-                                        : undefined
-                                    }
-                                  >
-                                    {formatQuantity(param.name, num)}
-                                  </small>
-                                ))
-                              ) : (
-                                <>
-                                  <small>
-                                    {formatQuantity(param.name, min)}
-                                  </small>
-                                  <small>
-                                    {formatQuantity(param.name, max)}
-                                  </small>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      }
+                          );
+                        }
 
-                      if (param.type === 'boolean') {
                         return (
                           <div
                             key={param.name}
@@ -1093,407 +1146,380 @@ export function VideoStudio({
                             <span className="playground-param-label">
                               {formatLabel(param.name)}
                             </span>
-                            <select
-                              className="playground-select"
-                              value={
-                                parameters[param.name] ??
-                                (param.default !== undefined
-                                  ? String(param.default)
-                                  : '')
-                              }
-                              onChange={(e) =>
-                                setParameters((prev) => ({
-                                  ...prev,
-                                  [param.name]: e.target.value,
-                                }))
-                              }
-                            >
-                              {!param.required && (
-                                <option value="">{t('composer.auto')}</option>
-                              )}
-                              <option value="true">{t('playground.on')}</option>
-                              <option value="false">
-                                {t('playground.off')}
-                              </option>
-                            </select>
+                            {param.enum?.length ? (
+                              <select
+                                className="playground-select"
+                                value={parameters[param.name] ?? ''}
+                                onChange={(e) =>
+                                  setParameters((prev) => ({
+                                    ...prev,
+                                    [param.name]: e.target.value,
+                                  }))
+                                }
+                              >
+                                {!param.required && (
+                                  <option value="">{t('composer.auto')}</option>
+                                )}
+                                {param.enum.map((opt) => (
+                                  <option key={opt} value={opt}>
+                                    {formatDimensionOption(opt, locale)}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type={
+                                  param.type === 'integer' ? 'number' : 'text'
+                                }
+                                className="playground-input"
+                                value={parameters[param.name] ?? ''}
+                                onChange={(e) =>
+                                  setParameters((prev) => ({
+                                    ...prev,
+                                    [param.name]: e.target.value,
+                                  }))
+                                }
+                              />
+                            )}
                           </div>
                         );
-                      }
+                      })}
+                  </div>
+                )}
 
-                      return (
-                        <div key={param.name} className="playground-param-col">
-                          <span className="playground-param-label">
-                            {formatLabel(param.name)}
-                          </span>
-                          {param.enum?.length ? (
-                            <select
-                              className="playground-select"
-                              value={parameters[param.name] ?? ''}
-                              onChange={(e) =>
-                                setParameters((prev) => ({
-                                  ...prev,
-                                  [param.name]: e.target.value,
-                                }))
-                              }
-                            >
-                              {!param.required && (
-                                <option value="">{t('composer.auto')}</option>
-                              )}
-                              {param.enum.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {formatDimensionOption(opt, locale)}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <input
-                              type={
-                                param.type === 'integer' ? 'number' : 'text'
-                              }
-                              className="playground-input"
-                              value={parameters[param.name] ?? ''}
-                              onChange={(e) =>
-                                setParameters((prev) => ({
-                                  ...prev,
-                                  [param.name]: e.target.value,
-                                }))
-                              }
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                </div>
-              )}
+                {/* Price Table / 价格说明 */}
+                {selectedModel && (
+                  <PriceTable
+                    billing={selectedModel.billing}
+                    parameters={parameters}
+                    admin={admin}
+                  />
+                )}
 
-              {/* Price Table / 价格说明 */}
-              {selectedModel && (
-                <PriceTable
-                  billing={selectedModel.billing}
-                  parameters={parameters}
-                  admin={admin}
-                />
-              )}
-
-              {/* Plaza sharing, decided before the job is created. */}
-              {!admin && (
-                <ShareOptions
-                  value={sharing}
-                  onChange={(next) => {
-                    setSharing(next);
-                    writeSharePreference(next);
-                  }}
-                />
-              )}
-
-              {/* Bottom Action Bar */}
-              <div className="playground-actions-bar">
-                <button
-                  type="button"
-                  className="playground-reset-btn"
-                  onClick={handleReset}
-                >
-                  <RotateCcw size={14} />
-                  <span>{t('playground.reset')}</span>
-                </button>
-
-                <button
-                  type="submit"
-                  className="playground-generate-btn"
-                  disabled={
-                    creating ||
-                    isUploading ||
-                    !prompt.trim() ||
-                    !modelId ||
-                    !videoAllowed
-                  }
-                >
-                  {creating ? (
-                    <>
-                      <Loader2 size={16} className="loader small" />
-                      <span>{t('playground.generating')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} />
-                      <span>
-                        {price
-                          ? t('playground.generatePriced', { price })
-                          : t('playground.generate')}
-                      </span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          ) : (
-            /* JSON mode */
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <button
-                type="button"
-                className="playground-copy-json-btn"
-                onClick={() => {
-                  void navigator.clipboard.writeText(jsonRequestBody);
-                  setCopiedJson(true);
-                  setTimeout(() => setCopiedJson(false), 2000);
-                }}
-              >
-                {copiedJson ? <Check size={12} /> : <Copy size={12} />}
-                <span>
-                  {copiedJson
-                    ? t('playground.copied')
-                    : t('playground.copyJson')}
-                </span>
-              </button>
-              <pre className="playground-json-view">{jsonRequestBody}</pre>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: PREVIEW & OUTPUT */}
-        <div className="playground-panel playground-output-panel">
-          {/* Output Top Bar */}
-          <div className="output-top-bar">
-            <div className="output-meta-stats">
-              {metaStats ? (
-                <span>{metaStats}</span>
-              ) : (
-                <span>{t('playground.preview')}</span>
-              )}
-            </div>
-
-            <div className="output-view-toggle">
-              {activeGen && (
-                <button
-                  type="button"
-                  className="output-details-btn"
-                  onClick={() => setShowDetails(true)}
-                  title={t('playground.viewDetails')}
-                >
-                  <Info size={13} />
-                  <span>{t('playground.viewDetails')}</span>
-                </button>
-              )}
-              <button
-                type="button"
-                className={`output-toggle-btn ${outputTab === 'preview' ? 'active' : ''}`}
-                onClick={() => setOutputTab('preview')}
-              >
-                <Video size={13} />
-                <span>{t('playground.preview')}</span>
-              </button>
-              <button
-                type="button"
-                className={`output-toggle-btn ${outputTab === 'json' ? 'active' : ''}`}
-                onClick={() => setOutputTab('json')}
-              >
-                <Code2 size={13} />
-                <span>{t('playground.json')}</span>
-              </button>
-            </div>
-          </div>
-
-          {outputTab === 'preview' ? (
-            /* Canvas Area */
-            <div className="checkerboard-canvas">
-              {detailsLoading ||
-              (activeGen &&
-                ['queued', 'submitting', 'submitted', 'in_progress'].includes(
-                  activeGen.status,
-                )) ? (
-                <div className="canvas-loading-card">
-                  <Loader2
-                    size={28}
-                    style={{
-                      animation: 'spin .8s linear infinite',
-                      color: '#7c3aed',
+                {/* Plaza sharing, decided before the job is created. */}
+                {!admin && (
+                  <ShareOptions
+                    value={sharing}
+                    onChange={(next) => {
+                      setSharing(next);
+                      writeSharePreference(next);
                     }}
                   />
-                  <b>{t('playground.generating')}</b>
-                  <span>
-                    {activeGen?.model} ·{' '}
-                    {activeGen?.status ? formatLabel(activeGen.status) : ''}
-                  </span>
+                )}
+
+                {/* Bottom Action Bar */}
+                <div className="playground-actions-bar">
+                  <button
+                    type="button"
+                    className="playground-reset-btn"
+                    onClick={handleReset}
+                  >
+                    <RotateCcw size={14} />
+                    <span>{t('playground.reset')}</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="playground-generate-btn"
+                    disabled={
+                      creating ||
+                      isUploading ||
+                      !prompt.trim() ||
+                      !modelId ||
+                      !videoAllowed
+                    }
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 size={16} className="loader small" />
+                        <span>{t('playground.generating')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        <span>
+                          {price
+                            ? t('playground.generatePriced', { price })
+                            : t('playground.generate')}
+                        </span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              ) : activeVideoUrl ? (
-                <div className="canvas-media-wrap">
-                  <video
-                    src={activeVideoUrl}
-                    controls
-                    playsInline
-                    loop
-                    preload="metadata"
-                  />
-                  <div className="canvas-toolbar">
-                    <button
-                      type="button"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.viewDetails')}
-                      onClick={() => setShowDetails(true)}
-                    >
-                      <Info size={15} />
-                    </button>
-                    <a
-                      href={activeVideoUrl}
-                      download={`generation-${activeGen?.id || 'video'}.mp4`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.download')}
-                    >
-                      <Download size={15} />
-                    </a>
-                    <a
-                      href={activeVideoUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.openOriginal')}
-                    >
-                      <ExternalLink size={15} />
-                    </a>
-                    <button
-                      type="button"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.copyUrl')}
-                      onClick={() => {
-                        void navigator.clipboard.writeText(activeVideoUrl);
-                        setCopiedUrl(true);
-                        setTimeout(() => setCopiedUrl(false), 2000);
-                      }}
-                    >
-                      {copiedUrl ? <Check size={15} /> : <Copy size={15} />}
-                    </button>
-                  </div>
-                </div>
-              ) : activeGen?.status === 'failed' ? (
-                <div
-                  className="canvas-loading-card"
-                  style={{ borderColor: '#fca5a5' }}
+              </form>
+            ) : (
+              /* JSON mode */
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <button
+                  type="button"
+                  className="playground-copy-json-btn"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(jsonRequestBody);
+                    setCopiedJson(true);
+                    setTimeout(() => setCopiedJson(false), 2000);
+                  }}
                 >
-                  <AlertCircle size={28} style={{ color: '#dc2626' }} />
-                  <b style={{ color: '#b91c1c' }}>Generation Failed</b>
-                  <span>{activeGen.prompt}</span>
+                  {copiedJson ? <Check size={12} /> : <Copy size={12} />}
+                  <span>
+                    {copiedJson
+                      ? t('playground.copied')
+                      : t('playground.copyJson')}
+                  </span>
+                </button>
+                <pre className="playground-json-view">{jsonRequestBody}</pre>
+              </div>
+            )}
+          </div>
+        </ViewTransition>
+
+        {/* PREVIEW & OUTPUT */}
+        <ViewTransition name="playground-output">
+          <div className="playground-panel playground-output-panel">
+            {/* Output Top Bar */}
+            <div className="output-top-bar">
+              <div className="output-meta-stats">
+                {metaStats ? (
+                  <span>{metaStats}</span>
+                ) : (
+                  <span>{t('playground.preview')}</span>
+                )}
+              </div>
+
+              <div className="output-view-toggle">
+                {activeGen && (
                   <button
                     type="button"
                     className="output-details-btn"
-                    style={{ marginTop: 8 }}
                     onClick={() => setShowDetails(true)}
+                    title={t('playground.viewDetails')}
                   >
                     <Info size={13} />
                     <span>{t('playground.viewDetails')}</span>
                   </button>
-                </div>
-              ) : (
-                <div className="canvas-empty-state">
-                  <Film size={36} strokeWidth={1.5} />
-                  <b>{t('playground.noOutputYet')}</b>
-                  <p>{t('playground.videoDescription')}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Output JSON view */
-            <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
-              <button
-                type="button"
-                className="playground-copy-json-btn"
-                onClick={() => {
-                  if (jsonResponseData) {
-                    void navigator.clipboard.writeText(jsonResponseData);
-                    setCopiedJson(true);
-                    setTimeout(() => setCopiedJson(false), 2000);
-                  }
-                }}
-              >
-                {copiedJson ? <Check size={12} /> : <Copy size={12} />}
-                <span>
-                  {copiedJson
-                    ? t('playground.copied')
-                    : t('playground.copyJson')}
-                </span>
-              </button>
-              <pre className="playground-json-view">
-                {jsonResponseData || t('playground.noOutputYet')}
-              </pre>
-            </div>
-          )}
-
-          {/* Recent Generations Strip */}
-          {videoGenerations.length > 0 && (
-            <div className="recent-strip">
-              <div className="recent-strip-heading">
-                <span>{t('playground.recentGenerations')}</span>
-                <span>{videoGenerations.length}</span>
+                )}
+                <button
+                  type="button"
+                  className={`output-toggle-btn ${outputTab === 'preview' ? 'active' : ''}`}
+                  onClick={() => setOutputTab('preview')}
+                >
+                  <Video size={13} />
+                  <span>{t('playground.preview')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`output-toggle-btn ${outputTab === 'json' ? 'active' : ''}`}
+                  onClick={() => setOutputTab('json')}
+                >
+                  <Code2 size={13} />
+                  <span>{t('playground.json')}</span>
+                </button>
               </div>
-              <div className="recent-strip-scroll">
-                {videoGenerations.slice(0, 14).map((gen) => {
-                  const thumb = thumbnails[gen.id];
-                  const hasValidThumb = Boolean(thumb && !failedThumbs[gen.id]);
-                  const isInProgress = [
-                    'queued',
-                    'submitting',
-                    'submitted',
-                    'in_progress',
-                  ].includes(gen.status);
+            </div>
 
-                  return (
+            {outputTab === 'preview' ? (
+              /* Canvas Area */
+              <div className="checkerboard-canvas">
+                {detailsLoading ||
+                (activeGen &&
+                  ['queued', 'submitting', 'submitted', 'in_progress'].includes(
+                    activeGen.status,
+                  )) ? (
+                  <div className="canvas-loading-card">
+                    <Loader2
+                      size={28}
+                      style={{
+                        animation: 'spin .8s linear infinite',
+                        color: '#7c3aed',
+                      }}
+                    />
+                    <b>{t('playground.generating')}</b>
+                    <span>
+                      {activeGen?.model} ·{' '}
+                      {activeGen?.status ? formatLabel(activeGen.status) : ''}
+                    </span>
+                  </div>
+                ) : activeVideoUrl ? (
+                  <div className="canvas-media-wrap">
+                    <video
+                      src={activeVideoUrl}
+                      controls
+                      playsInline
+                      loop
+                      preload="metadata"
+                    />
+                    <div className="canvas-toolbar">
+                      <button
+                        type="button"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.viewDetails')}
+                        onClick={() => setShowDetails(true)}
+                      >
+                        <Info size={15} />
+                      </button>
+                      <a
+                        href={activeVideoUrl}
+                        download={`generation-${activeGen?.id || 'video'}.mp4`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.download')}
+                      >
+                        <Download size={15} />
+                      </a>
+                      <a
+                        href={activeVideoUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.openOriginal')}
+                      >
+                        <ExternalLink size={15} />
+                      </a>
+                      <button
+                        type="button"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.copyUrl')}
+                        onClick={() => {
+                          void navigator.clipboard.writeText(activeVideoUrl);
+                          setCopiedUrl(true);
+                          setTimeout(() => setCopiedUrl(false), 2000);
+                        }}
+                      >
+                        {copiedUrl ? <Check size={15} /> : <Copy size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : activeGen?.status === 'failed' ? (
+                  <div
+                    className="canvas-loading-card"
+                    style={{ borderColor: '#fca5a5' }}
+                  >
+                    <AlertCircle size={28} style={{ color: '#dc2626' }} />
+                    <b style={{ color: '#b91c1c' }}>Generation Failed</b>
+                    <span>{activeGen.prompt}</span>
                     <button
-                      key={gen.id}
                       type="button"
-                      className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
-                      onClick={() => setActiveGenId(gen.id)}
-                      title={`${gen.model} - ${gen.prompt || gen.id}`}
+                      className="output-details-btn"
+                      style={{ marginTop: 8 }}
+                      onClick={() => setShowDetails(true)}
                     >
-                      {hasValidThumb && thumb ? (
-                        thumb.isVideo ? (
-                          <video
-                            src={`${absoluteGatewayURL(thumb.url)}#t=0.001`}
-                            muted
-                            playsInline
-                            preload="metadata"
-                            onError={() =>
-                              setFailedThumbs((prev) => ({
-                                ...prev,
-                                [gen.id]: true,
-                              }))
-                            }
-                          />
-                        ) : (
-                          <img
-                            src={absoluteGatewayURL(thumb.url)}
-                            alt={gen.prompt || gen.id}
-                            loading="lazy"
-                            onError={() =>
-                              setFailedThumbs((prev) => ({
-                                ...prev,
-                                [gen.id]: true,
-                              }))
-                            }
-                          />
-                        )
-                      ) : isInProgress ? (
-                        <div className="status-icon">
-                          <Loader2 size={14} className="loader small" />
-                        </div>
-                      ) : (
-                        <div className="status-icon">
-                          <Video size={16} />
-                        </div>
-                      )}
+                      <Info size={13} />
+                      <span>{t('playground.viewDetails')}</span>
                     </button>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <div className="canvas-empty-state">
+                    <Film size={36} strokeWidth={1.5} />
+                    <b>{t('playground.noOutputYet')}</b>
+                    <p>{t('playground.videoDescription')}</p>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              /* Output JSON view */
+              <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                <button
+                  type="button"
+                  className="playground-copy-json-btn"
+                  onClick={() => {
+                    if (jsonResponseData) {
+                      void navigator.clipboard.writeText(jsonResponseData);
+                      setCopiedJson(true);
+                      setTimeout(() => setCopiedJson(false), 2000);
+                    }
+                  }}
+                >
+                  {copiedJson ? <Check size={12} /> : <Copy size={12} />}
+                  <span>
+                    {copiedJson
+                      ? t('playground.copied')
+                      : t('playground.copyJson')}
+                  </span>
+                </button>
+                <pre className="playground-json-view">
+                  {jsonResponseData || t('playground.noOutputYet')}
+                </pre>
+              </div>
+            )}
+
+            {/* Recent Generations Strip */}
+            {videoGenerations.length > 0 && (
+              <div className="recent-strip">
+                <div className="recent-strip-heading">
+                  <span>{t('playground.recentGenerations')}</span>
+                  <span>{videoGenerations.length}</span>
+                </div>
+                <div className="recent-strip-scroll">
+                  {videoGenerations.slice(0, 14).map((gen) => {
+                    const thumb = thumbnails[gen.id];
+                    const hasValidThumb = Boolean(
+                      thumb && !failedThumbs[gen.id],
+                    );
+                    const isInProgress = [
+                      'queued',
+                      'submitting',
+                      'submitted',
+                      'in_progress',
+                    ].includes(gen.status);
+
+                    return (
+                      <button
+                        key={gen.id}
+                        type="button"
+                        className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
+                        onClick={() => setActiveGenId(gen.id)}
+                        title={`${gen.model} - ${gen.prompt || gen.id}`}
+                      >
+                        {hasValidThumb && thumb ? (
+                          thumb.isVideo ? (
+                            <video
+                              src={`${absoluteGatewayURL(thumb.url)}#t=0.001`}
+                              muted
+                              playsInline
+                              preload="metadata"
+                              onError={() =>
+                                setFailedThumbs((prev) => ({
+                                  ...prev,
+                                  [gen.id]: true,
+                                }))
+                              }
+                            />
+                          ) : (
+                            <img
+                              src={absoluteGatewayURL(thumb.url)}
+                              alt={gen.prompt || gen.id}
+                              loading="lazy"
+                              onError={() =>
+                                setFailedThumbs((prev) => ({
+                                  ...prev,
+                                  [gen.id]: true,
+                                }))
+                              }
+                            />
+                          )
+                        ) : isInProgress ? (
+                          <div className="status-icon">
+                            <Loader2 size={14} className="loader small" />
+                          </div>
+                        ) : (
+                          <div className="status-icon">
+                            <Video size={16} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </ViewTransition>
       </div>
 
       <GenerationDetails

@@ -604,7 +604,7 @@ export const en = {
   'playground.copied': 'Copied!',
   'playground.recentGenerations': 'Recent generations',
   'playground.noOutputYet':
-    'No output yet. Fill in the prompt on the left and click Generate.',
+    'No output yet. Fill in the prompt and click Generate.',
   'playground.model': 'Model',
   'playground.hintFlare':
     'Flare is the default for most work: higher-quality images than GPT Image 2 at about half the latency. It suits creator and social content, product experiences, visual search, rapid prototyping, and high-volume generation.',
@@ -612,6 +612,9 @@ export const en = {
     'Sunburst is built for premium visual workflows that need tighter control across edits, such as production-ready campaign creative and polished product imagery.',
   'playground.noModels': 'No models available',
   'playground.selectModel': 'Select model',
+  'playground.layoutSwap': 'Swap sides',
+  'playground.layoutControlsLeft': 'Controls on the left',
+  'playground.layoutControlsRight': 'Controls on the right',
   'playground.imageTitle': 'Image Generation',
   'playground.videoTitle': 'Video Generation',
   'playground.imageDescription':

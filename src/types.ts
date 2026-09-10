@@ -20,6 +20,10 @@ export type User = {
   image_enabled?: boolean;
   video_enabled?: boolean;
   email_verified_at?: string;
+  // Settings the account keeps for itself, stored by the gateway as an opaque
+  // JSON object: the console owns the keys, so a new option needs no server
+  // change. `src/lib/preferences.ts` gives it a shape, defensively.
+  preferences?: Record<string, unknown>;
   created_at: string;
 };
 

@@ -35,6 +35,7 @@ import { TransactionsTable, useTransactions } from '../components/Transactions';
 import { formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
 import { CurrencyProvider, useMoney } from '../lib/money';
+import { PreferencesProvider, usePreferences } from '../lib/preferencesContext';
 import { modelPathSlug } from '../lib/requestForm';
 import { topupAmountLabel } from '../lib/topup';
 import type {
@@ -93,7 +94,9 @@ function takeTopupReturn(): TopupReturn {
 export function TenantConsole() {
   return (
     <CurrencyProvider>
-      <TenantWorkspace />
+      <PreferencesProvider>
+        <TenantWorkspace />
+      </PreferencesProvider>
     </CurrencyProvider>
   );
 }
@@ -101,6 +104,7 @@ export function TenantConsole() {
 function TenantWorkspace() {
   const { t } = useI18n();
   const navigate = useNavigate();
+  const { adopt } = usePreferences();
   const [profile, setProfile] = useState<IdentityProfile | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
   const [models, setModels] = useState<PublicModel[]>([]);
@@ -132,6 +136,9 @@ function TenantWorkspace() {
         balanceRequest,
       ]);
       setProfile(identity);
+      // The account's own settings ride on the profile, so the layout it holds
+      // costs no extra request.
+      adopt(identity.user.preferences);
       setGenerations(jobs.data);
       if (balanceResult.ok) {
         setBalance(balanceResult.value);
@@ -164,7 +171,7 @@ function TenantWorkspace() {
       setLoading(false);
       setBalanceLoading(false);
     }
-  }, [navigate, t]);
+  }, [adopt, navigate, t]);
 
   useEffect(() => {
     void load();

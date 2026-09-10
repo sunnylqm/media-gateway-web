@@ -23,9 +23,11 @@ import {
   useMemo,
   useRef,
   useState,
+  ViewTransition,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
 import { GenerationDetails } from '../components/Generations';
+import { LayoutSwitch } from '../components/LayoutSwitch';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
 import {
@@ -37,6 +39,7 @@ import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
 import { defaultModelID, modelHintKey } from '../lib/modelGuidance';
 import { useMoney } from '../lib/money';
+import { usePreferences } from '../lib/preferencesContext';
 import {
   buildRequestBody,
   defaultParameterValue,
@@ -88,6 +91,7 @@ export function ImagePlayground({
 }) {
   const { t, locale } = useI18n();
   const { money } = useMoney();
+  const { preferences } = usePreferences();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const imageAllowed = admin || user?.image_enabled !== false;
@@ -625,6 +629,7 @@ export function ImagePlayground({
           </span>
           <span>{t('playground.imageTitle')}</span>
         </div>
+        <LayoutSwitch />
       </div>
 
       {!imageAllowed && (
@@ -641,341 +646,454 @@ export function ImagePlayground({
         </div>
       )}
 
-      {/* Main split 2-column layout */}
-      <div className="playground-layout">
-        {/* Left Column: INPUT */}
-        <div className="playground-panel playground-input-panel">
-          <div className="playground-panel-header">
-            <div className="playground-model-select-wrap">
-              <select
-                value={modelId}
-                onChange={(e) => setModelId(e.target.value)}
-                disabled={!imageAllowed || !imageModels.length}
-                aria-label={t('playground.model')}
-              >
-                {imageModels.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.display_name} ({item.provider})
-                  </option>
-                ))}
-              </select>
-              {modelPriceTag && (
-                <span className="playground-model-price-badge">
-                  {modelPriceTag}
-                </span>
+      {/* Two columns, either way round: the account chooses the side. */}
+      <div
+        className={`playground-layout${
+          preferences.playgroundLayout === 'input_right' ? ' input-right' : ''
+        }`}
+      >
+        {/* INPUT */}
+        <ViewTransition name="playground-input">
+          <div className="playground-panel playground-input-panel">
+            <div className="playground-panel-header">
+              <div className="playground-model-select-wrap">
+                <select
+                  value={modelId}
+                  onChange={(e) => setModelId(e.target.value)}
+                  disabled={!imageAllowed || !imageModels.length}
+                  aria-label={t('playground.model')}
+                >
+                  {imageModels.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.display_name} ({item.provider})
+                    </option>
+                  ))}
+                </select>
+                {modelPriceTag && (
+                  <span className="playground-model-price-badge">
+                    {modelPriceTag}
+                  </span>
+                )}
+              </div>
+              {modelHint && (
+                <p className="playground-model-hint">
+                  <Info size={13} aria-hidden="true" />
+                  <span>{t(modelHint)}</span>
+                </p>
               )}
+              <div className="playground-tab-group" role="tablist">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inputTab === 'form'}
+                  className={`playground-tab-btn ${inputTab === 'form' ? 'active' : ''}`}
+                  onClick={() => setInputTab('form')}
+                >
+                  <SlidersHorizontal size={13} />
+                  <span>{t('playground.form')}</span>
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={inputTab === 'json'}
+                  className={`playground-tab-btn ${inputTab === 'json' ? 'active' : ''}`}
+                  onClick={() => setInputTab('json')}
+                >
+                  <Code2 size={13} />
+                  <span>{t('playground.json')}</span>
+                </button>
+              </div>
             </div>
-            {modelHint && (
-              <p className="playground-model-hint">
-                <Info size={13} aria-hidden="true" />
-                <span>{t(modelHint)}</span>
-              </p>
-            )}
-            <div className="playground-tab-group" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={inputTab === 'form'}
-                className={`playground-tab-btn ${inputTab === 'form' ? 'active' : ''}`}
-                onClick={() => setInputTab('form')}
-              >
-                <SlidersHorizontal size={13} />
-                <span>{t('playground.form')}</span>
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={inputTab === 'json'}
-                className={`playground-tab-btn ${inputTab === 'json' ? 'active' : ''}`}
-                onClick={() => setInputTab('json')}
-              >
-                <Code2 size={13} />
-                <span>{t('playground.json')}</span>
-              </button>
-            </div>
-          </div>
 
-          {inputTab === 'form' ? (
-            <form
-              onSubmit={handleGenerate}
-              style={{ display: 'grid', gap: '18px' }}
-            >
-              {/* PROMPT section */}
-              <div>
-                <label
-                  className="playground-field-label"
-                  htmlFor="image-prompt-input"
-                >
-                  {t('playground.prompt')}
-                </label>
-                <div
-                  className="playground-prompt-area"
-                  style={{ marginTop: '6px' }}
-                >
-                  <textarea
-                    id="image-prompt-input"
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={handlePromptKeyDown}
-                    placeholder={t('playground.promptPlaceholder')}
-                    rows={4}
-                  />
-                  <div className="playground-prompt-hint">
-                    <span>{t('playground.promptHint')}</span>
-                    {form?.prompt.max_runes ? (
-                      <span>
-                        {prompt.length} / {form.prompt.max_runes}
-                      </span>
-                    ) : null}
+            {inputTab === 'form' ? (
+              <form
+                onSubmit={handleGenerate}
+                style={{ display: 'grid', gap: '18px' }}
+              >
+                {/* PROMPT section */}
+                <div>
+                  <label
+                    className="playground-field-label"
+                    htmlFor="image-prompt-input"
+                  >
+                    {t('playground.prompt')}
+                  </label>
+                  <div
+                    className="playground-prompt-area"
+                    style={{ marginTop: '6px' }}
+                  >
+                    <textarea
+                      id="image-prompt-input"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={handlePromptKeyDown}
+                      placeholder={t('playground.promptPlaceholder')}
+                      rows={4}
+                    />
+                    <div className="playground-prompt-hint">
+                      <span>{t('playground.promptHint')}</span>
+                      {form?.prompt.max_runes ? (
+                        <span>
+                          {prompt.length} / {form.prompt.max_runes}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Image References section */}
-              <div>
-                <div className="playground-field-label">
-                  <span>{t('playground.imageReferences')}</span>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span className="playground-tooltip-icon">
-                        <Info size={13} />
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top">
-                      {t('playground.referencesTooltip')}
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
+                {/* Image References section */}
+                <div>
+                  <div className="playground-field-label">
+                    <span>{t('playground.imageReferences')}</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="playground-tooltip-icon">
+                          <Info size={13} />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">
+                        {t('playground.referencesTooltip')}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
 
-                <div className="playground-ref-list">
-                  {attachments.length < 3 && (
-                    <button
-                      type="button"
-                      className="ref-add-btn"
-                      onClick={() => fileInputRef.current?.click()}
-                      title={t('playground.add')}
-                    >
-                      <ImageIcon size={18} />
-                      <span>{t('playground.add')}</span>
-                    </button>
-                  )}
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: 'none' }}
-                    onChange={(e) => {
-                      if (e.target.files) handleFiles(e.target.files);
-                      e.target.value = '';
-                    }}
-                  />
-
-                  {attachments.map((att) => (
-                    <div key={att.key} className="ref-item-thumb">
-                      <img src={att.preview} alt={att.file.name} />
+                  <div className="playground-ref-list">
+                    {attachments.length < 3 && (
                       <button
                         type="button"
-                        className="ref-remove-btn"
-                        onClick={() => removeAttachment(att.key)}
-                        title={t('common.cancel')}
+                        className="ref-add-btn"
+                        onClick={() => fileInputRef.current?.click()}
+                        title={t('playground.add')}
                       >
-                        <Trash2 size={10} />
+                        <ImageIcon size={18} />
+                        <span>{t('playground.add')}</span>
                       </button>
-                      {att.status === 'uploading' && (
-                        <div className="ref-spinner">
-                          <Loader2 size={18} className="loader small" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Standard Parameters: Resolution & Aspect Ratio side by side */}
-              <div className="playground-param-row">
-                <div className="playground-param-col">
-                  <span className="playground-param-label">
-                    {resolutionParam
-                      ? formatLabel(resolutionParam.name)
-                      : t('playground.resolution')}
-                  </span>
-                  {resolutionParam?.enum?.length ? (
-                    <select
-                      className="playground-select"
-                      value={parameters[resolutionParam.name] ?? ''}
-                      onChange={(e) =>
-                        setParameters((prev) => ({
-                          ...prev,
-                          [resolutionParam.name]: e.target.value,
-                        }))
-                      }
-                    >
-                      {resolutionParam.enum.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {formatDimensionOption(opt, locale)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <select
-                      className="playground-select"
-                      value={
-                        resolutionParam
-                          ? (parameters[resolutionParam.name] ?? '')
-                          : '2K'
-                      }
+                    )}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      style={{ display: 'none' }}
                       onChange={(e) => {
-                        if (resolutionParam) {
+                        if (e.target.files) handleFiles(e.target.files);
+                        e.target.value = '';
+                      }}
+                    />
+
+                    {attachments.map((att) => (
+                      <div key={att.key} className="ref-item-thumb">
+                        <img src={att.preview} alt={att.file.name} />
+                        <button
+                          type="button"
+                          className="ref-remove-btn"
+                          onClick={() => removeAttachment(att.key)}
+                          title={t('common.cancel')}
+                        >
+                          <Trash2 size={10} />
+                        </button>
+                        {att.status === 'uploading' && (
+                          <div className="ref-spinner">
+                            <Loader2 size={18} className="loader small" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Standard Parameters: Resolution & Aspect Ratio side by side */}
+                <div className="playground-param-row">
+                  <div className="playground-param-col">
+                    <span className="playground-param-label">
+                      {resolutionParam
+                        ? formatLabel(resolutionParam.name)
+                        : t('playground.resolution')}
+                    </span>
+                    {resolutionParam?.enum?.length ? (
+                      <select
+                        className="playground-select"
+                        value={parameters[resolutionParam.name] ?? ''}
+                        onChange={(e) =>
                           setParameters((prev) => ({
                             ...prev,
                             [resolutionParam.name]: e.target.value,
-                          }));
+                          }))
                         }
-                      }}
-                    >
-                      <option value="1K">1K</option>
-                      <option value="2K">2K</option>
-                      <option value="4K">4K</option>
-                    </select>
-                  )}
-                </div>
+                      >
+                        {resolutionParam.enum.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {formatDimensionOption(opt, locale)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        className="playground-select"
+                        value={
+                          resolutionParam
+                            ? (parameters[resolutionParam.name] ?? '')
+                            : '2K'
+                        }
+                        onChange={(e) => {
+                          if (resolutionParam) {
+                            setParameters((prev) => ({
+                              ...prev,
+                              [resolutionParam.name]: e.target.value,
+                            }));
+                          }
+                        }}
+                      >
+                        <option value="1K">1K</option>
+                        <option value="2K">2K</option>
+                        <option value="4K">4K</option>
+                      </select>
+                    )}
+                  </div>
 
-                <div className="playground-param-col">
-                  <span className="playground-param-label">
-                    {aspectParam
-                      ? formatLabel(aspectParam.name)
-                      : t('playground.aspectRatio')}
-                  </span>
-                  {aspectParam?.enum?.length ? (
-                    <select
-                      className="playground-select"
-                      value={parameters[aspectParam.name] ?? ''}
-                      onChange={(e) =>
-                        setParameters((prev) => ({
-                          ...prev,
-                          [aspectParam.name]: e.target.value,
-                        }))
-                      }
-                    >
-                      {aspectParam.enum.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {formatDimensionOption(opt, locale)}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <select
-                      className="playground-select"
-                      value={
-                        aspectParam
-                          ? (parameters[aspectParam.name] ?? '')
-                          : '16:9'
-                      }
-                      onChange={(e) => {
-                        if (aspectParam) {
+                  <div className="playground-param-col">
+                    <span className="playground-param-label">
+                      {aspectParam
+                        ? formatLabel(aspectParam.name)
+                        : t('playground.aspectRatio')}
+                    </span>
+                    {aspectParam?.enum?.length ? (
+                      <select
+                        className="playground-select"
+                        value={parameters[aspectParam.name] ?? ''}
+                        onChange={(e) =>
                           setParameters((prev) => ({
                             ...prev,
                             [aspectParam.name]: e.target.value,
-                          }));
+                          }))
                         }
-                      }}
-                    >
-                      <option value="1:1">
-                        {formatDimensionOption('1:1', locale)}
-                      </option>
-                      <option value="16:9">
-                        {formatDimensionOption('16:9', locale)}
-                      </option>
-                      <option value="9:16">
-                        {formatDimensionOption('9:16', locale)}
-                      </option>
-                      <option value="4:3">
-                        {formatDimensionOption('4:3', locale)}
-                      </option>
-                      <option value="3:4">
-                        {formatDimensionOption('3:4', locale)}
-                      </option>
-                      <option value="21:9">
-                        {formatDimensionOption('21:9', locale)}
-                      </option>
-                    </select>
-                  )}
-                </div>
-              </div>
-
-              {/* Quality parameter below */}
-              {qualityParam ? (
-                <div className="playground-param-col">
-                  <span className="playground-param-label">
-                    {formatLabel(qualityParam.name)}
-                  </span>
-                  {qualityParam.enum?.length ? (
-                    <select
-                      className="playground-select"
-                      value={parameters[qualityParam.name] ?? ''}
-                      onChange={(e) =>
-                        setParameters((prev) => ({
-                          ...prev,
-                          [qualityParam.name]: e.target.value,
-                        }))
-                      }
-                    >
-                      {qualityParam.enum.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
+                      >
+                        {aspectParam.enum.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {formatDimensionOption(opt, locale)}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        className="playground-select"
+                        value={
+                          aspectParam
+                            ? (parameters[aspectParam.name] ?? '')
+                            : '16:9'
+                        }
+                        onChange={(e) => {
+                          if (aspectParam) {
+                            setParameters((prev) => ({
+                              ...prev,
+                              [aspectParam.name]: e.target.value,
+                            }));
+                          }
+                        }}
+                      >
+                        <option value="1:1">
+                          {formatDimensionOption('1:1', locale)}
                         </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <select
-                      className="playground-select"
-                      value={parameters[qualityParam.name] ?? 'Standard'}
-                      onChange={(e) =>
-                        setParameters((prev) => ({
-                          ...prev,
-                          [qualityParam.name]: e.target.value,
-                        }))
-                      }
-                    >
-                      <option value="Low">Low</option>
-                      <option value="Standard">Standard</option>
-                      <option value="HD">HD</option>
-                    </select>
-                  )}
+                        <option value="16:9">
+                          {formatDimensionOption('16:9', locale)}
+                        </option>
+                        <option value="9:16">
+                          {formatDimensionOption('9:16', locale)}
+                        </option>
+                        <option value="4:3">
+                          {formatDimensionOption('4:3', locale)}
+                        </option>
+                        <option value="3:4">
+                          {formatDimensionOption('3:4', locale)}
+                        </option>
+                        <option value="21:9">
+                          {formatDimensionOption('21:9', locale)}
+                        </option>
+                      </select>
+                    )}
+                  </div>
                 </div>
-              ) : null}
 
-              {/* Any additional model parameters */}
-              {otherParams.length > 0 && (
-                <div className="playground-param-row">
-                  {otherParams.map((param) => {
-                    const isDuration = /duration|second/i.test(param.name);
-                    const isCount =
-                      /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
-                        param.name,
-                      ) || formatLabel(param.name) === '数量';
-                    const isRanged =
-                      param.type === 'integer' &&
-                      param.minimum !== undefined &&
-                      param.maximum !== undefined &&
-                      param.maximum > param.minimum;
+                {/* Quality parameter below */}
+                {qualityParam ? (
+                  <div className="playground-param-col">
+                    <span className="playground-param-label">
+                      {formatLabel(qualityParam.name)}
+                    </span>
+                    {qualityParam.enum?.length ? (
+                      <select
+                        className="playground-select"
+                        value={parameters[qualityParam.name] ?? ''}
+                        onChange={(e) =>
+                          setParameters((prev) => ({
+                            ...prev,
+                            [qualityParam.name]: e.target.value,
+                          }))
+                        }
+                      >
+                        {qualityParam.enum.map((opt) => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <select
+                        className="playground-select"
+                        value={parameters[qualityParam.name] ?? 'Standard'}
+                        onChange={(e) =>
+                          setParameters((prev) => ({
+                            ...prev,
+                            [qualityParam.name]: e.target.value,
+                          }))
+                        }
+                      >
+                        <option value="Low">Low</option>
+                        <option value="Standard">Standard</option>
+                        <option value="HD">HD</option>
+                      </select>
+                    )}
+                  </div>
+                ) : null}
 
-                    if (isDuration || isCount || isRanged) {
-                      if (param.enum?.length) {
-                        const options = param.enum;
-                        const currentVal =
+                {/* Any additional model parameters */}
+                {otherParams.length > 0 && (
+                  <div className="playground-param-row">
+                    {otherParams.map((param) => {
+                      const isDuration = /duration|second/i.test(param.name);
+                      const isCount =
+                        /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
+                          param.name,
+                        ) || formatLabel(param.name) === '数量';
+                      const isRanged =
+                        param.type === 'integer' &&
+                        param.minimum !== undefined &&
+                        param.maximum !== undefined &&
+                        param.maximum > param.minimum;
+
+                      if (isDuration || isCount || isRanged) {
+                        if (param.enum?.length) {
+                          const options = param.enum;
+                          const currentVal =
+                            parameters[param.name] ??
+                            (param.default !== undefined
+                              ? String(param.default)
+                              : options[0]);
+                          const currentIndex = Math.max(
+                            0,
+                            options.indexOf(currentVal),
+                          );
+                          const currentNum = Number(
+                            options[currentIndex] ?? options[0],
+                          );
+                          return (
+                            <div
+                              key={param.name}
+                              className="playground-slider-col"
+                            >
+                              <div className="playground-slider-header">
+                                <span className="playground-param-label">
+                                  {formatLabel(param.name)}
+                                </span>
+                                <span className="playground-slider-value">
+                                  {Number.isNaN(currentNum)
+                                    ? (options[currentIndex] ?? options[0])
+                                    : formatQuantity(param.name, currentNum)}
+                                </span>
+                              </div>
+                              <Slider.Root
+                                className="slider"
+                                min={0}
+                                max={options.length - 1}
+                                step={1}
+                                value={[currentIndex]}
+                                onValueChange={([idx]) =>
+                                  setParameters((prev) => ({
+                                    ...prev,
+                                    [param.name]: options[idx],
+                                  }))
+                                }
+                              >
+                                <Slider.Track className="slider-track">
+                                  <Slider.Range className="slider-range" />
+                                </Slider.Track>
+                                <Slider.Thumb
+                                  className="slider-thumb"
+                                  aria-label={formatLabel(param.name)}
+                                />
+                              </Slider.Root>
+                              <div className="slider-scale">
+                                {options.length <= 6 ? (
+                                  options.map((opt, i) => (
+                                    <small
+                                      key={opt}
+                                      style={
+                                        i === currentIndex
+                                          ? {
+                                              fontWeight: 700,
+                                              color: 'var(--accent)',
+                                            }
+                                          : undefined
+                                      }
+                                    >
+                                      {Number.isNaN(Number(opt))
+                                        ? opt
+                                        : formatQuantity(
+                                            param.name,
+                                            Number(opt),
+                                          )}
+                                    </small>
+                                  ))
+                                ) : (
+                                  <>
+                                    <small>
+                                      {Number.isNaN(Number(options[0]))
+                                        ? options[0]
+                                        : formatQuantity(
+                                            param.name,
+                                            Number(options[0]),
+                                          )}
+                                    </small>
+                                    <small>
+                                      {Number.isNaN(
+                                        Number(options[options.length - 1]),
+                                      )
+                                        ? options[options.length - 1]
+                                        : formatQuantity(
+                                            param.name,
+                                            Number(options[options.length - 1]),
+                                          )}
+                                    </small>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        }
+
+                        const min =
+                          param.minimum !== undefined
+                            ? Number(param.minimum)
+                            : isCount
+                              ? 1
+                              : isDuration
+                                ? 5
+                                : 1;
+                        const max =
+                          param.maximum !== undefined
+                            ? Number(param.maximum)
+                            : isCount
+                              ? 4
+                              : isDuration
+                                ? 10
+                                : 100;
+                        const rawVal =
                           parameters[param.name] ??
                           (param.default !== undefined
                             ? String(param.default)
-                            : options[0]);
-                        const currentIndex = Math.max(
-                          0,
-                          options.indexOf(currentVal),
-                        );
-                        const currentNum = Number(
-                          options[currentIndex] ?? options[0],
-                        );
+                            : String(min));
+                        const current = Number(rawVal) || min;
+
                         return (
                           <div
                             key={param.name}
@@ -986,21 +1104,19 @@ export function ImagePlayground({
                                 {formatLabel(param.name)}
                               </span>
                               <span className="playground-slider-value">
-                                {Number.isNaN(currentNum)
-                                  ? (options[currentIndex] ?? options[0])
-                                  : formatQuantity(param.name, currentNum)}
+                                {formatQuantity(param.name, current)}
                               </span>
                             </div>
                             <Slider.Root
                               className="slider"
-                              min={0}
-                              max={options.length - 1}
+                              min={min}
+                              max={max}
                               step={1}
-                              value={[currentIndex]}
-                              onValueChange={([idx]) =>
+                              value={[current]}
+                              onValueChange={([next]) =>
                                 setParameters((prev) => ({
                                   ...prev,
-                                  [param.name]: options[idx],
+                                  [param.name]: String(next),
                                 }))
                               }
                             >
@@ -1013,12 +1129,15 @@ export function ImagePlayground({
                               />
                             </Slider.Root>
                             <div className="slider-scale">
-                              {options.length <= 6 ? (
-                                options.map((opt, i) => (
+                              {max - min <= 5 ? (
+                                Array.from(
+                                  { length: max - min + 1 },
+                                  (_, i) => min + i,
+                                ).map((num) => (
                                   <small
-                                    key={opt}
+                                    key={num}
                                     style={
-                                      i === currentIndex
+                                      num === current
                                         ? {
                                             fontWeight: 700,
                                             color: 'var(--accent)',
@@ -1026,30 +1145,16 @@ export function ImagePlayground({
                                         : undefined
                                     }
                                   >
-                                    {Number.isNaN(Number(opt))
-                                      ? opt
-                                      : formatQuantity(param.name, Number(opt))}
+                                    {formatQuantity(param.name, num)}
                                   </small>
                                 ))
                               ) : (
                                 <>
                                   <small>
-                                    {Number.isNaN(Number(options[0]))
-                                      ? options[0]
-                                      : formatQuantity(
-                                          param.name,
-                                          Number(options[0]),
-                                        )}
+                                    {formatQuantity(param.name, min)}
                                   </small>
                                   <small>
-                                    {Number.isNaN(
-                                      Number(options[options.length - 1]),
-                                    )
-                                      ? options[options.length - 1]
-                                      : formatQuantity(
-                                          param.name,
-                                          Number(options[options.length - 1]),
-                                        )}
+                                    {formatQuantity(param.name, max)}
                                   </small>
                                 </>
                               )}
@@ -1058,475 +1163,400 @@ export function ImagePlayground({
                         );
                       }
 
-                      const min =
-                        param.minimum !== undefined
-                          ? Number(param.minimum)
-                          : isCount
-                            ? 1
-                            : isDuration
-                              ? 5
-                              : 1;
-                      const max =
-                        param.maximum !== undefined
-                          ? Number(param.maximum)
-                          : isCount
-                            ? 4
-                            : isDuration
-                              ? 10
-                              : 100;
-                      const rawVal =
-                        parameters[param.name] ??
-                        (param.default !== undefined
-                          ? String(param.default)
-                          : String(min));
-                      const current = Number(rawVal) || min;
-
-                      return (
-                        <div key={param.name} className="playground-slider-col">
-                          <div className="playground-slider-header">
+                      if (param.type === 'boolean') {
+                        return (
+                          <div
+                            key={param.name}
+                            className="playground-param-col"
+                          >
                             <span className="playground-param-label">
                               {formatLabel(param.name)}
                             </span>
-                            <span className="playground-slider-value">
-                              {formatQuantity(param.name, current)}
-                            </span>
+                            <select
+                              className="playground-select"
+                              value={
+                                parameters[param.name] ??
+                                (param.default !== undefined
+                                  ? String(param.default)
+                                  : '')
+                              }
+                              onChange={(e) =>
+                                setParameters((prev) => ({
+                                  ...prev,
+                                  [param.name]: e.target.value,
+                                }))
+                              }
+                            >
+                              {!param.required && (
+                                <option value="">{t('composer.auto')}</option>
+                              )}
+                              <option value="true">{t('playground.on')}</option>
+                              <option value="false">
+                                {t('playground.off')}
+                              </option>
+                            </select>
                           </div>
-                          <Slider.Root
-                            className="slider"
-                            min={min}
-                            max={max}
-                            step={1}
-                            value={[current]}
-                            onValueChange={([next]) =>
-                              setParameters((prev) => ({
-                                ...prev,
-                                [param.name]: String(next),
-                              }))
-                            }
-                          >
-                            <Slider.Track className="slider-track">
-                              <Slider.Range className="slider-range" />
-                            </Slider.Track>
-                            <Slider.Thumb
-                              className="slider-thumb"
-                              aria-label={formatLabel(param.name)}
-                            />
-                          </Slider.Root>
-                          <div className="slider-scale">
-                            {max - min <= 5 ? (
-                              Array.from(
-                                { length: max - min + 1 },
-                                (_, i) => min + i,
-                              ).map((num) => (
-                                <small
-                                  key={num}
-                                  style={
-                                    num === current
-                                      ? {
-                                          fontWeight: 700,
-                                          color: 'var(--accent)',
-                                        }
-                                      : undefined
-                                  }
-                                >
-                                  {formatQuantity(param.name, num)}
-                                </small>
-                              ))
-                            ) : (
-                              <>
-                                <small>{formatQuantity(param.name, min)}</small>
-                                <small>{formatQuantity(param.name, max)}</small>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    }
+                        );
+                      }
 
-                    if (param.type === 'boolean') {
                       return (
                         <div key={param.name} className="playground-param-col">
                           <span className="playground-param-label">
                             {formatLabel(param.name)}
                           </span>
-                          <select
-                            className="playground-select"
-                            value={
-                              parameters[param.name] ??
-                              (param.default !== undefined
-                                ? String(param.default)
-                                : '')
-                            }
-                            onChange={(e) =>
-                              setParameters((prev) => ({
-                                ...prev,
-                                [param.name]: e.target.value,
-                              }))
-                            }
-                          >
-                            {!param.required && (
-                              <option value="">{t('composer.auto')}</option>
-                            )}
-                            <option value="true">{t('playground.on')}</option>
-                            <option value="false">{t('playground.off')}</option>
-                          </select>
+                          {param.enum?.length ? (
+                            <select
+                              className="playground-select"
+                              value={parameters[param.name] ?? ''}
+                              onChange={(e) =>
+                                setParameters((prev) => ({
+                                  ...prev,
+                                  [param.name]: e.target.value,
+                                }))
+                              }
+                            >
+                              {!param.required && (
+                                <option value="">{t('composer.auto')}</option>
+                              )}
+                              {param.enum.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {formatDimensionOption(opt, locale)}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <input
+                              type={
+                                param.type === 'integer' ? 'number' : 'text'
+                              }
+                              className="playground-input"
+                              value={parameters[param.name] ?? ''}
+                              onChange={(e) =>
+                                setParameters((prev) => ({
+                                  ...prev,
+                                  [param.name]: e.target.value,
+                                }))
+                              }
+                            />
+                          )}
                         </div>
                       );
-                    }
+                    })}
+                  </div>
+                )}
 
-                    return (
-                      <div key={param.name} className="playground-param-col">
-                        <span className="playground-param-label">
-                          {formatLabel(param.name)}
-                        </span>
-                        {param.enum?.length ? (
-                          <select
-                            className="playground-select"
-                            value={parameters[param.name] ?? ''}
-                            onChange={(e) =>
-                              setParameters((prev) => ({
-                                ...prev,
-                                [param.name]: e.target.value,
-                              }))
-                            }
-                          >
-                            {!param.required && (
-                              <option value="">{t('composer.auto')}</option>
-                            )}
-                            {param.enum.map((opt) => (
-                              <option key={opt} value={opt}>
-                                {formatDimensionOption(opt, locale)}
-                              </option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input
-                            type={param.type === 'integer' ? 'number' : 'text'}
-                            className="playground-input"
-                            value={parameters[param.name] ?? ''}
-                            onChange={(e) =>
-                              setParameters((prev) => ({
-                                ...prev,
-                                [param.name]: e.target.value,
-                              }))
-                            }
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+                {/* Price Table / 价格说明 */}
+                {selectedModel && (
+                  <PriceTable
+                    billing={selectedModel.billing}
+                    parameters={parameters}
+                    admin={admin}
+                  />
+                )}
 
-              {/* Price Table / 价格说明 */}
-              {selectedModel && (
-                <PriceTable
-                  billing={selectedModel.billing}
-                  parameters={parameters}
-                  admin={admin}
-                />
-              )}
-
-              {/* Plaza sharing, decided before the job is created. */}
-              {!admin && (
-                <ShareOptions
-                  value={sharing}
-                  onChange={(next) => {
-                    setSharing(next);
-                    writeSharePreference(next);
-                  }}
-                />
-              )}
-
-              {/* Actions row: Reset and Generate */}
-              <div className="playground-actions-bar">
-                <button
-                  type="button"
-                  className="playground-reset-btn"
-                  onClick={handleReset}
-                >
-                  <RotateCcw size={14} />
-                  <span>{t('playground.reset')}</span>
-                </button>
-
-                <button
-                  type="submit"
-                  className="playground-generate-btn"
-                  disabled={
-                    creating ||
-                    isUploading ||
-                    !prompt.trim() ||
-                    !modelId ||
-                    !imageAllowed
-                  }
-                >
-                  {creating ? (
-                    <>
-                      <Loader2 size={16} className="loader small" />
-                      <span>{t('playground.generating')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles size={16} />
-                      <span>
-                        {price
-                          ? t('playground.generatePriced', { price })
-                          : t('playground.generate')}
-                      </span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          ) : (
-            /* Left Panel: JSON mode */
-            <div
-              style={{
-                position: 'relative',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <button
-                type="button"
-                className="playground-copy-json-btn"
-                onClick={() => {
-                  void navigator.clipboard.writeText(jsonRequestBody);
-                  setCopiedJson(true);
-                  setTimeout(() => setCopiedJson(false), 2000);
-                }}
-              >
-                {copiedJson ? <Check size={12} /> : <Copy size={12} />}
-                <span>
-                  {copiedJson
-                    ? t('playground.copied')
-                    : t('playground.copyJson')}
-                </span>
-              </button>
-              <pre className="playground-json-view">{jsonRequestBody}</pre>
-            </div>
-          )}
-        </div>
-
-        {/* Right Column: PREVIEW & OUTPUT */}
-        <div className="playground-panel playground-output-panel">
-          {/* Output Top Bar */}
-          <div className="output-top-bar">
-            <div className="output-meta-stats">
-              {metaStats ? (
-                <span>{metaStats}</span>
-              ) : (
-                <span>{t('playground.preview')}</span>
-              )}
-            </div>
-
-            <div className="output-view-toggle">
-              {activeGen && (
-                <button
-                  type="button"
-                  className="output-details-btn"
-                  onClick={() => setShowDetails(true)}
-                  title={t('playground.viewDetails')}
-                >
-                  <Info size={13} />
-                  <span>{t('playground.viewDetails')}</span>
-                </button>
-              )}
-              <button
-                type="button"
-                className={`output-toggle-btn ${outputTab === 'preview' ? 'active' : ''}`}
-                onClick={() => setOutputTab('preview')}
-              >
-                <ImageIcon size={13} />
-                <span>{t('playground.preview')}</span>
-              </button>
-              <button
-                type="button"
-                className={`output-toggle-btn ${outputTab === 'json' ? 'active' : ''}`}
-                onClick={() => setOutputTab('json')}
-              >
-                <Code2 size={13} />
-                <span>{t('playground.json')}</span>
-              </button>
-            </div>
-          </div>
-
-          {outputTab === 'preview' ? (
-            /* Canvas Area */
-            <div className="checkerboard-canvas">
-              {detailsLoading ||
-              (activeGen &&
-                ['queued', 'submitting', 'submitted', 'in_progress'].includes(
-                  activeGen.status,
-                )) ? (
-                <div className="canvas-loading-card">
-                  <Loader2
-                    size={28}
-                    style={{
-                      animation: 'spin .8s linear infinite',
-                      color: '#7c3aed',
+                {/* Plaza sharing, decided before the job is created. */}
+                {!admin && (
+                  <ShareOptions
+                    value={sharing}
+                    onChange={(next) => {
+                      setSharing(next);
+                      writeSharePreference(next);
                     }}
                   />
-                  <b>{t('playground.generating')}</b>
-                  <span>
-                    {activeGen?.model} ·{' '}
-                    {activeGen?.status ? formatLabel(activeGen.status) : ''}
-                  </span>
+                )}
+
+                {/* Actions row: Reset and Generate */}
+                <div className="playground-actions-bar">
+                  <button
+                    type="button"
+                    className="playground-reset-btn"
+                    onClick={handleReset}
+                  >
+                    <RotateCcw size={14} />
+                    <span>{t('playground.reset')}</span>
+                  </button>
+
+                  <button
+                    type="submit"
+                    className="playground-generate-btn"
+                    disabled={
+                      creating ||
+                      isUploading ||
+                      !prompt.trim() ||
+                      !modelId ||
+                      !imageAllowed
+                    }
+                  >
+                    {creating ? (
+                      <>
+                        <Loader2 size={16} className="loader small" />
+                        <span>{t('playground.generating')}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={16} />
+                        <span>
+                          {price
+                            ? t('playground.generatePriced', { price })
+                            : t('playground.generate')}
+                        </span>
+                      </>
+                    )}
+                  </button>
                 </div>
-              ) : activeImageUrl ? (
-                <div className="canvas-media-wrap">
-                  <img src={activeImageUrl} alt="Generated visual result" />
-                  <div className="canvas-toolbar">
-                    <button
-                      type="button"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.viewDetails')}
-                      onClick={() => setShowDetails(true)}
-                    >
-                      <Info size={15} />
-                    </button>
-                    <a
-                      href={activeImageUrl}
-                      download={`generation-${activeGen?.id || 'image'}.png`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.download')}
-                    >
-                      <Download size={15} />
-                    </a>
-                    <a
-                      href={activeImageUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.openOriginal')}
-                    >
-                      <ExternalLink size={15} />
-                    </a>
-                    <button
-                      type="button"
-                      className="canvas-toolbar-btn"
-                      title={t('playground.copyUrl')}
-                      onClick={() => {
-                        void navigator.clipboard.writeText(activeImageUrl);
-                        setCopiedUrl(true);
-                        setTimeout(() => setCopiedUrl(false), 2000);
-                      }}
-                    >
-                      {copiedUrl ? <Check size={15} /> : <Copy size={15} />}
-                    </button>
-                  </div>
-                </div>
-              ) : activeGen?.status === 'failed' ? (
-                <div
-                  className="canvas-loading-card"
-                  style={{ borderColor: '#fca5a5' }}
+              </form>
+            ) : (
+              /* INPUT: JSON mode */
+              <div
+                style={{
+                  position: 'relative',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <button
+                  type="button"
+                  className="playground-copy-json-btn"
+                  onClick={() => {
+                    void navigator.clipboard.writeText(jsonRequestBody);
+                    setCopiedJson(true);
+                    setTimeout(() => setCopiedJson(false), 2000);
+                  }}
                 >
-                  <AlertCircle size={28} style={{ color: '#dc2626' }} />
-                  <b style={{ color: '#b91c1c' }}>Generation Failed</b>
-                  <span>{activeGen.prompt}</span>
+                  {copiedJson ? <Check size={12} /> : <Copy size={12} />}
+                  <span>
+                    {copiedJson
+                      ? t('playground.copied')
+                      : t('playground.copyJson')}
+                  </span>
+                </button>
+                <pre className="playground-json-view">{jsonRequestBody}</pre>
+              </div>
+            )}
+          </div>
+        </ViewTransition>
+
+        {/* PREVIEW & OUTPUT */}
+        <ViewTransition name="playground-output">
+          <div className="playground-panel playground-output-panel">
+            {/* Output Top Bar */}
+            <div className="output-top-bar">
+              <div className="output-meta-stats">
+                {metaStats ? (
+                  <span>{metaStats}</span>
+                ) : (
+                  <span>{t('playground.preview')}</span>
+                )}
+              </div>
+
+              <div className="output-view-toggle">
+                {activeGen && (
                   <button
                     type="button"
                     className="output-details-btn"
-                    style={{ marginTop: 8 }}
                     onClick={() => setShowDetails(true)}
+                    title={t('playground.viewDetails')}
                   >
                     <Info size={13} />
                     <span>{t('playground.viewDetails')}</span>
                   </button>
-                </div>
-              ) : (
-                <div className="canvas-empty-state">
-                  <Wand2 size={36} strokeWidth={1.5} />
-                  <b>{t('playground.noOutputYet')}</b>
-                  <p>{t('playground.imageDescription')}</p>
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Output JSON view */
-            <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
-              <button
-                type="button"
-                className="playground-copy-json-btn"
-                onClick={() => {
-                  if (jsonResponseData) {
-                    void navigator.clipboard.writeText(jsonResponseData);
-                    setCopiedJson(true);
-                    setTimeout(() => setCopiedJson(false), 2000);
-                  }
-                }}
-              >
-                {copiedJson ? <Check size={12} /> : <Copy size={12} />}
-                <span>
-                  {copiedJson
-                    ? t('playground.copied')
-                    : t('playground.copyJson')}
-                </span>
-              </button>
-              <pre className="playground-json-view">
-                {jsonResponseData || t('playground.noOutputYet')}
-              </pre>
-            </div>
-          )}
-
-          {/* Recent Generations Strip */}
-          {imageGenerations.length > 0 && (
-            <div className="recent-strip">
-              <div className="recent-strip-heading">
-                <span>{t('playground.recentGenerations')}</span>
-                <span>{imageGenerations.length}</span>
+                )}
+                <button
+                  type="button"
+                  className={`output-toggle-btn ${outputTab === 'preview' ? 'active' : ''}`}
+                  onClick={() => setOutputTab('preview')}
+                >
+                  <ImageIcon size={13} />
+                  <span>{t('playground.preview')}</span>
+                </button>
+                <button
+                  type="button"
+                  className={`output-toggle-btn ${outputTab === 'json' ? 'active' : ''}`}
+                  onClick={() => setOutputTab('json')}
+                >
+                  <Code2 size={13} />
+                  <span>{t('playground.json')}</span>
+                </button>
               </div>
-              <div className="recent-strip-scroll">
-                {imageGenerations.slice(0, 14).map((gen) => {
-                  const thumbUrl = thumbnails[gen.id];
-                  const hasValidThumb = Boolean(
-                    thumbUrl && !failedThumbs[gen.id],
-                  );
-                  const isInProgress = [
-                    'queued',
-                    'submitting',
-                    'submitted',
-                    'in_progress',
-                  ].includes(gen.status);
+            </div>
 
-                  return (
+            {outputTab === 'preview' ? (
+              /* Canvas Area */
+              <div className="checkerboard-canvas">
+                {detailsLoading ||
+                (activeGen &&
+                  ['queued', 'submitting', 'submitted', 'in_progress'].includes(
+                    activeGen.status,
+                  )) ? (
+                  <div className="canvas-loading-card">
+                    <Loader2
+                      size={28}
+                      style={{
+                        animation: 'spin .8s linear infinite',
+                        color: '#7c3aed',
+                      }}
+                    />
+                    <b>{t('playground.generating')}</b>
+                    <span>
+                      {activeGen?.model} ·{' '}
+                      {activeGen?.status ? formatLabel(activeGen.status) : ''}
+                    </span>
+                  </div>
+                ) : activeImageUrl ? (
+                  <div className="canvas-media-wrap">
+                    <img src={activeImageUrl} alt="Generated visual result" />
+                    <div className="canvas-toolbar">
+                      <button
+                        type="button"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.viewDetails')}
+                        onClick={() => setShowDetails(true)}
+                      >
+                        <Info size={15} />
+                      </button>
+                      <a
+                        href={activeImageUrl}
+                        download={`generation-${activeGen?.id || 'image'}.png`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.download')}
+                      >
+                        <Download size={15} />
+                      </a>
+                      <a
+                        href={activeImageUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.openOriginal')}
+                      >
+                        <ExternalLink size={15} />
+                      </a>
+                      <button
+                        type="button"
+                        className="canvas-toolbar-btn"
+                        title={t('playground.copyUrl')}
+                        onClick={() => {
+                          void navigator.clipboard.writeText(activeImageUrl);
+                          setCopiedUrl(true);
+                          setTimeout(() => setCopiedUrl(false), 2000);
+                        }}
+                      >
+                        {copiedUrl ? <Check size={15} /> : <Copy size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : activeGen?.status === 'failed' ? (
+                  <div
+                    className="canvas-loading-card"
+                    style={{ borderColor: '#fca5a5' }}
+                  >
+                    <AlertCircle size={28} style={{ color: '#dc2626' }} />
+                    <b style={{ color: '#b91c1c' }}>Generation Failed</b>
+                    <span>{activeGen.prompt}</span>
                     <button
-                      key={gen.id}
                       type="button"
-                      className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
-                      onClick={() => setActiveGenId(gen.id)}
-                      title={`${gen.model} - ${gen.prompt || gen.id}`}
+                      className="output-details-btn"
+                      style={{ marginTop: 8 }}
+                      onClick={() => setShowDetails(true)}
                     >
-                      {hasValidThumb && thumbUrl ? (
-                        <img
-                          src={absoluteGatewayURL(thumbUrl)}
-                          alt={gen.prompt || gen.id}
-                          loading="lazy"
-                          onError={() =>
-                            setFailedThumbs((prev) => ({
-                              ...prev,
-                              [gen.id]: true,
-                            }))
-                          }
-                        />
-                      ) : isInProgress ? (
-                        <div className="status-icon">
-                          <Loader2 size={14} className="loader small" />
-                        </div>
-                      ) : (
-                        <div className="status-icon">
-                          <ImageIcon size={16} />
-                        </div>
-                      )}
+                      <Info size={13} />
+                      <span>{t('playground.viewDetails')}</span>
                     </button>
-                  );
-                })}
+                  </div>
+                ) : (
+                  <div className="canvas-empty-state">
+                    <Wand2 size={36} strokeWidth={1.5} />
+                    <b>{t('playground.noOutputYet')}</b>
+                    <p>{t('playground.imageDescription')}</p>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              /* Output JSON view */
+              <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                <button
+                  type="button"
+                  className="playground-copy-json-btn"
+                  onClick={() => {
+                    if (jsonResponseData) {
+                      void navigator.clipboard.writeText(jsonResponseData);
+                      setCopiedJson(true);
+                      setTimeout(() => setCopiedJson(false), 2000);
+                    }
+                  }}
+                >
+                  {copiedJson ? <Check size={12} /> : <Copy size={12} />}
+                  <span>
+                    {copiedJson
+                      ? t('playground.copied')
+                      : t('playground.copyJson')}
+                  </span>
+                </button>
+                <pre className="playground-json-view">
+                  {jsonResponseData || t('playground.noOutputYet')}
+                </pre>
+              </div>
+            )}
+
+            {/* Recent Generations Strip */}
+            {imageGenerations.length > 0 && (
+              <div className="recent-strip">
+                <div className="recent-strip-heading">
+                  <span>{t('playground.recentGenerations')}</span>
+                  <span>{imageGenerations.length}</span>
+                </div>
+                <div className="recent-strip-scroll">
+                  {imageGenerations.slice(0, 14).map((gen) => {
+                    const thumbUrl = thumbnails[gen.id];
+                    const hasValidThumb = Boolean(
+                      thumbUrl && !failedThumbs[gen.id],
+                    );
+                    const isInProgress = [
+                      'queued',
+                      'submitting',
+                      'submitted',
+                      'in_progress',
+                    ].includes(gen.status);
+
+                    return (
+                      <button
+                        key={gen.id}
+                        type="button"
+                        className={`recent-strip-item ${activeGenId === gen.id ? 'active' : ''}`}
+                        onClick={() => setActiveGenId(gen.id)}
+                        title={`${gen.model} - ${gen.prompt || gen.id}`}
+                      >
+                        {hasValidThumb && thumbUrl ? (
+                          <img
+                            src={absoluteGatewayURL(thumbUrl)}
+                            alt={gen.prompt || gen.id}
+                            loading="lazy"
+                            onError={() =>
+                              setFailedThumbs((prev) => ({
+                                ...prev,
+                                [gen.id]: true,
+                              }))
+                            }
+                          />
+                        ) : isInProgress ? (
+                          <div className="status-icon">
+                            <Loader2 size={14} className="loader small" />
+                          </div>
+                        ) : (
+                          <div className="status-icon">
+                            <ImageIcon size={16} />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </ViewTransition>
       </div>
 
       <GenerationDetails

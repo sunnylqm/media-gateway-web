@@ -59,6 +59,7 @@ import {
   formatExchangeRate,
   parseExchangeRate,
 } from '../lib/currency';
+import { PreferencesProvider } from '../lib/preferencesContext';
 import {
   adminInvoicePath,
   formatPaymentMethods,
@@ -339,162 +340,167 @@ export function AdminConsole() {
   if (!profile || !overview) return null;
 
   return (
-    <Shell
-      admin
-      identity={translate('admin.identity')}
-      navigation={[
-        {
-          label: translate('admin.navOverview'),
-          to: '/admin',
-          icon: <Gauge size={17} />,
-        },
-        {
-          label: translate('admin.navImage'),
-          to: '/admin/image',
-          icon: <ImageIcon size={17} />,
-        },
-        {
-          label: translate('admin.navVideo'),
-          to: '/admin/video',
-          icon: <Film size={17} />,
-        },
-        {
-          label: translate('admin.navVideoGeneration'),
-          to: '/admin/generations',
-          icon: <Boxes size={17} />,
-        },
-        {
-          label: translate('admin.navAccounts'),
-          to: '/admin/users',
-          icon: <Users size={17} />,
-          nested: true,
-        },
-        {
-          label: translate('admin.navModels'),
-          to: '/admin/models',
-          icon: <Cpu size={17} />,
-        },
-        {
-          label: translate('admin.navStorage'),
-          to: '/admin/storage',
-          icon: <HardDrive size={17} />,
-        },
-        {
-          label: translate('admin.navTopup'),
-          to: '/admin/topup',
-          icon: <CreditCard size={17} />,
-        },
-        {
-          label: translate('admin.navTopupOrders'),
-          to: '/admin/topups',
-          icon: <ReceiptText size={17} />,
-        },
-      ]}
-      title={translate('admin.title')}
-      description={translate('admin.description', { email: profile.email })}
-      onLogout={() => void logout()}
-    >
-      {error && (
-        <div className="banner-error" role="alert">
-          {error}
-        </div>
-      )}
-      <Routes>
-        <Route
-          index
-          element={
-            <AdminOverviewView
-              overview={overview}
-              users={users}
-              models={models}
-            />
-          }
-        />
-        <Route
-          path="image"
-          element={
-            <ImagePlayground
-              models={playableModels}
-              generations={playableGenerations}
-              onCreated={loadGenerations}
-              admin
-            />
-          }
-        />
-        <Route
-          path="video"
-          element={
-            <VideoStudio
-              models={playableModels}
-              generations={playableGenerations}
-              onCreated={loadGenerations}
-              admin
-            />
-          }
-        />
-        <Route
-          path="generations"
-          element={
-            <AdminGenerationsView
-              models={playableModels}
-              generations={playableGenerations}
-              onCreated={loadGenerations}
-              onSelect={openGenerationDetails}
-            />
-          }
-        />
-        <Route
-          path="storage"
-          element={
-            storage ? (
-              <StoragePanel
-                storage={storage}
+    // The administrator signs in as the administrator, not as an account, so
+    // there is nothing to save a setting to: the playground pages it reuses
+    // keep their layout in this browser alone.
+    <PreferencesProvider persist={false}>
+      <Shell
+        admin
+        identity={translate('admin.identity')}
+        navigation={[
+          {
+            label: translate('admin.navOverview'),
+            to: '/admin',
+            icon: <Gauge size={17} />,
+          },
+          {
+            label: translate('admin.navImage'),
+            to: '/admin/image',
+            icon: <ImageIcon size={17} />,
+          },
+          {
+            label: translate('admin.navVideo'),
+            to: '/admin/video',
+            icon: <Film size={17} />,
+          },
+          {
+            label: translate('admin.navVideoGeneration'),
+            to: '/admin/generations',
+            icon: <Boxes size={17} />,
+          },
+          {
+            label: translate('admin.navAccounts'),
+            to: '/admin/users',
+            icon: <Users size={17} />,
+            nested: true,
+          },
+          {
+            label: translate('admin.navModels'),
+            to: '/admin/models',
+            icon: <Cpu size={17} />,
+          },
+          {
+            label: translate('admin.navStorage'),
+            to: '/admin/storage',
+            icon: <HardDrive size={17} />,
+          },
+          {
+            label: translate('admin.navTopup'),
+            to: '/admin/topup',
+            icon: <CreditCard size={17} />,
+          },
+          {
+            label: translate('admin.navTopupOrders'),
+            to: '/admin/topups',
+            icon: <ReceiptText size={17} />,
+          },
+        ]}
+        title={translate('admin.title')}
+        description={translate('admin.description', { email: profile.email })}
+        onLogout={() => void logout()}
+      >
+        {error && (
+          <div className="banner-error" role="alert">
+            {error}
+          </div>
+        )}
+        <Routes>
+          <Route
+            index
+            element={
+              <AdminOverviewView
+                overview={overview}
+                users={users}
+                models={models}
+              />
+            }
+          />
+          <Route
+            path="image"
+            element={
+              <ImagePlayground
+                models={playableModels}
+                generations={playableGenerations}
+                onCreated={loadGenerations}
+                admin
+              />
+            }
+          />
+          <Route
+            path="video"
+            element={
+              <VideoStudio
+                models={playableModels}
+                generations={playableGenerations}
+                onCreated={loadGenerations}
+                admin
+              />
+            }
+          />
+          <Route
+            path="generations"
+            element={
+              <AdminGenerationsView
+                models={playableModels}
+                generations={playableGenerations}
+                onCreated={loadGenerations}
+                onSelect={openGenerationDetails}
+              />
+            }
+          />
+          <Route
+            path="storage"
+            element={
+              storage ? (
+                <StoragePanel
+                  storage={storage}
+                  onSaved={load}
+                  onError={setError}
+                />
+              ) : null
+            }
+          />
+          <Route path="topup" element={<TopupSettingsPanel />} />
+          <Route path="topups" element={<TopupOrdersPanel />} />
+          <Route
+            path="users"
+            element={
+              <UsersTable
+                users={users}
+                onStatus={setStatus}
+                onUpdateCapabilities={updateCapabilities}
+                onTopup={topupUser}
+              />
+            }
+          />
+          <Route path="users/:userId" element={<UserDetail />} />
+          <Route
+            path="tenants"
+            element={<Navigate to="/admin/users" replace />}
+          />
+          <Route
+            path="models"
+            element={
+              <ModelsPanel
+                models={models}
+                presets={presets}
                 onSaved={load}
                 onError={setError}
               />
-            ) : null
-          }
+            }
+          />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
+        </Routes>
+        <GenerationDetails
+          generation={selected}
+          artifacts={artifacts}
+          loading={detailsLoading}
+          onClose={() => setSelected(null)}
+          moderation
+          onGenerationChange={applyGenerationChange}
         />
-        <Route path="topup" element={<TopupSettingsPanel />} />
-        <Route path="topups" element={<TopupOrdersPanel />} />
-        <Route
-          path="users"
-          element={
-            <UsersTable
-              users={users}
-              onStatus={setStatus}
-              onUpdateCapabilities={updateCapabilities}
-              onTopup={topupUser}
-            />
-          }
-        />
-        <Route path="users/:userId" element={<UserDetail />} />
-        <Route
-          path="tenants"
-          element={<Navigate to="/admin/users" replace />}
-        />
-        <Route
-          path="models"
-          element={
-            <ModelsPanel
-              models={models}
-              presets={presets}
-              onSaved={load}
-              onError={setError}
-            />
-          }
-        />
-        <Route path="*" element={<Navigate to="/admin" replace />} />
-      </Routes>
-      <GenerationDetails
-        generation={selected}
-        artifacts={artifacts}
-        loading={detailsLoading}
-        onClose={() => setSelected(null)}
-        moderation
-        onGenerationChange={applyGenerationChange}
-      />
-    </Shell>
+      </Shell>
+    </PreferencesProvider>
   );
 }
 

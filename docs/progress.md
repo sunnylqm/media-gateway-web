@@ -36,6 +36,16 @@ The reference console's output count (one, two, or four clips) and its generatio
 - [x] Translated gateway vocabulary — job statuses, media roles, request-form parameter names — through a term map that falls back to the value the API returned.
 - [x] Held table cells and buttons to one line, since Chinese wraps between any two characters where English wrapped between words.
 
+## 2026-09-10 · Playground layout on the account
+
+- [x] Let the playground swap sides: the controls sit left or right, the preview takes the other side, and one setting covers both the image and the video page, since which side someone wants their hands on is a habit rather than a per-page choice.
+- [x] Saved the choice to the account through `PATCH /v1/me/preferences`, so a second browser agrees with the first. The document rides back on `GET /v1/auth/me`, costing no extra request, and `localStorage` keeps a mirror only so the first paint does not flash the other layout before the profile arrives.
+- [x] Animated the swap with React 19.3's `<ViewTransition>` — the panels change grid column, which no CSS transition could tween — and named the two panels in `styles.css` so the browser moves them instead of cross-fading two snapshots of the same content.
+- [x] Read the stored document defensively in `lib/preferences.ts`: the gateway stores it without reading it, so an unknown value, a hand-edited one, or none at all falls back to the default.
+- [x] Kept the administrator console's copy of the setting in its own browser: it reuses the playground pages but signs in as the administrator, and there is no account to save to.
+
 ## Compatibility notes
+
+Preferences are an opaque JSON object on the user record: the console owns the keys, so a further option needs no gateway change. Nothing that decides access, capability, or money belongs there, because the account writes it itself.
 
 The route structure remains `/app/*` for tenants and `/admin/*` for administrators. API paths and response types remain unchanged, so the standalone console can be introduced without migrating backend data.

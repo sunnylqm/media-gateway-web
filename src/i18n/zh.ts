@@ -564,7 +564,7 @@ export const zh: Record<MessageKey, string> = {
   'playground.copyUrl': '复制链接',
   'playground.copied': '已复制',
   'playground.recentGenerations': '最近生成',
-  'playground.noOutputYet': '暂无生成产物，在左侧输入提示词后点击生成。',
+  'playground.noOutputYet': '暂无生成产物，输入提示词后点击生成。',
   'playground.model': '模型',
   'playground.hintFlare':
     'Flare 是多数场景的默认选择：画质优于 GPT Image 2，延迟约低一半。适合创作者与社交内容、产品体验、视觉搜索、快速原型和大批量出图。',
@@ -572,6 +572,9 @@ export const zh: Record<MessageKey, string> = {
     'Sunburst 面向需要在多轮编辑中保持精细控制的高端视觉流程，例如可直接投放的营销创意和精修产品图。',
   'playground.noModels': '暂无可用模型',
   'playground.selectModel': '选择模型',
+  'playground.layoutSwap': '左右互换',
+  'playground.layoutControlsLeft': '操作区在左侧',
+  'playground.layoutControlsRight': '操作区在右侧',
   'playground.imageTitle': '生图工作台',
   'playground.videoTitle': '生视频工作台',
   'playground.imageDescription': '输入提示词与参考图，快速生成高画质图像。',
