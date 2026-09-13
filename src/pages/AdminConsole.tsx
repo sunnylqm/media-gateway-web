@@ -62,6 +62,12 @@ import {
 import { fieldNoteKeys, parseFieldNotes } from '../lib/fieldNotes';
 import { Markdown } from '../lib/markdown';
 import { formatReleaseDate } from '../lib/modelCatalog';
+import {
+  forgetModelNotes,
+  localizeModel,
+  noteSourceLanguage,
+  noteTranslationLanguages,
+} from '../lib/modelNotes';
 import { PreferencesProvider } from '../lib/preferencesContext';
 import {
   adminInvoicePath,
@@ -89,6 +95,7 @@ import type {
   AssetStorage,
   Generation,
   ModelBilling,
+  ModelNotes,
   ProtocolPreset,
   Tenant,
   Topup,
@@ -98,7 +105,7 @@ import { ImagePlayground } from './ImagePlayground';
 import { VideoStudio } from './VideoStudio';
 
 export function AdminConsole() {
-  const { t: translate } = useI18n();
+  const { locale, t: translate } = useI18n();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
@@ -314,16 +321,20 @@ export function AdminConsole() {
   // The composer keeps operator input across a poll only while the catalogue it
   // was handed stays the same array, so the filtering happens once per change
   // rather than on every refresh of the generation list.
+  // The administrator's view carries every translation of the notes, so the
+  // playground reads the console's language out of it without a request.
   const playableModels = useMemo(
     () =>
-      models.filter(
-        (item) =>
-          item.status === 'active' &&
-          (item.modality === 'video' || item.modality === 'image') &&
-          item.provider !== 'development' &&
-          Boolean(item.request_form),
-      ),
-    [models],
+      models
+        .filter(
+          (item) =>
+            item.status === 'active' &&
+            (item.modality === 'video' || item.modality === 'image') &&
+            item.provider !== 'development' &&
+            Boolean(item.request_form),
+        )
+        .map((item) => localizeModel(item, locale)),
+    [models, locale],
   );
   const playableGenerations = useMemo(
     () =>
@@ -666,11 +677,16 @@ function AdminOverviewView({
   );
 }
 
+type NoteTexts = { notes: string; fieldNotes: string };
+
 type ModelForm = {
   id: string;
   displayName: string;
+  // notes and fieldNotes are the source text, in Chinese; translations holds
+  // the same two texts in each other language, keyed by language.
   notes: string;
   fieldNotes: string;
+  translations: Record<string, NoteTexts>;
   releasedOn: string;
   providerName: string;
   docsUrl: string;
@@ -1824,6 +1840,7 @@ const emptyModelForm: ModelForm = {
   displayName: '',
   notes: '',
   fieldNotes: '',
+  translations: {},
   releasedOn: '',
   providerName: '',
   docsUrl: '',
@@ -1838,6 +1855,17 @@ const emptyModelForm: ModelForm = {
   rates: officialH3Rates.map((rate) => ({ ...rate })),
 };
 
+function translationForms(
+  translations?: Record<string, ModelNotes>,
+): Record<string, NoteTexts> {
+  return Object.fromEntries(
+    Object.entries(translations ?? {}).map(([language, texts]) => [
+      language,
+      { notes: texts.notes ?? '', fieldNotes: texts.field_notes ?? '' },
+    ]),
+  );
+}
+
 function presetForm(preset: ProtocolPreset): ModelForm {
   return {
     ...emptyModelForm,
@@ -1845,6 +1873,7 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     displayName: preset.display_name,
     notes: preset.notes ?? '',
     fieldNotes: preset.field_notes ?? '',
+    translations: translationForms(preset.translations),
     releasedOn: preset.released_on ?? '',
     providerName: preset.provider_name ?? '',
     docsUrl: preset.docs_url ?? '',
@@ -1875,6 +1904,8 @@ function ModelsPanel({
   const [editing, setEditing] = useState<AdminModel | null>(null);
   const [form, setForm] = useState<ModelForm>(emptyModelForm);
   const [saving, setSaving] = useState(false);
+  // The notes editor shows one language at a time.
+  const [noteLanguage, setNoteLanguage] = useState(noteSourceLanguage);
   // A model can be priced a second time in the alternate currency, so the
   // editor needs to know what that currency is and what rate a blank field
   // would be converted at. An installation with no alternate currency shows no
@@ -1919,6 +1950,7 @@ function ModelsPanel({
             displayName: model.display_name,
             notes: model.notes ?? '',
             fieldNotes: model.field_notes ?? '',
+            translations: translationForms(model.translations),
             releasedOn: model.released_on ?? '',
             providerName: model.provider_name ?? '',
             docsUrl: model.docs_url ?? '',
@@ -2007,6 +2039,39 @@ function ModelsPanel({
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  const noteTexts: NoteTexts =
+    noteLanguage === noteSourceLanguage
+      ? { notes: form.notes, fieldNotes: form.fieldNotes }
+      : (form.translations[noteLanguage] ?? { notes: '', fieldNotes: '' });
+
+  function noteText(key: keyof NoteTexts, value: string) {
+    if (noteLanguage === noteSourceLanguage) {
+      field(key, value);
+      return;
+    }
+    setForm((current) => ({
+      ...current,
+      translations: {
+        ...current.translations,
+        [noteLanguage]: {
+          ...(current.translations[noteLanguage] ?? {
+            notes: '',
+            fieldNotes: '',
+          }),
+          [key]: value,
+        },
+      },
+    }));
+  }
+
+  const documentedPreset = presets.find(
+    (preset) => preset.model_id === form.id,
+  );
+  const documentedFieldNotes =
+    noteLanguage === noteSourceLanguage
+      ? documentedPreset?.field_notes
+      : documentedPreset?.translations?.[noteLanguage]?.field_notes;
+
   function updateBinding(index: number, key: keyof BindingForm, value: string) {
     setForm((current) => ({
       ...current,
@@ -2081,6 +2146,16 @@ function ModelsPanel({
             display_name: form.displayName,
             notes: form.notes,
             field_notes: form.fieldNotes,
+            // Every language is sent, so one emptied in the editor is removed.
+            translations: Object.fromEntries(
+              noteTranslationLanguages.map((language) => [
+                language,
+                {
+                  notes: form.translations[language]?.notes ?? '',
+                  field_notes: form.translations[language]?.fieldNotes ?? '',
+                },
+              ]),
+            ),
             released_on: form.releasedOn,
             provider_name: form.providerName,
             docs_url: form.docsUrl,
@@ -2112,6 +2187,9 @@ function ModelsPanel({
         },
         true,
       );
+      // What tenants read beside the model may have changed; this browser's
+      // session copy of the notes is fetched again.
+      forgetModelNotes();
       await onSaved();
       setOpen(false);
     } catch (reason) {
@@ -2330,32 +2408,58 @@ function ModelsPanel({
                 <small>{t('models.docsUrlNote')}</small>
               </label>
               <div className="field">
+                <span className="field-label field-label-row">
+                  {t('models.noteLanguage')}
+                  <span className="segmented">
+                    {[noteSourceLanguage, ...noteTranslationLanguages].map(
+                      (language) => (
+                        <button
+                          key={language}
+                          type="button"
+                          aria-pressed={noteLanguage === language}
+                          className={
+                            noteLanguage === language
+                              ? 'segment active'
+                              : 'segment'
+                          }
+                          onClick={() => setNoteLanguage(language)}
+                        >
+                          {t(language === 'zh' ? 'language.zh' : 'language.en')}
+                        </button>
+                      ),
+                    )}
+                  </span>
+                </span>
+                <small>{t('models.noteLanguageNote')}</small>
+              </div>
+              <div className="field">
                 <span className="field-label">{t('models.notes')}</span>
                 <div className="notes-editor">
                   <textarea
-                    value={form.notes}
+                    value={noteTexts.notes}
                     maxLength={8000}
                     aria-label={t('models.notes')}
-                    onChange={(event) => field('notes', event.target.value)}
-                    placeholder="**Model name** — …"
+                    onChange={(event) => noteText('notes', event.target.value)}
+                    placeholder={
+                      noteLanguage === noteSourceLanguage
+                        ? '**Model name** — …'
+                        : form.notes
+                    }
                   />
                   <div className="notes-preview" aria-live="polite">
                     <span className="notes-preview-label">
                       {t('models.notesPreview')}
                     </span>
-                    <Markdown source={form.notes} />
+                    <Markdown source={noteTexts.notes} />
                   </div>
                 </div>
                 <small>{t('models.notesNote')}</small>
               </div>
               <FieldNotesEditor
-                value={form.fieldNotes}
-                onChange={(value) => field('fieldNotes', value)}
+                value={noteTexts.fieldNotes}
+                onChange={(value) => noteText('fieldNotes', value)}
                 fields={fieldNoteKeys(editing?.request_form)}
-                documented={
-                  presets.find((preset) => preset.model_id === form.id)
-                    ?.field_notes
-                }
+                documented={documentedFieldNotes}
               />
               <div className="field-grid two">
                 <label className="field">

@@ -21,7 +21,12 @@ import {
   useState,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
-import { formatBytes, formatDimensionOption, formatLabel } from '../format';
+import {
+  formatBytes,
+  formatLabel,
+  formatOptionValue,
+  isFreeNumber,
+} from '../format';
 import { useI18n } from '../i18n';
 import { selectComposerModel } from '../lib/composerSelection';
 import { parseFieldNotes } from '../lib/fieldNotes';
@@ -1133,10 +1138,6 @@ function ParameterTile({
       <FieldHelp label={label} sections={[{ source: help ?? '' }]} />
     </span>
   );
-  const isDimension =
-    /^(resolution|size|dimensions?|aspect_ratio|aspectratio|ar|ratio)$/i.test(
-      parameter.name,
-    );
   const options =
     parameter.type === 'boolean'
       ? [
@@ -1145,25 +1146,33 @@ function ParameterTile({
         ]
       : (parameter.enum ?? []).map((option) => ({
           value: option,
-          label:
-            isDimension || /^\d+[xX:]\d+$/.test(option)
-              ? formatDimensionOption(option, locale)
-              : option,
+          label: formatOptionValue(parameter.name, option, locale),
         }));
   const chips =
     options.length > 0 &&
     options.length <= 8 &&
     options.every((option) => option.label.length <= 10);
+  // A vocabulary with its own "auto" needs no second one for leaving it unset.
+  const offersAuto = (parameter.enum ?? []).some(
+    (option) => option.toLowerCase() === 'auto',
+  );
+  const freeNumber = isFreeNumber(
+    parameter.name,
+    parameter.minimum,
+    parameter.maximum,
+  );
   const ranged =
+    !freeNumber &&
     parameter.type === 'integer' &&
     parameter.minimum !== undefined &&
     parameter.maximum !== undefined &&
     parameter.maximum > parameter.minimum;
 
   if (chips) {
-    const choices = parameter.required
-      ? options
-      : [{ value: '', label: t('composer.auto') }, ...options];
+    const choices =
+      parameter.required || offersAuto
+        ? options
+        : [{ value: '', label: t('composer.auto') }, ...options];
     return (
       <div
         className={
@@ -1233,7 +1242,7 @@ function ParameterTile({
           onChange={(event) => onChange(event.target.value)}
           aria-label={label}
         >
-          {!parameter.required && (
+          {!parameter.required && !offersAuto && (
             <option value="">{t('composer.providerDefault')}</option>
           )}
           {options.map((option) => (
@@ -1254,6 +1263,7 @@ function ParameterTile({
         min={parameter.minimum}
         max={parameter.maximum}
         required={parameter.required}
+        placeholder={freeNumber ? t('composer.seedPlaceholder') : undefined}
         value={value}
         aria-label={label}
         onChange={(event) => onChange(event.target.value)}

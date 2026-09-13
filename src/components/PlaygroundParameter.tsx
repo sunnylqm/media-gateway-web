@@ -1,6 +1,11 @@
 import { Slider } from 'radix-ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
+import {
+  formatLabel,
+  formatOptionValue,
+  formatQuantity,
+  isFreeNumber,
+} from '../format';
 import { useI18n } from '../i18n';
 import type { FormParameter } from '../types';
 
@@ -36,13 +41,15 @@ export function PlaygroundParameter({
     /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
       param.name,
     ) || label === '数量';
+  const freeNumber = isFreeNumber(param.name, param.minimum, param.maximum);
   const isRanged =
+    !freeNumber &&
     param.type === 'integer' &&
     param.minimum !== undefined &&
     param.maximum !== undefined &&
     param.maximum > param.minimum;
 
-  if (isDuration || isCount || isRanged) {
+  if (!freeNumber && (isDuration || isCount || isRanged)) {
     if (param.enum?.length) {
       const options = param.enum;
       const currentVal =
@@ -202,10 +209,13 @@ export function PlaygroundParameter({
           value={parameters[param.name] ?? ''}
           onChange={(e) => set(e.target.value)}
         >
-          {!param.required && <option value="">{t('composer.auto')}</option>}
+          {!param.required &&
+            !param.enum.some((opt) => opt.toLowerCase() === 'auto') && (
+              <option value="">{t('composer.auto')}</option>
+            )}
           {param.enum.map((opt) => (
             <option key={opt} value={opt}>
-              {formatDimensionOption(opt, locale)}
+              {formatOptionValue(param.name, opt, locale)}
             </option>
           ))}
         </select>
@@ -214,6 +224,10 @@ export function PlaygroundParameter({
           type={param.type === 'integer' ? 'number' : 'text'}
           className="playground-input"
           aria-label={label}
+          min={param.minimum}
+          max={param.maximum}
+          step={param.type === 'integer' ? 1 : undefined}
+          placeholder={freeNumber ? t('composer.seedPlaceholder') : undefined}
           value={parameters[param.name] ?? ''}
           onChange={(e) => set(e.target.value)}
         />

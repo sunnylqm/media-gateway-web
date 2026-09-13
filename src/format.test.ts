@@ -4,10 +4,12 @@ import {
   formatBytes,
   formatDimensionOption,
   formatLabel,
+  formatOptionValue,
   formatParameterName,
   formatParameterValue,
   formatRelativeTime,
   formatStatus,
+  isFreeNumber,
 } from './format';
 
 describe('format utilities', () => {
@@ -43,6 +45,22 @@ describe('format utilities', () => {
   it('formats currency amounts', () => {
     const formatted = formatAmount(150, 'USD');
     expect(formatted).toContain('1.50');
+  });
+
+  it('translates option values without changing what is sent', () => {
+    expect(formatOptionValue('ratio', 'adaptive', 'zh')).toBe('自适应');
+    expect(formatOptionValue('ratio', '16:9', 'zh')).toBe('16:9 (横版)');
+    expect(formatOptionValue('quality', 'xhigh', 'zh')).toBe('超高');
+    expect(formatOptionValue('quality', 'max', 'en')).toBe('Max');
+    expect(formatOptionValue('moderation', 'low', 'zh')).toBe('宽松');
+    expect(formatOptionValue('output_format', 'png', 'zh')).toBe('png');
+  });
+
+  it('types a seed or a very wide range rather than dragging to it', () => {
+    expect(isFreeNumber('seed', -1, 2147483647)).toBe(true);
+    expect(isFreeNumber('seed')).toBe(true);
+    expect(isFreeNumber('duration', 4, 15)).toBe(false);
+    expect(isFreeNumber('steps', 0, 5000)).toBe(true);
   });
 
   it('formats dimension options with descriptions', () => {

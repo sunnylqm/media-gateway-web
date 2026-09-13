@@ -232,6 +232,7 @@ export const en = {
     'No price is set for these parameters, so this request would be refused. Choose other values.',
   'composer.priceUnset':
     'This model has no price yet, so requests are refused.',
+  'composer.seedPlaceholder': 'Random',
   'composer.priceQuantity': '{count} {unit} this request',
   'composer.priceTier': 'Tier',
   'composer.priceSelector': 'Parameters',
@@ -383,6 +384,9 @@ export const en = {
   'models.docsUrlNote':
     "The provider's own documentation for this model, linked from the model picker.",
   'models.notes': 'Notes',
+  'models.noteLanguage': 'Notes language',
+  'models.noteLanguageNote':
+    'Notes and field help are written in Chinese and may be translated. Users see the language the console is set to; a text left empty in a translation falls back to the Chinese.',
   'models.notesNote':
     'Markdown shown to users beside the model: what it is for, its limits, and rules the upstream enforces.',
   'models.notesPreview': 'Preview',

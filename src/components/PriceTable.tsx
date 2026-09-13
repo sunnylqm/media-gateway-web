@@ -1,4 +1,4 @@
-import { formatLabel, formatParameterValue } from '../format';
+import { formatLabel, formatOptionValue } from '../format';
 import { useI18n } from '../i18n';
 import { useMoney } from '../lib/money';
 import { estimateQuantity, resolveRate, unitAmount } from '../lib/requestForm';
@@ -82,7 +82,7 @@ export function PriceTable({
             const selector = Object.entries(rate.dimensions ?? {})
               .map(
                 ([name, value]) =>
-                  `${formatLabel(name)} = ${formatParameterValue(value)}`,
+                  `${formatLabel(name)} = ${formatOptionValue(name, String(value))}`,
               )
               .join(' · ');
             return (

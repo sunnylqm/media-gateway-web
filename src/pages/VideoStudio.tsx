@@ -1092,7 +1092,7 @@ export function VideoStudio({
                       size={28}
                       style={{
                         animation: 'spin .8s linear infinite',
-                        color: '#7c3aed',
+                        color: 'var(--accent)',
                       }}
                     />
                     <b>{t('playground.generating')}</b>

@@ -31,11 +31,19 @@ import { Shell } from '../components/Shell';
 import { StripeTopupDialog } from '../components/StripeTopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
 import { formatDate, formatStatus } from '../format';
-import { useI18n } from '../i18n';
+import { getLocale, useI18n } from '../i18n';
+import {
+  cachedModelNotes,
+  modelListPath,
+  notesFromCatalog,
+  rememberModelNotes,
+  withNotes,
+} from '../lib/modelNotes';
 import { CurrencyProvider, useMoney } from '../lib/money';
 import { PreferencesProvider, usePreferences } from '../lib/preferencesContext';
 import { modelPathSlug } from '../lib/requestForm';
 import { topupAmountLabel } from '../lib/topup';
+import { useModelNotes } from '../lib/useModelNotes';
 import type {
   APIKey,
   APIKeySecret,
@@ -100,12 +108,16 @@ export function TenantConsole() {
 }
 
 function TenantWorkspace() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const navigate = useNavigate();
   const { adopt } = usePreferences();
   const [profile, setProfile] = useState<IdentityProfile | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
-  const [models, setModels] = useState<PublicModel[]>([]);
+  const [catalog, setCatalog] = useState<PublicModel[]>([]);
+  // The catalog is reloaded after every generation, but the notes beside each
+  // model are kept per language for the session and merged in here.
+  const notes = useModelNotes(locale, catalog);
+  const models = useMemo(() => withNotes(catalog, notes), [catalog, notes]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selected, setSelected] = useState<Generation | null>(null);
@@ -127,10 +139,16 @@ function TenantWorkspace() {
         (value) => ({ ok: true as const, value }),
         (reason: unknown) => ({ ok: false as const, reason }),
       );
-      const [identity, jobs, catalog, balanceResult] = await Promise.all([
+      // Read at call time rather than as a dependency: changing language
+      // fetches only the notes, not the whole workspace.
+      const language = getLocale();
+      const heldNotes = cachedModelNotes(language);
+      const [identity, jobs, listing, balanceResult] = await Promise.all([
         api<IdentityProfile>('/v1/auth/me'),
         api<GenerationList>('/v1/generations?limit=50&include=artifacts'),
-        api<{ data: PublicModel[] }>('/v1/models'),
+        api<{ data: PublicModel[] }>(
+          modelListPath(language, Boolean(heldNotes)),
+        ),
         balanceRequest,
       ]);
       setProfile(identity);
@@ -149,10 +167,13 @@ function TenantWorkspace() {
             : t('billing.errorBalance'),
         );
       }
-      const publicModels = catalog.data.filter(
-        (item) => item.provider !== 'development',
-      );
-      setModels((current) =>
+      if (!heldNotes) {
+        rememberModelNotes(language, notesFromCatalog(listing.data));
+      }
+      const publicModels = listing.data
+        .filter((item) => item.provider !== 'development')
+        .map(({ notes: _notes, field_notes: _fieldNotes, ...model }) => model);
+      setCatalog((current) =>
         JSON.stringify(current) === JSON.stringify(publicModels)
           ? current
           : publicModels,

@@ -174,6 +174,7 @@ export function formatDimensionOption(
 
   const lower = normalized.toLowerCase();
   if (lower === 'auto') return isZh ? '自动' : 'Auto';
+  if (lower === 'adaptive') return isZh ? '自适应' : 'Adaptive';
   if (lower === 'square') return isZh ? '正方形' : 'Square';
   if (lower === 'landscape') return isZh ? '横版' : 'Landscape';
   if (lower === 'portrait') return isZh ? '竖版' : 'Portrait';
@@ -203,4 +204,77 @@ export function formatDimensionOption(
 
 export function formatQuantity(name: string, value: number) {
   return /duration|second/i.test(name) ? `${value}s` : String(value);
+}
+
+// Option words a model's vocabulary shares across providers. A value with no
+// entry is shown as sent, so a provider's new level still reads.
+const optionWordsZh: Record<string, string> = {
+  auto: '自动',
+  adaptive: '自适应',
+  low: '低',
+  medium: '中',
+  high: '高',
+  xhigh: '超高',
+  max: '最高',
+  standard: '标准',
+  hd: '高清',
+  opaque: '不透明',
+  transparent: '透明',
+};
+
+const optionWordsEn: Record<string, string> = {
+  auto: 'Auto',
+  adaptive: 'Adaptive',
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  xhigh: 'Extra high',
+  max: 'Max',
+  standard: 'Standard',
+  hd: 'HD',
+  opaque: 'Opaque',
+  transparent: 'Transparent',
+};
+
+// Moderation levels say how strict the filter is, not how much of something
+// there is, so they read differently from the shared words.
+const moderationWordsZh: Record<string, string> = {
+  auto: '标准',
+  low: '宽松',
+};
+
+const moderationWordsEn: Record<string, string> = {
+  auto: 'Standard',
+  low: 'Relaxed',
+};
+
+const dimensionParameter =
+  /^(resolution|size|dimensions?|aspect_ratio|aspectratio|ar|ratio)$/i;
+
+// formatOptionValue is how one accepted value of a parameter is shown in a
+// form: sizes and ratios with their orientation, and shared option words in
+// the reader's language. The value sent upstream never changes.
+export function formatOptionValue(
+  name: string,
+  value: string,
+  locale: string = getLocale(),
+): string {
+  if (dimensionParameter.test(name) || /^\d+[xX:]\d+$/.test(value.trim()))
+    return formatDimensionOption(value, locale);
+  const isZh = locale.toLowerCase().startsWith('zh');
+  const key = value.trim().toLowerCase();
+  if (/moderation/i.test(name)) {
+    const word = (isZh ? moderationWordsZh : moderationWordsEn)[key];
+    if (word) return word;
+  }
+  return (isZh ? optionWordsZh : optionWordsEn)[key] ?? value;
+}
+
+// A number worth typing rather than dragging to: a seed, or any range too wide
+// for a slider to land on a chosen value.
+export function isFreeNumber(name: string, minimum?: number, maximum?: number) {
+  if (/seed/i.test(name)) return true;
+  return (
+    minimum !== undefined && maximum !== undefined && maximum - minimum > 1000
+  );
 }

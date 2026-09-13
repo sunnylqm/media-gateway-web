@@ -167,6 +167,12 @@ export type ModelBillingRate = {
   alt_minimum_charge?: number;
 };
 
+// A model's note and field help in one language.
+export type ModelNotes = {
+  notes?: string;
+  field_notes?: string;
+};
+
 export type PublicModel = {
   id: string;
   object: 'model';
@@ -175,6 +181,9 @@ export type PublicModel = {
   notes?: string;
   // Markdown help for the request form, one `## <field>` section per field.
   field_notes?: string;
+  // Both texts in languages other than the source, keyed by language. Only an
+  // administrator's view carries them; a tenant is served one language.
+  translations?: Record<string, ModelNotes>;
   // The provider's release date, YYYY-MM-DD.
   released_on?: string;
   // The provider's display name; `provider` is the fixed protocol key.
@@ -276,6 +285,7 @@ export type ProtocolPreset = {
   modality: string;
   notes?: string;
   field_notes?: string;
+  translations?: Record<string, ModelNotes>;
   released_on?: string;
   provider_name?: string;
   docs_url?: string;

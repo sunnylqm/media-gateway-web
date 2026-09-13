@@ -217,6 +217,7 @@ export const zh: Record<MessageKey, string> = {
   'composer.priceUnavailable':
     '这组参数没有配置价格，提交会被拒绝，请换其他参数。',
   'composer.priceUnset': '该模型尚未配置价格，暂时无法提交。',
+  'composer.seedPlaceholder': '随机',
   'composer.priceQuantity': '本次 {count} {unit}',
   'composer.priceTier': '档位',
   'composer.priceSelector': '参数条件',
@@ -358,6 +359,9 @@ export const zh: Record<MessageKey, string> = {
   'models.docsUrlNote':
     '服务商为该模型提供的官方文档，会在模型选择器中给出链接。',
   'models.notes': '说明',
+  'models.noteLanguage': '说明语言',
+  'models.noteLanguageNote':
+    '说明和字段说明以中文为原文，可另写译文。用户看到的是控制台当前语言的版本；译文留空的部分显示中文原文。',
   'models.notesNote':
     '支持 Markdown，会在选择模型时展示给用户：适用场景、限制、以及由上游校验的规则。',
   'models.notesPreview': '预览',

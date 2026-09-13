@@ -8,6 +8,7 @@ import {
   Image as ImageIcon,
   Info,
   Loader2,
+  Plus,
   RotateCcw,
   SlidersHorizontal,
   Sparkles,
@@ -20,7 +21,6 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   ViewTransition,
 } from 'react';
@@ -33,24 +33,21 @@ import { ModelPicker } from '../components/ModelPicker';
 import { PlaygroundParameter } from '../components/PlaygroundParameter';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '../components/ui/tooltip';
-import { formatDimensionOption, formatLabel } from '../format';
+import { formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import { parseFieldNotes } from '../lib/fieldNotes';
 import { defaultModelID } from '../lib/modelGuidance';
 import { useMoney } from '../lib/money';
 import { usePreferences } from '../lib/preferencesContext';
 import {
+  acceptAttribute,
   buildRequestBody,
   defaultParameterValue,
   estimateAmount,
   isHiddenParameter,
   type MediaSlot,
   mediaSlots,
+  slotAccepts,
 } from '../lib/requestForm';
 import {
   readSharePreference,
@@ -94,7 +91,6 @@ export function ImagePlayground({
   const { t, locale } = useI18n();
   const { money } = useMoney();
   const { preferences } = usePreferences();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const imageAllowed = admin || user?.image_enabled !== false;
   const imageModels = useMemo(
@@ -321,18 +317,11 @@ export function ImagePlayground({
   }, [activeGen, fetchActiveDetails, onCreated]);
 
   // Reference upload
-  async function uploadFile(file: File) {
-    const defaultSlot = imageRefSlots[0] ?? {
-      id: 'image_ref',
-      group: 'reference' as const,
-      label: 'Image Reference',
-      mimePrefix: 'image/',
-      multiple: true,
-    };
+  async function uploadFile(file: File, slot: MediaSlot) {
     const key = crypto.randomUUID();
     const item: Attachment = {
       key,
-      slotID: defaultSlot.id,
+      slotID: slot.id,
       file,
       preview: URL.createObjectURL(file),
       status: 'uploading',
@@ -377,13 +366,17 @@ export function ImagePlayground({
   }
 
   function handleFiles(files: FileList | File[]) {
-    const remaining = Math.max(0, 3 - attachments.length);
+    let remaining = Math.max(0, 3 - attachments.length);
     if (remaining <= 0) return;
-    const filesToAdd = Array.from(files)
-      .filter((file) => file.type.startsWith('image/'))
-      .slice(0, remaining);
-    for (const file of filesToAdd) {
-      void uploadFile(file);
+    for (const file of Array.from(files)) {
+      const slot = imageRefSlots.find((item) => slotAccepts(item, file.type));
+      if (!slot) {
+        setError(t('composer.errorMediaType', { name: file.name }));
+        continue;
+      }
+      if (remaining <= 0) break;
+      remaining -= 1;
+      void uploadFile(file, slot);
     }
   }
 
@@ -432,18 +425,10 @@ export function ImagePlayground({
     try {
       const orderedRefs = attachments
         .filter((att) => att.status === 'ready' && att.url)
-        .map((att) => ({
-          slot:
-            slots.find((s) => s.id === att.slotID) ??
-            ({
-              id: att.slotID,
-              group: 'reference' as const,
-              label: 'Image Reference',
-              mimePrefix: 'image/',
-              multiple: true,
-            } as MediaSlot),
-          url: att.url as string,
-        }));
+        .flatMap((att) => {
+          const slot = slots.find((item) => item.id === att.slotID);
+          return slot ? [{ slot, url: att.url as string }] : [];
+        });
 
       const body = buildRequestBody(
         form,
@@ -489,18 +474,10 @@ export function ImagePlayground({
     try {
       const orderedRefs = attachments
         .filter((att) => att.status === 'ready' && att.url)
-        .map((att) => ({
-          slot:
-            slots.find((s) => s.id === att.slotID) ??
-            ({
-              id: att.slotID,
-              group: 'reference' as const,
-              label: 'Image Reference',
-              mimePrefix: 'image/',
-              multiple: true,
-            } as MediaSlot),
-          url: att.url as string,
-        }));
+        .flatMap((att) => {
+          const slot = slots.find((item) => item.id === att.slotID);
+          return slot ? [{ slot, url: att.url as string }] : [];
+        });
       const body = buildRequestBody(
         form,
         modelId,
@@ -526,30 +503,20 @@ export function ImagePlayground({
     );
   }, [activeGen, activeArtifacts]);
 
-  // Common parameters separation for matching screenshot layout
-  const { resolutionParam, aspectParam, qualityParam, otherParams } =
-    useMemo(() => {
-      const params = form?.parameters ?? [];
-      const res = params.find((p) =>
-        /^(resolution|size|dimensions?)$/i.test(p.name),
-      );
-      const aspect = params.find((p) =>
-        /^(aspect_ratio|aspectratio|ar)$/i.test(p.name),
-      );
-      const qual = params.find((p) => /^quality$/i.test(p.name));
-      const others = params.filter(
-        (p) =>
-          p !== res && p !== aspect && p !== qual && !isHiddenParameter(p.name),
-      );
-      return {
-        resolutionParam: res,
-        aspectParam: aspect,
-        qualityParam: qual,
-        otherParams: others,
-      };
-    }, [form]);
-  const basicParams = otherParams.filter((p) => !p.advanced);
-  const advancedParams = otherParams.filter((p) => p.advanced);
+  // The output summary names the size and ratio a generation asked for.
+  const resolutionParam = form?.parameters?.find((p) =>
+    /^(resolution|size|dimensions?)$/i.test(p.name),
+  );
+  const aspectParam = form?.parameters?.find((p) =>
+    /^(aspect_ratio|aspectratio|ar|ratio)$/i.test(p.name),
+  );
+  // Every parameter renders the same way it does in the video studio: the
+  // model's own list, in its own order, with the advanced ones folded away.
+  const visibleParams = (form?.parameters ?? []).filter(
+    (p) => !isHiddenParameter(p.name),
+  );
+  const basicParams = visibleParams.filter((p) => !p.advanced);
+  const advancedParams = visibleParams.filter((p) => p.advanced);
   const fieldNotes = useMemo(
     () => parseFieldNotes(selectedModel?.field_notes),
     [selectedModel?.field_notes],
@@ -715,240 +682,65 @@ export function ImagePlayground({
                   </div>
                 </div>
 
-                {/* Image References section */}
-                <div>
-                  <div className="playground-field-label">
-                    <span>{t('playground.imageReferences')}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="playground-tooltip-icon">
-                          <Info size={13} />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent side="top">
-                        {t('playground.referencesTooltip')}
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                {/* Reference images, when the model takes any */}
+                {imageRefSlots.length > 0 && (
+                  <div>
+                    <div className="playground-field-label">
+                      <span>{t('playground.imageReferences')}</span>
+                      <FieldHelp
+                        label={t('playground.imageReferences')}
+                        sections={imageRefSlots.map((slot) => ({
+                          title:
+                            imageRefSlots.length > 1 ? slot.label : undefined,
+                          source: fieldNotes.get(slot.role ?? '') ?? '',
+                        }))}
+                      />
+                    </div>
 
-                  <div className="playground-ref-list">
-                    {attachments.length < 3 && (
-                      <button
-                        type="button"
-                        className="ref-add-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                        title={t('playground.add')}
-                      >
-                        <ImageIcon size={18} />
-                        <span>{t('playground.add')}</span>
-                      </button>
-                    )}
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      style={{ display: 'none' }}
-                      onChange={(e) => {
-                        if (e.target.files) handleFiles(e.target.files);
-                        e.target.value = '';
-                      }}
-                    />
-
-                    {attachments.map((att) => (
-                      <div key={att.key} className="ref-item-thumb">
-                        <img src={att.preview} alt={att.file.name} />
-                        <button
-                          type="button"
-                          className="ref-remove-btn"
-                          onClick={() => removeAttachment(att.key)}
-                          title={t('common.cancel')}
-                        >
-                          <Trash2 size={10} />
-                        </button>
-                        {att.status === 'uploading' && (
-                          <div className="ref-spinner">
-                            <Loader2 size={18} className="loader small" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Standard Parameters: Resolution & Aspect Ratio side by side */}
-                <div className="playground-param-row">
-                  <div className="playground-param-col">
-                    <span className="playground-param-label">
-                      {resolutionParam
-                        ? formatLabel(resolutionParam.name)
-                        : t('playground.resolution')}
-                      {resolutionParam &&
-                        helpFor(
-                          resolutionParam.name,
-                          formatLabel(resolutionParam.name),
-                        )}
-                    </span>
-                    {resolutionParam?.enum?.length ? (
-                      <select
-                        className="playground-select"
-                        value={parameters[resolutionParam.name] ?? ''}
-                        onChange={(e) =>
-                          setParameters((prev) => ({
-                            ...prev,
-                            [resolutionParam.name]: e.target.value,
-                          }))
-                        }
-                      >
-                        {resolutionParam.enum.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {formatDimensionOption(opt, locale)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <select
-                        className="playground-select"
-                        value={
-                          resolutionParam
-                            ? (parameters[resolutionParam.name] ?? '')
-                            : '2K'
-                        }
-                        onChange={(e) => {
-                          if (resolutionParam) {
-                            setParameters((prev) => ({
-                              ...prev,
-                              [resolutionParam.name]: e.target.value,
-                            }));
-                          }
-                        }}
-                      >
-                        <option value="1K">1K</option>
-                        <option value="2K">2K</option>
-                        <option value="4K">4K</option>
-                      </select>
-                    )}
-                  </div>
-
-                  <div className="playground-param-col">
-                    <span className="playground-param-label">
-                      {aspectParam
-                        ? formatLabel(aspectParam.name)
-                        : t('playground.aspectRatio')}
-                      {aspectParam &&
-                        helpFor(
-                          aspectParam.name,
-                          formatLabel(aspectParam.name),
-                        )}
-                    </span>
-                    {aspectParam?.enum?.length ? (
-                      <select
-                        className="playground-select"
-                        value={parameters[aspectParam.name] ?? ''}
-                        onChange={(e) =>
-                          setParameters((prev) => ({
-                            ...prev,
-                            [aspectParam.name]: e.target.value,
-                          }))
-                        }
-                      >
-                        {aspectParam.enum.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {formatDimensionOption(opt, locale)}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <select
-                        className="playground-select"
-                        value={
-                          aspectParam
-                            ? (parameters[aspectParam.name] ?? '')
-                            : '16:9'
-                        }
-                        onChange={(e) => {
-                          if (aspectParam) {
-                            setParameters((prev) => ({
-                              ...prev,
-                              [aspectParam.name]: e.target.value,
-                            }));
-                          }
-                        }}
-                      >
-                        <option value="1:1">
-                          {formatDimensionOption('1:1', locale)}
-                        </option>
-                        <option value="16:9">
-                          {formatDimensionOption('16:9', locale)}
-                        </option>
-                        <option value="9:16">
-                          {formatDimensionOption('9:16', locale)}
-                        </option>
-                        <option value="4:3">
-                          {formatDimensionOption('4:3', locale)}
-                        </option>
-                        <option value="3:4">
-                          {formatDimensionOption('3:4', locale)}
-                        </option>
-                        <option value="21:9">
-                          {formatDimensionOption('21:9', locale)}
-                        </option>
-                      </select>
-                    )}
-                  </div>
-                </div>
-
-                {/* Quality parameter below */}
-                {qualityParam ? (
-                  <div className="playground-param-col">
-                    <span className="playground-param-label">
-                      {formatLabel(qualityParam.name)}
-                      {helpFor(
-                        qualityParam.name,
-                        formatLabel(qualityParam.name),
+                    <div
+                      className="playground-ref-list"
+                      style={{ marginTop: '6px' }}
+                    >
+                      {attachments.length < 3 && (
+                        <label className="ref-add-btn">
+                          <Plus size={18} />
+                          <span>{t('playground.add')}</span>
+                          <input
+                            type="file"
+                            accept={acceptAttribute(imageRefSlots)}
+                            multiple
+                            style={{ display: 'none' }}
+                            onChange={(e) => {
+                              if (e.target.files) handleFiles(e.target.files);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
                       )}
-                    </span>
-                    {qualityParam.enum?.length ? (
-                      <select
-                        className="playground-select"
-                        value={parameters[qualityParam.name] ?? ''}
-                        onChange={(e) =>
-                          setParameters((prev) => ({
-                            ...prev,
-                            [qualityParam.name]: e.target.value,
-                          }))
-                        }
-                      >
-                        {qualityParam.enum.map((opt) => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
-                    ) : (
-                      <select
-                        className="playground-select"
-                        value={parameters[qualityParam.name] ?? 'Standard'}
-                        onChange={(e) =>
-                          setParameters((prev) => ({
-                            ...prev,
-                            [qualityParam.name]: e.target.value,
-                          }))
-                        }
-                      >
-                        <option value="Low">
-                          {t('playground.qualityLow')}
-                        </option>
-                        <option value="Standard">
-                          {t('playground.qualityStandard')}
-                        </option>
-                        <option value="HD">{t('playground.qualityHD')}</option>
-                      </select>
-                    )}
-                  </div>
-                ) : null}
 
-                {/* Any additional model parameters */}
+                      {attachments.map((att) => (
+                        <div key={att.key} className="ref-item-thumb">
+                          <img src={att.preview} alt={att.file.name} />
+                          <button
+                            type="button"
+                            className="ref-remove-btn"
+                            onClick={() => removeAttachment(att.key)}
+                            title={t('common.cancel')}
+                          >
+                            <Trash2 size={10} />
+                          </button>
+                          {att.status === 'uploading' && (
+                            <div className="ref-spinner">
+                              <Loader2 size={18} className="loader small" />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Model parameters */}
                 {basicParams.length > 0 && (
                   <div className="playground-param-row">
                     {basicParams.map((param) => (
@@ -1124,7 +916,7 @@ export function ImagePlayground({
                       size={28}
                       style={{
                         animation: 'spin .8s linear infinite',
-                        color: '#7c3aed',
+                        color: 'var(--accent)',
                       }}
                     />
                     <b>{t('playground.generating')}</b>
