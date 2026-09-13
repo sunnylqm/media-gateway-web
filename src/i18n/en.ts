@@ -271,6 +271,9 @@ export const en = {
     'Compressing using browser hardware acceleration without extra server bandwidth, please wait…',
   'videoCompress.compressFailed': 'Video compression failed: {error}',
   'videoCompress.retry': 'Retry Compression',
+  'videoCompress.noVideoTrack': 'The file has no video track',
+  'videoCompress.cannotConvert': 'This video cannot be converted: {reasons}',
+  'videoCompress.emptyOutput': 'Compression produced an empty file',
   'videoCompress.unsupported':
     'Client-side video compression is not supported in this browser. Please compress the video to under {maxSize} using a local tool before uploading.',
 
@@ -625,6 +628,11 @@ export const en = {
   'playground.reset': 'Reset',
   'playground.generate': 'Generate',
   'playground.generating': 'Generating...',
+  'playground.generationFailed': 'Generation failed',
+  'playground.samplePrompt': 'Your prompt goes here…',
+  'playground.qualityLow': 'Low',
+  'playground.qualityStandard': 'Standard',
+  'playground.qualityHD': 'HD',
   'playground.preview': 'Preview',
   'playground.copyJson': 'Copy JSON',
   'playground.download': 'Download',

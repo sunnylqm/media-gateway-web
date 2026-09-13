@@ -559,7 +559,7 @@ export function VideoStudio({
       const body = buildRequestBody(
         form,
         modelId,
-        prompt || 'Sample prompt text...',
+        prompt || t('playground.samplePrompt'),
         parameters,
         orderedMedia,
       );
@@ -567,7 +567,7 @@ export function VideoStudio({
     } catch {
       return JSON.stringify({ model: modelId, prompt, parameters }, null, 2);
     }
-  }, [form, modelId, prompt, parameters, attachments, slots]);
+  }, [form, modelId, prompt, parameters, attachments, slots, t]);
 
   const jsonResponseData = useMemo(() => {
     if (!activeGen) return null;
@@ -1133,7 +1133,9 @@ export function VideoStudio({
                     style={{ borderColor: '#fca5a5' }}
                   >
                     <AlertCircle size={28} style={{ color: '#dc2626' }} />
-                    <b style={{ color: '#b91c1c' }}>Generation Failed</b>
+                    <b style={{ color: '#b91c1c' }}>
+                      {t('playground.generationFailed')}
+                    </b>
                     <span>{activeGen.prompt}</span>
                     <button
                       type="button"

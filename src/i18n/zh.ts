@@ -254,6 +254,9 @@ export const zh: Record<MessageKey, string> = {
     '正在使用浏览器硬件加速压缩，不消耗服务器流量，请稍候…',
   'videoCompress.compressFailed': '视频压缩失败: {error}',
   'videoCompress.retry': '重试压缩',
+  'videoCompress.noVideoTrack': '文件中没有视频轨道',
+  'videoCompress.cannotConvert': '该视频无法转换：{reasons}',
+  'videoCompress.emptyOutput': '压缩结果为空',
   'videoCompress.unsupported':
     '当前浏览器不支持本地视频压缩，请使用本地工具将视频压缩至 {maxSize} 以内后再上传。',
 
@@ -585,6 +588,11 @@ export const zh: Record<MessageKey, string> = {
   'playground.reset': '重置',
   'playground.generate': '生成',
   'playground.generating': '正在生成…',
+  'playground.generationFailed': '生成失败',
+  'playground.samplePrompt': '在这里填写提示词…',
+  'playground.qualityLow': '低',
+  'playground.qualityStandard': '标准',
+  'playground.qualityHD': '高清',
   'playground.preview': '预览',
   'playground.copyJson': '复制 JSON',
   'playground.download': '下载',

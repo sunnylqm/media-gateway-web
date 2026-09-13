@@ -936,9 +936,13 @@ export function ImagePlayground({
                           }))
                         }
                       >
-                        <option value="Low">Low</option>
-                        <option value="Standard">Standard</option>
-                        <option value="HD">HD</option>
+                        <option value="Low">
+                          {t('playground.qualityLow')}
+                        </option>
+                        <option value="Standard">
+                          {t('playground.qualityStandard')}
+                        </option>
+                        <option value="HD">{t('playground.qualityHD')}</option>
                       </select>
                     )}
                   </div>
@@ -1131,7 +1135,7 @@ export function ImagePlayground({
                   </div>
                 ) : activeImageUrl ? (
                   <div className="canvas-media-wrap">
-                    <img src={activeImageUrl} alt="Generated visual result" />
+                    <img src={activeImageUrl} alt={t('details.imagePreview')} />
                     <div className="canvas-toolbar">
                       <button
                         type="button"
@@ -1180,7 +1184,9 @@ export function ImagePlayground({
                     style={{ borderColor: '#fca5a5' }}
                   >
                     <AlertCircle size={28} style={{ color: '#dc2626' }} />
-                    <b style={{ color: '#b91c1c' }}>Generation Failed</b>
+                    <b style={{ color: '#b91c1c' }}>
+                      {t('playground.generationFailed')}
+                    </b>
                     <span>{activeGen.prompt}</span>
                     <button
                       type="button"
