@@ -28,6 +28,8 @@ export type MediaSlot = {
     type: string;
     field: string;
     urlField: string;
+    flat: boolean;
+    typedByKey: boolean;
     role: string;
   };
   // A typed input names each entry's purpose in `typeField`.
@@ -102,14 +104,17 @@ export function buildRequestBody(
   const content = form.prompt.content;
   if (content) {
     const items: Array<Record<string, unknown>> = [
-      { type: content.text_type, [content.text_field]: prompt },
+      content.typed_by_key
+        ? { [content.text_field]: prompt }
+        : { type: content.text_type, [content.text_field]: prompt },
     ];
     for (const { slot, url } of media) {
       if (!slot.content) continue;
+      const { type, field, urlField, flat, typedByKey, role } = slot.content;
       items.push({
-        type: slot.content.type,
-        [slot.content.field]: { [slot.content.urlField]: url },
-        ...(slot.content.role ? { role: slot.content.role } : {}),
+        ...(typedByKey ? {} : { type }),
+        ...(flat ? { [urlField]: url } : { [field]: { [urlField]: url } }),
+        ...(role ? { role } : {}),
       });
     }
     setPointer(body, content.pointer, items);
@@ -305,6 +310,8 @@ function contentSlots(
         type: media.type,
         field: media.field,
         urlField: media.url_field,
+        flat: Boolean(media.flat),
+        typedByKey: Boolean(content.typed_by_key),
         role,
       },
     }));

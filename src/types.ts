@@ -227,6 +227,9 @@ export type FormMedia = {
   type: string;
   field: string;
   url_field: string;
+  // A flat item keeps its URL on itself under `url_field`, such as Google's
+  // {"type": "image", "uri": ...}, instead of in an object named `field`.
+  flat?: boolean;
   mime_prefix: string;
   roles?: string[];
   default_role?: string;
@@ -236,6 +239,9 @@ export type FormContent = {
   pointer: string;
   text_type: string;
   text_field: string;
+  // Key-typed items carry no `type`; each is named by the field it has, such
+  // as DashScope's {"text": ...} and {"image": ...}.
+  typed_by_key?: boolean;
   media?: FormMedia[];
 };
 

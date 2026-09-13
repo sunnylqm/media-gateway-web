@@ -132,6 +132,64 @@ describe('Playground model & request form utilities', () => {
     expect(slots[0].group).toBe('frame');
   });
 
+  it('writes flat and key-typed content items the way their providers take them', () => {
+    const image = {
+      type: 'image',
+      field: 'image',
+      mime_prefix: 'image/',
+      flat: true,
+      roles: ['reference_image'],
+      default_role: 'reference_image',
+    };
+    const gemini = {
+      method: 'POST',
+      path: '/v1beta/interactions',
+      model: '/model',
+      prompt: {
+        content: {
+          pointer: '/input',
+          text_type: 'text',
+          text_field: 'text',
+          media: [{ ...image, url_field: 'uri' }],
+        },
+      },
+    };
+    const [geminiSlot] = mediaSlots(gemini);
+    expect(
+      buildRequestBody(gemini, 'gemini-3-pro-image', 'a mug', {}, [
+        { slot: geminiSlot, url: 'https://example.com/a.png' },
+      ]).input,
+    ).toEqual([
+      { type: 'text', text: 'a mug' },
+      {
+        type: 'image',
+        uri: 'https://example.com/a.png',
+        role: 'reference_image',
+      },
+    ]);
+
+    const qwen = {
+      ...gemini,
+      prompt: {
+        content: {
+          pointer: '/input/messages/0/content',
+          text_type: 'text',
+          text_field: 'text',
+          typed_by_key: true,
+          media: [{ ...image, url_field: 'image' }],
+        },
+      },
+    };
+    const [qwenSlot] = mediaSlots(qwen);
+    const body = buildRequestBody(qwen, 'qwen-image-3.0', 'snow', {}, [
+      { slot: qwenSlot, url: 'https://example.com/a.png' },
+    ]) as { input: { messages: Array<{ content: unknown }> } };
+    expect(body.input.messages[0].content).toEqual([
+      { text: 'snow' },
+      { image: 'https://example.com/a.png', role: 'reference_image' },
+    ]);
+  });
+
   it('builds valid image generation request with parameters', () => {
     const form = sampleImageModel.request_form!;
     const body = buildRequestBody(
