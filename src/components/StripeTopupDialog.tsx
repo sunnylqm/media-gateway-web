@@ -3,6 +3,7 @@ import { Dialog } from 'radix-ui';
 import { type FormEvent, useEffect, useState } from 'react';
 import { api } from '../api';
 import { useI18n } from '../i18n';
+import { browserPageRevivalScope, onPageRevived } from '../lib/pageRevival';
 import {
   parseTopupAmount,
   topupAmountLabel,
@@ -37,6 +38,18 @@ export function StripeTopupDialog({
     setError('');
     setBusy(false);
   }, [open, options.amounts]);
+
+  // The redirect to Stripe hands the tab away rather than closing it. Backing
+  // out of Checkout restores this page from the back/forward cache with `busy`
+  // still latched, which leaves the dialog stuck on "redirecting" and — because
+  // `busy` also gates `onOpenChange` — refuses to cancel, close or dismiss. Let
+  // the tenant back in whenever the tab is shown again.
+  useEffect(() => {
+    if (!busy) return;
+    const scope = browserPageRevivalScope();
+    if (!scope) return;
+    return onPageRevived(() => setBusy(false), scope);
+  }, [busy]);
 
   const bounds = { min: options.min_amount, max: options.max_amount };
   const customAmount = custom.trim()
