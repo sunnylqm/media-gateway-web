@@ -287,6 +287,44 @@ export const en = {
   'admin.navAccounts': 'Accounts',
   'admin.navModels': 'Models',
   'admin.navStorage': 'Asset storage',
+  'admin.navDatabaseBackup': 'Database backup',
+  'databaseBackup.title': 'Database backup',
+  'databaseBackup.note':
+    'Scheduled copies of the SQLite database, which holds every account, key, price and generation. Each copy can also be uploaded to an S3-compatible bucket.',
+  'databaseBackup.loading': 'Loading backup settings…',
+  'databaseBackup.schedule': 'Schedule',
+  'databaseBackup.scheduleEvery': 'A copy at startup and every {hours} h',
+  'databaseBackup.scheduleOff':
+    'Off: set GATEWAY_BACKUP_DIR or enable S3 upload',
+  'databaseBackup.localDirectory': 'Local copies in {path}, newest {keep} kept',
+  'databaseBackup.noLocalDirectory':
+    'No local copies are kept (GATEWAY_BACKUP_DIR is not set)',
+  'databaseBackup.running': 'Backing up…',
+  'databaseBackup.lastSuccess': 'Last copy {date}, {size}: {location}',
+  'databaseBackup.runNow': 'Back up now',
+  'databaseBackup.s3Section': 'Upload to S3',
+  'databaseBackup.enabled': 'Upload every copy to S3',
+  'databaseBackup.prefix': 'Key prefix',
+  'databaseBackup.prefixNote':
+    'Copies are stored as <prefix>gateway-<time>.db.gz. Use "." for the bucket root.',
+  'databaseBackup.keep': 'Copies to keep in S3',
+  'databaseBackup.keepNote':
+    'Older copies under the prefix are deleted after each upload.',
+  'databaseBackup.restoreNote':
+    'The bucket is checked before saving, and a copy is uploaded right after. Copies are gzip-compressed but not encrypted by the gateway: use a private bucket. To restore, download a copy, gunzip it and follow the restore procedure.',
+  'databaseBackup.save': 'Save backup settings',
+  'databaseBackup.saved': 'Backup settings saved.',
+  'databaseBackup.savedUploading':
+    'Backup settings saved. The first upload has started.',
+  'databaseBackup.remoteCopies': 'Copies in S3 ({count})',
+  'databaseBackup.noRemoteCopies': 'No copies uploaded yet.',
+  'databaseBackup.columnTime': 'Uploaded',
+  'databaseBackup.columnSize': 'Size',
+  'databaseBackup.columnKey': 'Key',
+  'databaseBackup.errorLoad': 'Unable to load backup settings',
+  'databaseBackup.errorSave': 'Unable to save backup settings',
+  'databaseBackup.errorRun': 'Unable to start a backup',
+  'databaseBackup.errorKeep': 'Copies to keep must be between 1 and 1000',
   'admin.title': 'System control',
   'admin.description': 'Single administrator · {email}',
 

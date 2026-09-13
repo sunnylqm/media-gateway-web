@@ -9,6 +9,7 @@ import {
   CirclePlay,
   Cpu,
   CreditCard,
+  Database,
   Film,
   Gauge,
   HardDrive,
@@ -93,6 +94,7 @@ import type {
   AdminUser,
   Artifact,
   AssetStorage,
+  DatabaseBackup,
   Generation,
   ModelBilling,
   ModelNotes,
@@ -392,6 +394,11 @@ export function AdminConsole() {
             icon: <HardDrive size={17} />,
           },
           {
+            label: t('admin.navDatabaseBackup'),
+            to: '/admin/database-backup',
+            icon: <Database size={17} />,
+          },
+          {
             label: t('admin.navTopup'),
             to: '/admin/topup',
             icon: <CreditCard size={17} />,
@@ -467,6 +474,7 @@ export function AdminConsole() {
               ) : null
             }
           />
+          <Route path="database-backup" element={<DatabaseBackupPanel />} />
           <Route path="topup" element={<TopupSettingsPanel />} />
           <Route path="topups" element={<TopupOrdersPanel />} />
           <Route
@@ -1227,6 +1235,337 @@ function S3Fields({
       </div>
       <small className="muted">{t('storage.secretNote')}</small>
     </>
+  );
+}
+
+type DatabaseBackupForm = {
+  enabled: boolean;
+  endpoint: string;
+  region: string;
+  bucket: string;
+  prefix: string;
+  accessKeyID: string;
+  secretAccessKey: string;
+  keep: string;
+};
+
+function databaseBackupForm(config: DatabaseBackup): DatabaseBackupForm {
+  return {
+    enabled: config.enabled,
+    endpoint: config.s3_endpoint ?? '',
+    region: config.s3_region ?? '',
+    bucket: config.s3_bucket ?? '',
+    prefix: config.s3_prefix,
+    accessKeyID: '',
+    secretAccessKey: '',
+    keep: String(config.keep),
+  };
+}
+
+function DatabaseBackupPanel() {
+  const { t, format } = useI18n();
+  const [config, setConfig] = useState<DatabaseBackup | null>(null);
+  const [form, setForm] = useState<DatabaseBackupForm | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [saved, setSaved] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const current = await api<DatabaseBackup>(
+        '/v1/admin/database-backup',
+        {},
+        true,
+      );
+      setConfig(current);
+      setForm(databaseBackupForm(current));
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : translate('databaseBackup.errorLoad'),
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const running = Boolean(config?.status.running);
+  useEffect(() => {
+    if (!running) return;
+    // Only the reported state is refreshed, so edits in the form survive.
+    const timer = window.setInterval(async () => {
+      try {
+        setConfig(
+          await api<DatabaseBackup>('/v1/admin/database-backup', {}, true),
+        );
+      } catch {
+        // The next load reports the state again.
+      }
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [running]);
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    if (!form) return;
+    setError('');
+    setSaved(false);
+    const keep = Number(form.keep);
+    if (!Number.isSafeInteger(keep) || keep < 1 || keep > 1000) {
+      setError(t('databaseBackup.errorKeep'));
+      return;
+    }
+    setSaving(true);
+    try {
+      const next = await api<DatabaseBackup>(
+        '/v1/admin/database-backup',
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            enabled: form.enabled,
+            s3_endpoint: form.endpoint,
+            s3_region: form.region,
+            s3_bucket: form.bucket,
+            s3_prefix: form.prefix,
+            s3_access_key_id: form.accessKeyID,
+            s3_secret_access_key: form.secretAccessKey,
+            keep,
+          }),
+        },
+        true,
+      );
+      setConfig(next);
+      setForm(databaseBackupForm(next));
+      setSaved(true);
+    } catch (reason) {
+      setError(
+        reason instanceof Error
+          ? reason.message
+          : t('databaseBackup.errorSave'),
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function runNow() {
+    setError('');
+    setSaved(false);
+    try {
+      setConfig(
+        await api<DatabaseBackup>(
+          '/v1/admin/database-backup/run',
+          { method: 'POST' },
+          true,
+        ),
+      );
+    } catch (reason) {
+      setError(
+        reason instanceof Error ? reason.message : t('databaseBackup.errorRun'),
+      );
+    }
+  }
+
+  const status = config?.status;
+  const hours = config ? Math.round(config.interval_seconds / 360) / 10 : 0;
+  const anyDestination = Boolean(
+    config && (config.enabled || config.local_directory),
+  );
+
+  return (
+    <section className="panel storage-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>{t('databaseBackup.title')}</h2>
+          <p>{t('databaseBackup.note')}</p>
+        </div>
+        <Database size={19} />
+      </div>
+      {error && (
+        <div
+          className="banner-error"
+          role="alert"
+          style={{ margin: '16px 20px 0' }}
+        >
+          {error}
+        </div>
+      )}
+      {saved && (
+        <div
+          className="banner-success"
+          role="status"
+          style={{ margin: '16px 20px 0' }}
+        >
+          <span>
+            {t(
+              config?.enabled
+                ? 'databaseBackup.savedUploading'
+                : 'databaseBackup.saved',
+            )}
+          </span>
+        </div>
+      )}
+      {!config || !form ? (
+        error ? null : (
+          <div className="empty-state">
+            <span className="loader" />
+            {t('databaseBackup.loading')}
+          </div>
+        )
+      ) : (
+        <form className="panel-body dialog-form" onSubmit={save}>
+          <div className="backup-status">
+            <div>
+              <span className="field-label">
+                {t('databaseBackup.schedule')}
+              </span>
+              <strong>
+                {anyDestination
+                  ? t('databaseBackup.scheduleEvery', { hours })
+                  : t('databaseBackup.scheduleOff')}
+              </strong>
+              <small className="muted">
+                {config.local_directory
+                  ? t('databaseBackup.localDirectory', {
+                      path: config.local_directory,
+                      keep: config.local_keep,
+                    })
+                  : t('databaseBackup.noLocalDirectory')}
+              </small>
+              {status?.running ? (
+                <small className="muted">{t('databaseBackup.running')}</small>
+              ) : status?.last_success_at ? (
+                <small className="muted">
+                  {t('databaseBackup.lastSuccess', {
+                    date: format.date(status.last_success_at),
+                    size: formatFileSize(status.last_bytes),
+                    location: status.last_location ?? '',
+                  })}
+                </small>
+              ) : null}
+              {status?.last_error && (
+                <small className="backup-error">
+                  {t('storage.backupLastError', {
+                    date: status.last_error_at
+                      ? format.date(status.last_error_at)
+                      : '—',
+                    error: status.last_error,
+                  })}
+                </small>
+              )}
+            </div>
+            <button
+              className="button"
+              type="button"
+              onClick={runNow}
+              disabled={!anyDestination || running}
+            >
+              <RotateCcw size={14} />
+              {t('databaseBackup.runNow')}
+            </button>
+          </div>
+          <div className="form-section-title">
+            {t('databaseBackup.s3Section')}
+          </div>
+          <label className="topup-switch">
+            <input
+              type="checkbox"
+              checked={form.enabled}
+              onChange={(event) =>
+                setForm({ ...form, enabled: event.target.checked })
+              }
+            />
+            <span>{t('databaseBackup.enabled')}</span>
+          </label>
+          <S3Fields
+            endpoint={form.endpoint}
+            region={form.region}
+            bucket={form.bucket}
+            accessKeyID={form.accessKeyID}
+            secretAccessKey={form.secretAccessKey}
+            accessKeyConfigured={config.s3_access_key_configured}
+            secretKeyConfigured={config.s3_secret_key_configured}
+            onChange={(next) => setForm({ ...form, ...next })}
+          />
+          <div className="field-grid">
+            <label className="field">
+              <span className="field-label">{t('databaseBackup.prefix')}</span>
+              <input
+                value={form.prefix}
+                onChange={(event) =>
+                  setForm({ ...form, prefix: event.target.value })
+                }
+                placeholder="media-gateway/"
+              />
+              <small>{t('databaseBackup.prefixNote')}</small>
+            </label>
+            <label className="field">
+              <span className="field-label">{t('databaseBackup.keep')}</span>
+              <input
+                type="number"
+                min="1"
+                max="1000"
+                value={form.keep}
+                onChange={(event) =>
+                  setForm({ ...form, keep: event.target.value })
+                }
+              />
+              <small>{t('databaseBackup.keepNote')}</small>
+            </label>
+          </div>
+          <small className="muted">{t('databaseBackup.restoreNote')}</small>
+          <div className="dialog-actions">
+            <button className="button primary" type="submit" disabled={saving}>
+              {saving ? t('storage.saving') : t('databaseBackup.save')}
+            </button>
+          </div>
+          {config.enabled && (
+            <>
+              <div className="form-section-title">
+                {t('databaseBackup.remoteCopies', {
+                  count: config.remote_backups?.length ?? 0,
+                })}
+              </div>
+              {config.remote_list_error ? (
+                <small className="backup-error">
+                  {config.remote_list_error}
+                </small>
+              ) : config.remote_backups?.length ? (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>{t('databaseBackup.columnTime')}</th>
+                        <th>{t('databaseBackup.columnSize')}</th>
+                        <th>{t('databaseBackup.columnKey')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {config.remote_backups.map((object) => (
+                        <tr key={object.key}>
+                          <td>{format.date(object.modified_at)}</td>
+                          <td>{formatFileSize(object.size_bytes)}</td>
+                          <td>
+                            <code>{object.key}</code>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <small className="muted">
+                  {t('databaseBackup.noRemoteCopies')}
+                </small>
+              )}
+            </>
+          )}
+        </form>
+      )}
+    </section>
   );
 }
 

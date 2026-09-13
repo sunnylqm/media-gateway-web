@@ -395,6 +395,32 @@ export type AssetStorage = {
   backup_status?: AssetBackupStatus;
 };
 
+export type DatabaseBackup = {
+  object: 'database_backup';
+  enabled: boolean;
+  s3_endpoint?: string;
+  s3_region?: string;
+  s3_bucket?: string;
+  s3_prefix: string;
+  s3_access_key_configured: boolean;
+  s3_secret_key_configured: boolean;
+  keep: number;
+  interval_seconds: number;
+  local_directory?: string;
+  local_keep: number;
+  updated_at?: string;
+  status: {
+    running: boolean;
+    last_success_at?: string;
+    last_location?: string;
+    last_bytes: number;
+    last_error?: string;
+    last_error_at?: string;
+  };
+  remote_backups?: { key: string; size_bytes: number; modified_at: string }[];
+  remote_list_error?: string;
+};
+
 export type StorageUsage = {
   path: string;
   object_bytes: number;
