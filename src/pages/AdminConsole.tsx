@@ -2,6 +2,7 @@ import {
   Activity,
   ArrowLeft,
   Boxes,
+  Bug,
   Building2,
   ChevronDown,
   CircleDollarSign,
@@ -46,6 +47,7 @@ import {
 } from 'react-router';
 import { APIError, absoluteGatewayURL, api, gatewayURL } from '../api';
 import { GenerationComposer } from '../components/Composer';
+import { ErrorLogsPanel } from '../components/ErrorLogs';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { TopupDialog } from '../components/TopupDialog';
@@ -408,6 +410,11 @@ export function AdminConsole() {
             to: '/admin/topups',
             icon: <ReceiptText size={17} />,
           },
+          {
+            label: t('admin.navErrorLogs'),
+            to: '/admin/error-logs',
+            icon: <Bug size={17} />,
+          },
         ]}
         title={t('admin.title')}
         description={t('admin.description', { email: profile.email })}
@@ -477,6 +484,7 @@ export function AdminConsole() {
           <Route path="database-backup" element={<DatabaseBackupPanel />} />
           <Route path="topup" element={<TopupSettingsPanel />} />
           <Route path="topups" element={<TopupOrdersPanel />} />
+          <Route path="error-logs" element={<ErrorLogsPanel />} />
           <Route
             path="users"
             element={

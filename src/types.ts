@@ -502,6 +502,32 @@ export type AdminTopup = Topup & {
   email?: string;
 };
 
+export type ErrorLogLevel = 'error' | 'warn';
+
+export type ErrorLog = {
+  object: 'error_log';
+  id: number;
+  occurred_at: string;
+  level: ErrorLogLevel;
+  message: string;
+  source?: string;
+  request_id?: string;
+  attributes?: Record<string, unknown>;
+};
+
+export type ErrorLogCounts = {
+  since: string;
+  error: number;
+  warn: number;
+};
+
+export type ErrorLogList = {
+  object: 'list';
+  data: ErrorLog[];
+  next_cursor?: string;
+  counts: ErrorLogCounts;
+};
+
 export type AdminTopupList = {
   object: 'list';
   total: number;

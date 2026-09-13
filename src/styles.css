@@ -950,3 +950,31 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .backup-status > div { min-width: 0; display: grid; gap: 4px; }
 .backup-status strong { font-size: 13px; }
 .backup-status .backup-error { overflow-wrap: anywhere; }
+
+/* Error logs. */
+.error-log-window { font-size: 11px; }
+.status.error-log-level-error { background: #f6e6e7; color: #993b42; text-transform: none; }
+.status.error-log-level-warn { background: #f4ebdc; color: #8f611e; text-transform: none; }
+.error-log-toolbar select { text-transform: none; }
+.error-log-detail .row-action { display: inline-grid; margin-left: 8px; height: 24px; vertical-align: middle; }
+.error-log-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
+.error-log-search { display: grid; flex: 1 1 260px; gap: 6px; }
+.error-log-search input { height: 34px; min-width: 0; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 5px; background: var(--paper); color: var(--ink); font-size: 12px; }
+.error-log-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.error-log-actions .button { display: inline-flex; align-items: center; gap: 6px; height: 34px; }
+.error-log-banner { margin: 12px 20px 0; }
+.error-log-notice { padding: 10px 20px; border-bottom: 1px solid var(--line); color: #2d7650; font-size: 12px; }
+.error-log-row { cursor: pointer; }
+.error-log-row:hover td { background: #fafbfa; }
+.error-log-time { white-space: nowrap; color: #4b5651; font-size: 11px; }
+.error-log-message { max-width: 560px; }
+.error-log-message b { display: block; overflow-wrap: anywhere; font-size: 12px; font-weight: 600; }
+.error-log-message small { display: block; margin-top: 3px; overflow: hidden; color: #993b42; text-overflow: ellipsis; white-space: nowrap; font: 10.5px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.error-log-toggle svg { transition: transform .15s ease; }
+.error-log-row.open .error-log-toggle svg { transform: rotate(180deg); }
+.error-log-detail td { background: #fafbfa; }
+.error-log-detail dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 4px 0; }
+.error-log-detail dt { color: var(--muted); font-size: 11px; font-weight: 700; }
+.error-log-detail dd { min-width: 0; margin: 0; font-size: 12px; }
+.error-log-detail code { font-size: 11px; overflow-wrap: anywhere; }
+.error-log-detail pre { max-height: 360px; margin: 0; overflow: auto; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
