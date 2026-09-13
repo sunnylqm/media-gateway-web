@@ -188,7 +188,7 @@ export function estimateAmount(
   const quantity = estimateQuantity(billing, dimensions);
   if (quantity === null) return null;
   const rate = resolveRate(billing, dimensions);
-  if (rate.unit_scale <= 0 || rate.unit_price < 0) return null;
+  if (!rate || rate.unit_scale <= 0 || rate.unit_price < 0) return null;
   return Math.max(
     Math.ceil((rate.unit_price * quantity) / rate.unit_scale),
     rate.minimum_charge,
@@ -203,27 +203,24 @@ export type ResolvedRate = {
   minimum_charge: number;
 };
 
-// fallbackRate is the model's base price, used when no tier selector matches.
-export function fallbackRate(billing: ModelBilling): ResolvedRate {
-  return {
-    label: 'Default',
-    dimensions: {},
-    unit_price: billing.unit_price,
-    unit_scale: billing.unit_scale,
-    minimum_charge: billing.minimum_charge,
-  };
-}
-
-// resolveRate picks the tier whose selector matches the most request
-// parameters, falling back to the base price. Every priced mode carries tiers:
-// resolution for per-second video, quality and size for per-image models.
+// resolveRate picks the rate a request is charged: the one whose selector
+// matches the most request parameters. It returns null when no rate matches,
+// which the gateway refuses rather than charging a fallback — so the console
+// shows the gap instead of a price nobody set.
 export function resolveRate(
   billing: ModelBilling,
   dimensions: Record<string, string>,
-): ResolvedRate {
-  const fallback = fallbackRate(billing);
-  if (billing.mode === 'free') return fallback;
-  let selected: ResolvedRate = fallback;
+): ResolvedRate | null {
+  if (billing.mode === 'free') {
+    return {
+      label: 'Free',
+      dimensions: {},
+      unit_price: 0,
+      unit_scale: 1,
+      minimum_charge: 0,
+    };
+  }
+  let selected: ResolvedRate | null = null;
   let mostSpecific = -1;
   for (const rate of billing.rates ?? []) {
     const entries = Object.entries(rate.dimensions ?? {});

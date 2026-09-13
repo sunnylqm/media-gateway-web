@@ -259,6 +259,7 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .model-detail-facts dd { margin: 0; }
 .model-detail-price { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 
+.price-table-gap { margin: 8px 0 0; padding: 8px 10px; border-radius: 5px; background: #fbefef; color: #8c3036; font-size: 12px; line-height: 1.45; }
 .model-docs-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; color: var(--accent-dark); font-size: 12px; font-weight: 700; text-decoration: none; }
 .model-docs-link:hover { text-decoration: underline; }
 

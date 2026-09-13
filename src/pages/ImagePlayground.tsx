@@ -38,7 +38,7 @@ import {
 } from '../components/ui/tooltip';
 import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
-import { defaultModelID, modelHintKey } from '../lib/modelGuidance';
+import { defaultModelID } from '../lib/modelGuidance';
 import { useMoney } from '../lib/money';
 import { usePreferences } from '../lib/preferencesContext';
 import {
@@ -114,10 +114,6 @@ export function ImagePlayground({
     [imageModels, modelId],
   );
   const form = selectedModel?.request_form;
-  // Some models are a trade-off against a sibling rather than a strict upgrade.
-  // The note under the selector says what the choice costs, so a user does not
-  // have to infer it from the name and the price.
-  const modelHint = modelHintKey(modelId);
 
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -643,12 +639,6 @@ export function ImagePlayground({
                   ariaLabel={t('playground.model')}
                 />
               </div>
-              {modelHint && (
-                <p className="playground-model-hint">
-                  <Info size={13} aria-hidden="true" />
-                  <span>{t(modelHint)}</span>
-                </p>
-              )}
               <div className="playground-tab-group" role="tablist">
                 <button
                   type="button"

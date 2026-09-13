@@ -23,10 +23,15 @@ describe('Playground model & request form utilities', () => {
     billing: {
       mode: 'per_request',
       currency: 'USD',
-      unit_price: 3000,
-      unit_scale: 1,
-      minimum_charge: 3000,
-      rates: [],
+      rates: [
+        {
+          label: 'Standard',
+          dimensions: {},
+          unit_price: 3000,
+          unit_scale: 1,
+          minimum_charge: 3000,
+        },
+      ],
     },
     request_form: {
       method: 'POST',
@@ -78,10 +83,15 @@ describe('Playground model & request form utilities', () => {
     billing: {
       mode: 'per_output_second',
       currency: 'CNY',
-      unit_price: 300000,
-      unit_scale: 1,
-      minimum_charge: 1500000,
-      rates: [],
+      rates: [
+        {
+          label: 'Standard',
+          dimensions: {},
+          unit_price: 300000,
+          unit_scale: 1,
+          minimum_charge: 1500000,
+        },
+      ],
     },
     request_form: {
       method: 'POST',
@@ -160,13 +170,10 @@ describe('Playground model & request form utilities', () => {
     );
   });
 
-  it('does not display fallback rate (兜底单价) on user side when rates exist', () => {
+  it('shows only the rates, and flags parameters no rate covers', () => {
     const tieredBilling = {
       mode: 'per_output_second' as const,
       currency: 'CNY',
-      unit_price: 80,
-      unit_scale: 1,
-      minimum_charge: 0,
       rates: [
         {
           label: '768P',
@@ -184,51 +191,44 @@ describe('Playground model & request form utilities', () => {
         },
       ],
     };
+    const render = (parameters: Record<string, string>, admin: boolean) =>
+      renderToString(
+        React.createElement(
+          LocaleProvider,
+          null,
+          React.createElement(PriceTable, {
+            billing: tieredBilling,
+            parameters,
+            admin,
+          }),
+        ),
+      );
 
-    const userHtml = renderToString(
-      React.createElement(
-        LocaleProvider,
-        null,
-        React.createElement(PriceTable, {
-          billing: tieredBilling,
-          parameters: {},
-          admin: false,
-        }),
-      ),
-    );
-    expect(userHtml).toContain('768P');
-    expect(userHtml).toContain('2K');
-    expect(userHtml).not.toContain('兜底单价');
-    expect(userHtml).not.toContain('Base price');
-    expect(userHtml).not.toContain('其他参数组合');
-    expect(userHtml).not.toContain('Any other combination');
-
-    const adminHtml = renderToString(
-      React.createElement(
-        LocaleProvider,
-        null,
-        React.createElement(PriceTable, {
-          billing: tieredBilling,
-          parameters: {},
-          admin: true,
-        }),
-      ),
-    );
-    expect(adminHtml).toContain('768P');
-    expect(adminHtml).toContain('2K');
-    expect(
-      adminHtml.includes('兜底单价') || adminHtml.includes('Base price'),
-    ).toBe(true);
+    for (const admin of [false, true]) {
+      const covered = render({ resolution: '2K' }, admin);
+      expect(covered).toContain('768P');
+      expect(covered).toContain('2K');
+      expect(covered).not.toContain('兜底单价');
+      expect(covered).not.toContain('Base price');
+      expect(covered).not.toContain('price-table-gap');
+    }
+    // 1080P has no rate: the gateway refuses it, and the table says so.
+    expect(render({ resolution: '1080P' }, false)).toContain('price-table-gap');
   });
 
-  it('displays flat rate on user side when model has no tiers', () => {
+  it('shows a single unconditioned rate as the flat price', () => {
     const flatBilling = {
       mode: 'per_request' as const,
       currency: 'CNY',
-      unit_price: 15,
-      unit_scale: 1,
-      minimum_charge: 0,
-      rates: [],
+      rates: [
+        {
+          label: 'Standard',
+          dimensions: {},
+          unit_price: 15,
+          unit_scale: 1,
+          minimum_charge: 0,
+        },
+      ],
     };
 
     const userHtml = renderToString(
@@ -245,7 +245,6 @@ describe('Playground model & request form utilities', () => {
     expect(
       userHtml.includes('统一单价') || userHtml.includes('Flat price'),
     ).toBe(true);
-    expect(userHtml).not.toContain('兜底单价');
-    expect(userHtml).not.toContain('Base price');
+    expect(userHtml).not.toContain('price-table-gap');
   });
 });

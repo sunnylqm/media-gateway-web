@@ -11,13 +11,17 @@ import {
 const words = { free: 'Free', perSecond: 'second', perImage: 'image' };
 const money = (minor: number, currency?: string) =>
   `${currency} ${(minor / 100).toFixed(2)}`;
-const billing = (patch: Partial<ModelBilling>): ModelBilling => ({
-  mode: 'per_request',
-  currency: 'CNY',
+const flat = {
+  label: 'Standard',
+  dimensions: {},
   unit_price: 15,
   unit_scale: 1,
   minimum_charge: 0,
-  rates: [],
+};
+const billing = (patch: Partial<ModelBilling>): ModelBilling => ({
+  mode: 'per_request',
+  currency: 'CNY',
+  rates: [flat],
   ...patch,
 });
 
@@ -33,6 +37,7 @@ describe('model catalog presentation', () => {
   it('labels a price by what the model is billed on', () => {
     expect(priceLabel(billing({ mode: 'free' }), money, words)).toBe('Free');
     expect(priceLabel(billing({}), money, words)).toBe('CNY 0.15 / image');
+    expect(priceLabel(billing({ rates: [] }), money, words)).toBe('—');
     expect(
       priceLabel(
         billing({

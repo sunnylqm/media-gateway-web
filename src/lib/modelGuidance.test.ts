@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import type { PublicModel } from '../types';
-import { defaultModelID, modelHintKey } from './modelGuidance';
+import { defaultModelID } from './modelGuidance';
 
 function model(id: string): PublicModel {
   return {
@@ -38,13 +38,5 @@ describe('model guidance', () => {
       'gpt-image-2',
     );
     expect(defaultModelID([])).toBe('');
-  });
-
-  it('explains the trade-off for both GPT Image 2.5 variants only', () => {
-    expect(modelHintKey('gpt-image-2.5-flare')).toBe('playground.hintFlare');
-    expect(modelHintKey('gpt-image-2.5-sunburst')).toBe(
-      'playground.hintSunburst',
-    );
-    expect(modelHintKey('gpt-image-2')).toBeUndefined();
   });
 });

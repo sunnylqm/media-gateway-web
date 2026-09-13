@@ -680,13 +680,7 @@ type ModelForm = {
   status: 'active' | 'inactive';
   billingMode: ModelBilling['mode'];
   currency: string;
-  unitPrice: string;
-  unitScale: string;
-  minimumCharge: string;
-  // Prices in the alternate currency, as minor units of it. Empty means unset:
-  // the gateway then converts the base price at the configured rate.
-  altUnitPrice?: string;
-  altMinimumCharge?: string;
+  // The whole price list. A flat price is one rate with no selectors.
   rates: RateForm[];
 };
 
@@ -1722,7 +1716,7 @@ const officialH3Rates: RateForm[] = [
 // Grok Imagine Video 1.5 selling tiers by output resolution, CNY minor units
 // per second. xAI itself charges one flat rate per second regardless of
 // resolution, so these tiers are a pricing decision, not a cost pass-through:
-// a starting point an administrator adjusts. The fallback is the top tier.
+// a starting point an administrator adjusts.
 const officialGrokRates: RateForm[] = [
   {
     label: '480p output',
@@ -1790,6 +1784,39 @@ function newBinding(alias: string, endpoint: string): BindingForm {
 // model that needs them.
 const flatImagePrice = '15';
 
+function flatRate(unitPrice: string): RateForm {
+  return {
+    label: 'Standard',
+    dimensions: '',
+    unitPrice,
+    unitScale: '1',
+    minimumCharge: '0',
+  };
+}
+
+// Wan 3.0 resolution tiers, CNY minor units per second: the prices this
+// deployment first set for each variant. The selector values are the
+// parameter's own, upper case — tiers keyed "1080p" once matched nothing.
+function wanRates(prices: [string, string, string]): RateForm[] {
+  return (['480P', '720P', '1080P'] as const).map((resolution, index) => ({
+    label: `${resolution} output`,
+    dimensions: `resolution=${resolution}`,
+    unitPrice: prices[index],
+    unitScale: '1',
+    minimumCharge: '0',
+  }));
+}
+
+function presetRates(preset: ProtocolPreset): RateForm[] {
+  if (preset.name === 'minimax') return officialH3Rates.map((r) => ({ ...r }));
+  if (preset.name === 'xai') return officialGrokRates.map((r) => ({ ...r }));
+  if (preset.model_id === 'wan3.0-video') return wanRates(['65', '130', '260']);
+  if (preset.model_id === 'wan3.0-video-prime')
+    return wanRates(['88', '176', '352']);
+  if (preset.modality === 'image') return [flatRate(flatImagePrice)];
+  return [];
+}
+
 const emptyModelForm: ModelForm = {
   id: '',
   displayName: '',
@@ -1805,9 +1832,6 @@ const emptyModelForm: ModelForm = {
   status: 'inactive',
   billingMode: 'per_output_second',
   currency: 'CNY',
-  unitPrice: '80',
-  unitScale: '1',
-  minimumCharge: '0',
   rates: officialH3Rates.map((rate) => ({ ...rate })),
 };
 
@@ -1827,20 +1851,7 @@ function presetForm(preset: ProtocolPreset): ModelForm {
       preset.modality === 'image' ? 'per_request' : 'per_output_second',
     bindings: [newBinding('default', preset.endpoint)],
     profile: JSON.stringify(preset.profile, null, 2),
-    rates:
-      preset.name === 'minimax'
-        ? officialH3Rates.map((rate) => ({ ...rate }))
-        : preset.name === 'xai'
-          ? officialGrokRates.map((rate) => ({ ...rate }))
-          : [],
-    unitPrice:
-      preset.name === 'minimax'
-        ? '80'
-        : preset.name === 'xai'
-          ? '120'
-          : preset.modality === 'image'
-            ? flatImagePrice
-            : '0',
+    rates: presetRates(preset),
   };
 }
 
@@ -1923,15 +1934,6 @@ function ModelsPanel({
             status: model.status,
             billingMode: model.billing.mode,
             currency: model.billing.currency,
-            unitPrice: String(model.billing.unit_price),
-            unitScale: String(model.billing.unit_scale),
-            minimumCharge: String(model.billing.minimum_charge),
-            altUnitPrice: model.billing.alt_unit_price
-              ? String(model.billing.alt_unit_price)
-              : '',
-            altMinimumCharge: model.billing.alt_minimum_charge
-              ? String(model.billing.alt_minimum_charge)
-              : '',
             rates: (model.billing.rates ?? []).map((rate) => ({
               label: rate.label,
               dimensions: Object.entries(rate.dimensions)
@@ -1992,11 +1994,6 @@ function ModelsPanel({
       profile: defaults.profile,
       billingMode: defaults.billingMode,
       currency: defaults.currency,
-      unitPrice: defaults.unitPrice,
-      unitScale: defaults.unitScale,
-      minimumCharge: defaults.minimumCharge,
-      altUnitPrice: '',
-      altMinimumCharge: '',
       rates: defaults.rates,
     }));
   }
@@ -2095,13 +2092,6 @@ function ModelsPanel({
             billing: {
               mode: form.billingMode,
               currency: form.currency,
-              unit_price: Number(form.unitPrice),
-              unit_scale: Number(form.unitScale),
-              minimum_charge: Number(form.minimumCharge),
-              // A blank alternate price is sent as 0, which is how the gateway
-              // is told to convert the base price at the configured rate.
-              alt_unit_price: Number(form.altUnitPrice) || 0,
-              alt_minimum_charge: Number(form.altMinimumCharge) || 0,
               rates: form.rates.map((rate) => ({
                 label: rate.label,
                 dimensions: parseRateDimensions(rate.dimensions),
@@ -2558,88 +2548,6 @@ function ModelsPanel({
                   />
                 </label>
               </div>
-              <div className="field-grid three">
-                <label className="field">
-                  <span className="field-label">
-                    {t('models.unitPriceFallback')}
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    disabled={form.billingMode === 'free'}
-                    value={form.unitPrice}
-                    onChange={(event) => field('unitPrice', event.target.value)}
-                  />
-                  <small>{t('models.unitPriceFallbackNote')}</small>
-                </label>
-                <label className="field">
-                  <span className="field-label">{t('models.unitScale')}</span>
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={form.unitScale}
-                    onChange={(event) => field('unitScale', event.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span className="field-label">
-                    {t('models.minimumCharge')}
-                  </span>
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    disabled={form.billingMode === 'free'}
-                    value={form.minimumCharge}
-                    onChange={(event) =>
-                      field('minimumCharge', event.target.value)
-                    }
-                  />
-                </label>
-              </div>
-              {alternate.currency && form.billingMode !== 'free' && (
-                <div className="field-grid two">
-                  <label className="field">
-                    <span className="field-label">
-                      {t('models.altUnitPrice', {
-                        currency: alternate.currency,
-                      })}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.altUnitPrice ?? ''}
-                      placeholder={alternateHint(form.unitPrice)}
-                      onChange={(event) =>
-                        field('altUnitPrice', event.target.value)
-                      }
-                    />
-                    <small>
-                      {t('models.altPriceNote', {
-                        currency: alternate.currency,
-                      })}
-                    </small>
-                  </label>
-                  <label className="field">
-                    <span className="field-label">
-                      {t('models.altMinimumCharge', {
-                        currency: alternate.currency,
-                      })}
-                    </span>
-                    <input
-                      type="number"
-                      min="0"
-                      value={form.altMinimumCharge ?? ''}
-                      placeholder={alternateHint(form.minimumCharge)}
-                      onChange={(event) =>
-                        field('altMinimumCharge', event.target.value)
-                      }
-                    />
-                  </label>
-                </div>
-              )}
               {form.billingMode !== 'free' && (
                 <section className="rate-editor">
                   <div className="rate-editor-heading">
@@ -2698,7 +2606,6 @@ function ModelsPanel({
                                 {t('models.tierSelectors')}
                               </span>
                               <input
-                                required
                                 value={rate.dimensions}
                                 onChange={(event) =>
                                   updateRate(
@@ -2926,6 +2833,12 @@ function parseProfile(text: string): unknown {
 
 function billingLabel(billing: ModelBilling, modality?: 'image' | 'video') {
   if (billing.mode === 'free') return t('models.billingFree');
+  const rates = billing.rates ?? [];
+  if (rates.length === 0) return t('models.billingUnpriced');
+  const [first] = rates;
+  if (rates.length > 1 || Object.keys(first.dimensions ?? {}).length > 0) {
+    return t('models.billingTiers', { count: rates.length });
+  }
   const unit = t(
     billing.mode === 'per_request'
       ? modality === 'image'
@@ -2933,15 +2846,12 @@ function billingLabel(billing: ModelBilling, modality?: 'image' | 'video') {
         : 'models.billingUnitRequest'
       : 'models.billingUnitSecond',
   );
-  const summary = t('models.billingSummary', {
-    price: billing.unit_price,
-    scale: billing.unit_scale,
+  return t('models.billingSummary', {
+    price: first.unit_price,
+    scale: first.unit_scale,
     currency: billing.currency,
     unit,
   });
-  return billing.rates?.length
-    ? `${summary} · ${t('models.billingTiers', { count: billing.rates.length })}`
-    : summary;
 }
 
 function parseRateDimensions(value: string): Record<string, string> {

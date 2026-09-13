@@ -94,9 +94,6 @@ describe('quote estimate', () => {
   const imageBilling = {
     mode: 'per_request' as const,
     currency: 'CNY',
-    unit_price: 200,
-    unit_scale: 1,
-    minimum_charge: 0,
     rates: [
       {
         label: 'Low',
@@ -123,7 +120,9 @@ describe('quote estimate', () => {
   };
 
   it('prices per-image models by tier times the requested count', () => {
-    expect(estimateAmount(imageBilling, {})).toBe(200);
+    // No rate covers a request without a quality: there is no fallback, so
+    // there is no estimate either.
+    expect(estimateAmount(imageBilling, {})).toBeNull();
     expect(estimateAmount(imageBilling, { quality: 'low' })).toBe(15);
     expect(estimateAmount(imageBilling, { quality: 'low', n: '4' })).toBe(60);
     expect(
@@ -140,21 +139,19 @@ describe('quote estimate', () => {
     expect(estimateAmount(imageBilling, { n: '1.5' })).toBeNull();
   });
 
-  it('picks the most specific tier and names the fallback', () => {
+  it('picks the most specific tier and finds nothing when none matches', () => {
     expect(
-      resolveRate(imageBilling, { quality: 'high', size: '1536x1024' }).label,
+      resolveRate(imageBilling, { quality: 'high', size: '1536x1024' })?.label,
     ).toBe('High landscape');
-    expect(resolveRate(imageBilling, { quality: 'medium' }).label).toBe(
-      'Default',
-    );
-    expect(unitAmount(resolveRate(imageBilling, { quality: 'low' }))).toBe(15);
+    expect(resolveRate(imageBilling, { quality: 'medium' })).toBeNull();
+    const low = resolveRate(imageBilling, { quality: 'low' });
+    expect(low && unitAmount(low)).toBe(15);
   });
 
   it('keeps per-second video pricing on the requested duration', () => {
     const video = {
       ...imageBilling,
       mode: 'per_output_second' as const,
-      unit_price: 99,
       rates: [
         {
           label: '2K',
@@ -169,7 +166,7 @@ describe('quote estimate', () => {
     expect(estimateAmount(video, { resolution: '2K', duration: '10' })).toBe(
       800,
     );
-    expect(estimateAmount(video, { resolution: '768P' })).toBe(495);
+    expect(estimateAmount(video, { resolution: '768P' })).toBeNull();
   });
 
   it('charges nothing for a free model', () => {

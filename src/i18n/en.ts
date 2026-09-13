@@ -228,14 +228,16 @@ export const en = {
   'composer.priceTable': 'Pricing details',
   'composer.priceFlatRule': 'Flat price, independent of parameters',
   'composer.priceFlat': 'Flat price',
-  'composer.priceFlatNote': 'Every size and quality',
+  'composer.priceFlatNote': 'Every request',
+  'composer.priceUnavailable':
+    'No price is set for these parameters, so this request would be refused. Choose other values.',
+  'composer.priceUnset':
+    'This model has no price yet, so requests are refused.',
   'composer.priceRule': 'The tier matching the most parameters applies',
   'composer.priceQuantity': '{count} {unit} this request',
   'composer.priceTier': 'Tier',
   'composer.priceSelector': 'Parameters',
   'composer.pricePerUnit': 'Per {unit}',
-  'composer.priceFallback': 'Base price',
-  'composer.priceFallbackNote': 'Any other combination',
   'composer.unitSecond': 'second',
   'composer.unitImage': 'image',
   'composer.adminNoCharge':
@@ -408,9 +410,6 @@ export const en = {
   'models.billingPerRequest': 'Per request / per image',
   'models.billingPerSecond': 'Per output second',
   'models.currency': 'Currency',
-  'models.unitPriceFallback': 'Fallback unit price',
-  'models.unitPriceFallbackNote':
-    'Currency minor units when no parameter tier matches.',
   'models.unitScale': 'Units per price',
   'models.altUnitPrice': 'Unit price ({currency})',
   'models.altMinimumCharge': 'Minimum charge ({currency})',
@@ -419,11 +418,11 @@ export const en = {
   'models.minimumCharge': 'Minimum charge',
   'models.tiers': 'Parameter rate tiers',
   'models.tiersNote':
-    'The most specific matching selector wins; the fallback unit price applies when none matches.',
+    'The most specific matching selector wins. A request no tier matches is refused, so cover every value a request can carry.',
   'models.tiersNoteMinimax':
     'The most specific matching selector wins. MiniMax lists 2K at ¥0.80/s and 768P at ¥0.50/s.',
   'models.tiersNoteXai':
-    'The most specific matching selector wins. xAI charges one flat upstream rate per second ($0.08/s, any resolution); the 480p, 720p, and 1080p tiers here are a selling-price choice to adjust as needed. Set the fallback to the top tier.',
+    'The most specific matching selector wins. xAI charges one flat upstream rate per second ($0.08/s, any resolution); the 480p, 720p, and 1080p tiers here are a selling-price choice to adjust as needed.',
   'models.tiersNoteImage':
     'Images are priced per image times the requested n. The default is flat: the cost spread across quality and size is small, and the auto defaults would otherwise have to be billed at the top tier. Add quality or size tiers only when needed; the most specific selector wins.',
   'models.addTier': 'Add tier',
@@ -432,7 +431,8 @@ export const en = {
   'models.tierLabel': 'Label',
   'models.tierLabelPlaceholder': '2K output',
   'models.tierSelectors': 'Parameter selectors',
-  'models.tierSelectorsNote': 'Comma-separated parameter=value pairs.',
+  'models.tierSelectorsNote':
+    'Comma-separated parameter=value pairs, using the exact values a request sends. Leave empty for one price that applies to every request; only a sole tier may be empty.',
   'models.unitPrice': 'Unit price',
   'models.tiersEmpty':
     'No parameter tiers. The fallback unit price applies to every request.',
@@ -463,6 +463,7 @@ export const en = {
   'models.billingUnitSecond': 'second',
   'models.billingSummary': '{price}/{scale} {currency} minor units per {unit}',
   'models.billingTiers': '{count} parameter tiers',
+  'models.billingUnpriced': 'No price set',
 
   'users.title': 'Accounts',
   'users.note':
@@ -628,10 +629,6 @@ export const en = {
   'playground.noOutputYet':
     'No output yet. Fill in the prompt and click Generate.',
   'playground.model': 'Model',
-  'playground.hintFlare':
-    'Flare is the default for most work: higher-quality images than GPT Image 2 at about half the latency. It suits creator and social content, product experiences, visual search, rapid prototyping, and high-volume generation.',
-  'playground.hintSunburst':
-    'Sunburst is built for premium visual workflows that need tighter control across edits, such as production-ready campaign creative and polished product imagery.',
   'playground.noModels': 'No models available',
   'playground.selectModel': 'Select model',
   'playground.layoutSwap': 'Swap sides',

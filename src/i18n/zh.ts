@@ -214,14 +214,15 @@ export const zh: Record<MessageKey, string> = {
   'composer.priceTable': '价格说明',
   'composer.priceFlatRule': '统一单价，不区分参数',
   'composer.priceFlat': '统一单价',
-  'composer.priceFlatNote': '所有分辨率与画质',
+  'composer.priceFlatNote': '所有请求',
+  'composer.priceUnavailable':
+    '这组参数没有配置价格，提交会被拒绝，请换其他参数。',
+  'composer.priceUnset': '该模型尚未配置价格，暂时无法提交。',
   'composer.priceRule': '匹配参数最多的档位生效',
   'composer.priceQuantity': '本次 {count} {unit}',
   'composer.priceTier': '档位',
   'composer.priceSelector': '参数条件',
   'composer.pricePerUnit': '每{unit}',
-  'composer.priceFallback': '兜底单价',
-  'composer.priceFallbackNote': '其他参数组合',
   'composer.unitSecond': '秒',
   'composer.unitImage': '张',
   'composer.adminNoCharge':
@@ -383,9 +384,6 @@ export const zh: Record<MessageKey, string> = {
   'models.billingPerRequest': '按请求 / 按张计费',
   'models.billingPerSecond': '按输出秒数计费',
   'models.currency': '币种',
-  'models.unitPriceFallback': '兜底单价',
-  'models.unitPriceFallbackNote':
-    '没有参数档位匹配时使用，单位为货币最小单位。',
   'models.unitScale': '每单价对应的单位数',
   'models.altUnitPrice': '单价（{currency}）',
   'models.altMinimumCharge': '最低计费（{currency}）',
@@ -393,11 +391,12 @@ export const zh: Record<MessageKey, string> = {
     '{currency} 的最小货币单位。留空则按配置汇率从本位币价格折算。',
   'models.minimumCharge': '最低收费',
   'models.tiers': '参数计费档位',
-  'models.tiersNote': '匹配最精确的选择器生效；没有档位匹配时使用兜底单价。',
+  'models.tiersNote':
+    '匹配最精确的选择器生效。没有任何档位匹配的请求会被拒绝，请覆盖请求可能取到的每个值。',
   'models.tiersNoteMinimax':
     '匹配最精确的选择器生效。MiniMax 官方定价为 2K 每秒 ¥0.80、768P 每秒 ¥0.50。',
   'models.tiersNoteXai':
-    '匹配最精确的选择器生效。xAI 上游按秒统一计费（$0.08/秒，不分分辨率），这里按 480p、720p、1080p 分档是售价策略，可按需调整；兜底单价建议取最高档。',
+    '匹配最精确的选择器生效。xAI 上游按秒统一计费（$0.08/秒，不分分辨率），这里按 480p、720p、1080p 分档是售价策略，可按需调整。',
   'models.tiersNoteImage':
     '图片按张计价，数量取请求的 n。默认不分档：各画质与分辨率的成本差距不大，而 auto 默认值若分档只能按最高档收费。确有需要时可按 quality、size 添加档位，匹配最精确的选择器生效。',
   'models.addTier': '添加档位',
@@ -406,7 +405,8 @@ export const zh: Record<MessageKey, string> = {
   'models.tierLabel': '标签',
   'models.tierLabelPlaceholder': '2K output',
   'models.tierSelectors': '参数选择器',
-  'models.tierSelectorsNote': '以逗号分隔的 参数=值 组合。',
+  'models.tierSelectorsNote':
+    '以逗号分隔的 参数=值 组合，值须与请求传入的完全一致（区分大小写）。留空表示对所有请求生效，只能用于唯一的档位。',
   'models.unitPrice': '单价',
   'models.tiersEmpty': '没有参数档位，所有请求都按兜底单价计费。',
   'models.pricingReferenceMinimax': '查看 MiniMax 按量付费价格',
@@ -433,6 +433,7 @@ export const zh: Record<MessageKey, string> = {
   'models.billingUnitSecond': '输出秒',
   'models.billingSummary': '每{unit} {price}/{scale} {currency} 最小单位',
   'models.billingTiers': '{count} 个参数档位',
+  'models.billingUnpriced': '未配置价格',
 
   'users.title': '账户',
   'users.note': '已注册账户、其拥有的工作区以及活动情况。',
@@ -586,10 +587,6 @@ export const zh: Record<MessageKey, string> = {
   'playground.recentGenerations': '最近生成',
   'playground.noOutputYet': '暂无生成产物，输入提示词后点击生成。',
   'playground.model': '模型',
-  'playground.hintFlare':
-    'Flare 是多数场景的默认选择：画质优于 GPT Image 2，延迟约低一半。适合创作者与社交内容、产品体验、视觉搜索、快速原型和大批量出图。',
-  'playground.hintSunburst':
-    'Sunburst 面向需要在多轮编辑中保持精细控制的高端视觉流程，例如可直接投放的营销创意和精修产品图。',
   'playground.noModels': '暂无可用模型',
   'playground.selectModel': '选择模型',
   'playground.layoutSwap': '左右互换',

@@ -1,5 +1,5 @@
 import type { ModelBilling } from '../types';
-import { fallbackRate, unitAmount } from './requestForm';
+import { unitAmount } from './requestForm';
 
 // providerLabel is the provider as a tenant should read it. The administrator
 // names it on the model; a model without a name shows its protocol key, which
@@ -13,17 +13,16 @@ export function providerLabel(model: {
 
 export type PriceRange = { min: number; max: number } | null;
 
-// priceRange is the span of one billable unit across a model's tiers, in minor
-// units, or null for a free model. The unit follows the billing mode rather
-// than the modality: that is what the gateway actually charges by.
+// priceRange is the span of one billable unit across a model's rates, in minor
+// units, or null when there is nothing to show: a free model, or a priced one
+// with no rates yet. The unit follows the billing mode rather than the
+// modality: that is what the gateway actually charges by.
 export function priceRange(billing: ModelBilling): PriceRange {
-  if (billing.mode === 'free') return null;
   const rates = billing.rates ?? [];
-  const prices = rates.length
-    ? rates.map((rate) =>
-        unitAmount({ ...rate, dimensions: rate.dimensions ?? {} }),
-      )
-    : [unitAmount(fallbackRate(billing))];
+  if (billing.mode === 'free' || rates.length === 0) return null;
+  const prices = rates.map((rate) =>
+    unitAmount({ ...rate, dimensions: rate.dimensions ?? {} }),
+  );
   return { min: Math.min(...prices), max: Math.max(...prices) };
 }
 
@@ -32,8 +31,9 @@ export function priceLabel(
   money: (minorUnits: number, currency?: string) => string,
   words: { free: string; perSecond: string; perImage: string },
 ): string {
+  if (billing.mode === 'free') return words.free;
   const range = priceRange(billing);
-  if (!range) return words.free;
+  if (!range) return '—';
   const unit =
     billing.mode === 'per_output_second' ? words.perSecond : words.perImage;
   const amount =

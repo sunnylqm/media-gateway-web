@@ -148,14 +148,12 @@ export type GenerationInput = {
 // the alternate currency. The `alt_` fields are integer minor units of the
 // alternate currency, and 0 means unset — the gateway then prices that model in
 // the alternate currency by converting the base price at the configured rate.
+// A model's price list. A priced model is priced by its rates alone: a request
+// is charged the most specific rate it matches, and a request that matches none
+// is refused. A flat price is one rate with no dimensions.
 export type ModelBilling = {
   mode: 'free' | 'per_request' | 'per_output_second';
   currency: string;
-  unit_price: number;
-  unit_scale: number;
-  minimum_charge: number;
-  alt_unit_price?: number;
-  alt_minimum_charge?: number;
   rates: ModelBillingRate[];
 };
 
