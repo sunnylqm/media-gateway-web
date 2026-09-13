@@ -435,7 +435,7 @@ export const en = {
     'Comma-separated parameter=value pairs, using the exact values a request sends. Leave empty for one price that applies to every request; only a sole tier may be empty.',
   'models.unitPrice': 'Unit price',
   'models.tiersEmpty':
-    'No parameter tiers. The fallback unit price applies to every request.',
+    'No price tiers yet, so requests to this model are refused. Add a tier; leave its selector empty for one flat price.',
   'models.pricingReferenceMinimax': 'Open MiniMax pay-as-you-go pricing',
   'models.pricingReferenceXai': 'Open xAI model pricing',
   'models.profile': 'Protocol profile',

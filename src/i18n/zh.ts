@@ -408,7 +408,8 @@ export const zh: Record<MessageKey, string> = {
   'models.tierSelectorsNote':
     '以逗号分隔的 参数=值 组合，值须与请求传入的完全一致（区分大小写）。留空表示对所有请求生效，只能用于唯一的档位。',
   'models.unitPrice': '单价',
-  'models.tiersEmpty': '没有参数档位，所有请求都按兜底单价计费。',
+  'models.tiersEmpty':
+    '还没有价格档位，这个模型的请求会被拒绝。添加一个档位；选择器留空即为统一价格。',
   'models.pricingReferenceMinimax': '查看 MiniMax 按量付费价格',
   'models.pricingReferenceXai': '查看 xAI 模型价格',
   'models.profile': '协议配置',
