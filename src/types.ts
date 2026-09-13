@@ -173,6 +173,10 @@ export type PublicModel = {
   id: string;
   object: 'model';
   display_name: string;
+  // Administrator-written Markdown describing the model.
+  notes?: string;
+  // The provider's release date, YYYY-MM-DD.
+  released_on?: string;
   modality: 'image' | 'video';
   operations: string[];
   provider: string;
@@ -253,6 +257,8 @@ export type ProtocolPreset = {
   upstream_model: string;
   endpoint: string;
   modality: string;
+  notes?: string;
+  released_on?: string;
   profile: unknown;
 };
 

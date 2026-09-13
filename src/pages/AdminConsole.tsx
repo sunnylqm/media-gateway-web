@@ -50,7 +50,7 @@ import { Shell } from '../components/Shell';
 import { TopupDialog } from '../components/TopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
 import { formatAmount, formatDate, formatDay, formatStatus } from '../format';
-import { t, useI18n } from '../i18n';
+import { intlLocale, t, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
 import {
@@ -59,6 +59,8 @@ import {
   formatExchangeRate,
   parseExchangeRate,
 } from '../lib/currency';
+import { Markdown } from '../lib/markdown';
+import { formatReleaseDate } from '../lib/modelCatalog';
 import { PreferencesProvider } from '../lib/preferencesContext';
 import {
   adminInvoicePath,
@@ -666,6 +668,8 @@ function AdminOverviewView({
 type ModelForm = {
   id: string;
   displayName: string;
+  notes: string;
+  releasedOn: string;
   provider: string;
   modality: 'image' | 'video';
   upstreamModel: string;
@@ -1787,6 +1791,8 @@ const flatImagePrice = '15';
 const emptyModelForm: ModelForm = {
   id: '',
   displayName: '',
+  notes: '',
+  releasedOn: '',
   provider: 'minimax',
   modality: 'video',
   upstreamModel: 'MiniMax-H3',
@@ -1806,6 +1812,8 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     ...emptyModelForm,
     id: preset.model_id,
     displayName: preset.display_name,
+    notes: preset.notes ?? '',
+    releasedOn: preset.released_on ?? '',
     provider: preset.name,
     modality: preset.modality === 'image' ? 'image' : 'video',
     upstreamModel: preset.upstream_model,
@@ -1888,6 +1896,8 @@ function ModelsPanel({
         ? {
             id: model.id,
             displayName: model.display_name,
+            notes: model.notes ?? '',
+            releasedOn: model.released_on ?? '',
             provider: model.provider,
             modality: model.modality,
             upstreamModel: model.upstream_model,
@@ -2059,6 +2069,8 @@ function ModelsPanel({
           body: JSON.stringify({
             id: form.id,
             display_name: form.displayName,
+            notes: form.notes,
+            released_on: form.releasedOn,
             provider: form.provider,
             upstream_model: form.upstreamModel,
             protocol_profile: parseProfile(form.profile),
@@ -2161,6 +2173,9 @@ function ModelsPanel({
                   <div>
                     <b>{model.display_name}</b>
                     <small>
+                      {model.released_on
+                        ? `${formatReleaseDate(model.released_on, intlLocale())} · `
+                        : ''}
                       {model.id} · {model.provider}/{model.upstream_model}
                       {model.profile_customized
                         ? ` · ${t('models.customProfile')}`
@@ -2268,6 +2283,38 @@ function ModelsPanel({
                     placeholder="MiniMax H3"
                   />
                 </label>
+              </div>
+              <div className="field-grid two">
+                <label className="field">
+                  <span className="field-label">{t('models.releasedOn')}</span>
+                  <input
+                    type="date"
+                    value={form.releasedOn}
+                    onChange={(event) =>
+                      field('releasedOn', event.target.value)
+                    }
+                  />
+                  <small>{t('models.releasedOnNote')}</small>
+                </label>
+              </div>
+              <div className="field">
+                <span className="field-label">{t('models.notes')}</span>
+                <div className="notes-editor">
+                  <textarea
+                    value={form.notes}
+                    maxLength={8000}
+                    aria-label={t('models.notes')}
+                    onChange={(event) => field('notes', event.target.value)}
+                    placeholder="**Model name** — …"
+                  />
+                  <div className="notes-preview" aria-live="polite">
+                    <span className="notes-preview-label">
+                      {t('models.notesPreview')}
+                    </span>
+                    <Markdown source={form.notes} />
+                  </div>
+                </div>
+                <small>{t('models.notesNote')}</small>
               </div>
               <div className="field-grid two">
                 <label className="field">

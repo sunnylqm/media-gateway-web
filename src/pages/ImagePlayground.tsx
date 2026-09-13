@@ -28,6 +28,7 @@ import {
 import { absoluteGatewayURL, api } from '../api';
 import { GenerationDetails } from '../components/Generations';
 import { LayoutSwitch } from '../components/LayoutSwitch';
+import { ModelPicker } from '../components/ModelPicker';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
 import {
@@ -44,11 +45,9 @@ import {
   buildRequestBody,
   defaultParameterValue,
   estimateAmount,
-  fallbackRate,
   isHiddenParameter,
   type MediaSlot,
   mediaSlots,
-  unitAmount,
 } from '../lib/requestForm';
 import {
   readSharePreference,
@@ -117,30 +116,8 @@ export function ImagePlayground({
   const form = selectedModel?.request_form;
   // Some models are a trade-off against a sibling rather than a strict upgrade.
   // The note under the selector says what the choice costs, so a user does not
-  // have to infer it from the name and the price badge.
+  // have to infer it from the name and the price.
   const modelHint = modelHintKey(modelId);
-
-  const modelPriceTag = useMemo(() => {
-    if (!selectedModel) return '';
-    const billing = selectedModel.billing;
-    if (billing.mode === 'free') return t('composer.free');
-    const currency = billing.currency;
-    const unit = t('composer.unitImage');
-    const rates = billing.rates ?? [];
-    if (rates.length === 0) {
-      const base = unitAmount(fallbackRate(billing));
-      return `${money(base, currency)} / ${unit}`;
-    }
-    const prices = rates.map((r) =>
-      unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
-    );
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    if (min === max) {
-      return `${money(min, currency)} / ${unit}`;
-    }
-    return `${money(min, currency)} ~ ${money(max, currency)} / ${unit}`;
-  }, [selectedModel, t, money]);
 
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -657,23 +634,14 @@ export function ImagePlayground({
           <div className="playground-panel playground-input-panel">
             <div className="playground-panel-header">
               <div className="playground-model-select-wrap">
-                <select
+                <ModelPicker
+                  size="compact"
+                  models={imageModels}
                   value={modelId}
-                  onChange={(e) => setModelId(e.target.value)}
-                  disabled={!imageAllowed || !imageModels.length}
-                  aria-label={t('playground.model')}
-                >
-                  {imageModels.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.display_name} ({item.provider})
-                    </option>
-                  ))}
-                </select>
-                {modelPriceTag && (
-                  <span className="playground-model-price-badge">
-                    {modelPriceTag}
-                  </span>
-                )}
+                  onChange={setModelId}
+                  disabled={!imageAllowed}
+                  ariaLabel={t('playground.model')}
+                />
               </div>
               {modelHint && (
                 <p className="playground-model-hint">

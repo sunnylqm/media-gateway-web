@@ -245,6 +245,11 @@ export const en = {
   'composer.adminSubmit': 'Create generation (no charge)',
   'composer.submitPriced': 'Create generation ({price})',
   'composer.free': 'Free',
+  'modelPicker.choose': 'Choose a model',
+  'modelPicker.new': 'New',
+  'modelPicker.released': 'Released {date}',
+  'modelPicker.noNotes': 'No description yet.',
+  'modelPicker.listLabel': 'Models',
   'composer.uploadingAria': 'Uploading',
   'composer.retryAria': 'Retry upload',
   'composer.removeAria': 'Remove {name}',
@@ -364,6 +369,13 @@ export const en = {
   'models.providerNote':
     'Selects the built-in protocol profile when one ships with that name.',
   'models.upstreamModel': 'Upstream model',
+  'models.releasedOn': 'Release date',
+  'models.releasedOnNote':
+    'The day the provider released the model. Users see it to tell newer models from older ones.',
+  'models.notes': 'Notes',
+  'models.notesNote':
+    'Markdown shown to users beside the model: what it is for, its limits, and rules the upstream enforces.',
+  'models.notesPreview': 'Preview',
   'models.bindings': 'Upstream bindings',
   'models.bindingsNote':
     'Each binding is one base URL and credential under an alias. The gateway picks an active binding at random by weight and moves to the next one when a submission cannot be placed. Tenants never see or choose a binding.',

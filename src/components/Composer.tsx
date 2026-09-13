@@ -39,6 +39,7 @@ import {
 } from '../lib/requestForm';
 import { isOversizedVideo } from '../lib/videoCompression';
 import type { Asset, FormParameter, PublicModel, User } from '../types';
+import { ModelPicker } from './ModelPicker';
 import { PriceTable } from './PriceTable';
 import {
   VideoCompressDialog,
@@ -632,9 +633,11 @@ export function GenerationComposer({
                   </div>
                   <div className="field">
                     <span className="field-label">{t('composer.model')}</span>
-                    <Picker
+                    <ModelPicker
+                      models={availableModels}
                       value={model}
                       onChange={setModel}
+                      ariaLabel={t('composer.model')}
                       placeholder={
                         availableModels.length
                           ? undefined
@@ -642,10 +645,6 @@ export function GenerationComposer({
                               modality: t(`modality.${modality}`),
                             })
                       }
-                      options={availableModels.map((item) => ({
-                        value: item.id,
-                        label: item.display_name,
-                      }))}
                     />
                   </div>
                 </div>

@@ -29,6 +29,7 @@ import {
 import { absoluteGatewayURL, api } from '../api';
 import { GenerationDetails } from '../components/Generations';
 import { LayoutSwitch } from '../components/LayoutSwitch';
+import { ModelPicker } from '../components/ModelPicker';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
 import {
@@ -48,11 +49,9 @@ import {
   buildRequestBody,
   defaultParameterValue,
   estimateAmount,
-  fallbackRate,
   isHiddenParameter,
   type MediaSlot,
   mediaSlots,
-  unitAmount,
 } from '../lib/requestForm';
 import {
   readSharePreference,
@@ -125,28 +124,6 @@ export function VideoStudio({
     [videoModels, modelId],
   );
   const form = selectedModel?.request_form;
-
-  const modelPriceTag = useMemo(() => {
-    if (!selectedModel) return '';
-    const billing = selectedModel.billing;
-    if (billing.mode === 'free') return t('composer.free');
-    const currency = billing.currency;
-    const unit = t('composer.unitSecond');
-    const rates = billing.rates ?? [];
-    if (rates.length === 0) {
-      const base = unitAmount(fallbackRate(billing));
-      return `${money(base, currency)} / ${unit}`;
-    }
-    const prices = rates.map((r) =>
-      unitAmount({ ...r, dimensions: r.dimensions ?? {} }),
-    );
-    const min = Math.min(...prices);
-    const max = Math.max(...prices);
-    if (min === max) {
-      return `${money(min, currency)} / ${unit}`;
-    }
-    return `${money(min, currency)} ~ ${money(max, currency)} / ${unit}`;
-  }, [selectedModel, t, money]);
 
   const [prompt, setPrompt] = useState('');
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -661,23 +638,14 @@ export function VideoStudio({
           <div className="playground-panel playground-input-panel">
             <div className="playground-panel-header">
               <div className="playground-model-select-wrap">
-                <select
+                <ModelPicker
+                  size="compact"
+                  models={videoModels}
                   value={modelId}
-                  onChange={(e) => setModelId(e.target.value)}
-                  disabled={!videoAllowed || !videoModels.length}
-                  aria-label={t('playground.model')}
-                >
-                  {videoModels.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.display_name} ({item.provider})
-                    </option>
-                  ))}
-                </select>
-                {modelPriceTag && (
-                  <span className="playground-model-price-badge">
-                    {modelPriceTag}
-                  </span>
-                )}
+                  onChange={setModelId}
+                  disabled={!videoAllowed}
+                  ariaLabel={t('playground.model')}
+                />
               </div>
               <div className="playground-tab-group" role="tablist">
                 <button
