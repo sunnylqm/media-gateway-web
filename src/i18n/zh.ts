@@ -864,4 +864,28 @@ export const zh: Record<MessageKey, string> = {
     '将删除所有已记录的警告与错误。主机日志中的记录不受影响。',
   'errorLogs.clearConfirm': '全部清空',
   'errorLogs.cleared': '已删除 {count} 条记录。',
+  'errorAlerts.title': '告警邮件',
+  'errorAlerts.note':
+    '网关记录到错误时发邮件通知这些地址。同类错误合并计数，每小时最多一封，已通知过的错误 24 小时内不再重复提醒。',
+  'errorAlerts.enabled': '错误发生时发送告警邮件',
+  'errorAlerts.recipients': '收件人',
+  'errorAlerts.recipientsPlaceholder': 'ops@example.com, oncall@example.com',
+  'errorAlerts.recipientsNote':
+    '多个地址用逗号或换行分隔，最多 10 个；每个地址单独收到一封邮件。',
+  'errorAlerts.save': '保存',
+  'errorAlerts.saving': '正在保存…',
+  'errorAlerts.saved': '告警设置已保存。',
+  'errorAlerts.sendTest': '发送测试邮件',
+  'errorAlerts.testSent': '测试邮件已发送，请查收。',
+  'errorAlerts.testNeedsSave': '请先保存收件人，再发送测试邮件。',
+  'errorAlerts.mailUnavailable':
+    '网关没有配置 SMTP，无法发送告警。请设置 SMTP_HOST、SMTP_USER、SMTP_PASS 和 SMTP_FROM。',
+  'errorAlerts.statusOff': '告警未开启',
+  'errorAlerts.statusOn': '告警发送至 {count} 个地址',
+  'errorAlerts.neverSent': '还没有发送过告警。',
+  'errorAlerts.lastSent': '上次告警：{date}',
+  'errorAlerts.nextSend': '下一封告警最早于 {date} 发送',
+  'errorAlerts.pending': '{groups} 类错误（共 {count} 次）等待下一封告警',
+  'errorAlerts.loading': '正在加载告警设置…',
+  'errorAlerts.errorLoad': '无法加载告警设置',
 };

@@ -3,6 +3,7 @@ import type { ErrorLog } from '../types';
 import {
   errorLogPath,
   errorLogSummary,
+  parseRecipients,
   splitErrorLogAttributes,
 } from './errorLogs';
 
@@ -45,5 +46,14 @@ describe('error logs', () => {
     );
     expect(errorLogSummary(entry({ panic: 'nil map' }))).toBe('nil map');
     expect(errorLogSummary(entry({ status: 500 }))).toBe('');
+  });
+
+  it('splits recipients on commas, semicolons, and new lines', () => {
+    expect(parseRecipients(' a@x.io,b@x.io;\n c@x.io \n\n')).toEqual([
+      'a@x.io',
+      'b@x.io',
+      'c@x.io',
+    ]);
+    expect(parseRecipients('')).toEqual([]);
   });
 });

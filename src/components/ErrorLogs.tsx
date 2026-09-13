@@ -1,4 +1,13 @@
-import { ChevronDown, RotateCcw, Search, Trash2, X } from 'lucide-react';
+import {
+  ChevronDown,
+  Mail,
+  RotateCcw,
+  Search,
+  Send,
+  ShieldAlert,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { Dialog } from 'radix-ui';
 import {
   type FormEvent,
@@ -13,9 +22,15 @@ import {
   type ErrorLogFilter,
   errorLogPath,
   errorLogSummary,
+  parseRecipients,
   splitErrorLogAttributes,
 } from '../lib/errorLogs';
-import type { ErrorLog, ErrorLogCounts, ErrorLogList } from '../types';
+import type {
+  ErrorAlerts,
+  ErrorLog,
+  ErrorLogCounts,
+  ErrorLogList,
+} from '../types';
 
 function isAbortError(reason: unknown): boolean {
   return reason instanceof DOMException && reason.name === 'AbortError';
@@ -402,5 +417,213 @@ function ErrorLogRow({
         </tr>
       )}
     </>
+  );
+}
+
+// Who is emailed when the gateway logs errors, behind
+// `GET/PUT /v1/admin/error-alerts`. Grouping, the hourly limit, and the
+// 24-hour mute all happen on the gateway; the panel only shows their state.
+export function ErrorAlertsPanel() {
+  const { t, format } = useI18n();
+  const [config, setConfig] = useState<ErrorAlerts | null>(null);
+  const [enabled, setEnabled] = useState(false);
+  const [recipients, setRecipients] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+
+  const apply = useCallback((next: ErrorAlerts) => {
+    setConfig(next);
+    setEnabled(next.enabled);
+    setRecipients(next.recipients.join('\n'));
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    api<ErrorAlerts>(
+      '/v1/admin/error-alerts',
+      { signal: controller.signal },
+      true,
+    )
+      .then(apply)
+      .catch((reason: unknown) => {
+        if (isAbortError(reason)) return;
+        setError(
+          reason instanceof Error
+            ? reason.message
+            : translate('errorAlerts.errorLoad'),
+        );
+      });
+    return () => controller.abort();
+  }, [apply]);
+
+  const unsaved =
+    config !== null &&
+    (enabled !== config.enabled ||
+      parseRecipients(recipients).join('\n') !== config.recipients.join('\n'));
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    setError('');
+    setNotice('');
+    setSaving(true);
+    try {
+      apply(
+        await api<ErrorAlerts>(
+          '/v1/admin/error-alerts',
+          {
+            method: 'PUT',
+            body: JSON.stringify({
+              enabled,
+              recipients: parseRecipients(recipients),
+            }),
+          },
+          true,
+        ),
+      );
+      setNotice(t('errorAlerts.saved'));
+    } catch (reason) {
+      setError(failure(reason));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function sendTest() {
+    setError('');
+    setNotice('');
+    if (unsaved) {
+      setError(t('errorAlerts.testNeedsSave'));
+      return;
+    }
+    setTesting(true);
+    try {
+      apply(
+        await api<ErrorAlerts>(
+          '/v1/admin/error-alerts/test',
+          { method: 'POST' },
+          true,
+        ),
+      );
+      setNotice(t('errorAlerts.testSent'));
+    } catch (reason) {
+      setError(failure(reason));
+    } finally {
+      setTesting(false);
+    }
+  }
+
+  return (
+    <section className="panel storage-panel">
+      <div className="panel-heading">
+        <div>
+          <h2>{t('errorAlerts.title')}</h2>
+          <p>{t('errorAlerts.note')}</p>
+        </div>
+        <Mail size={19} />
+      </div>
+      {error && (
+        <div className="banner-error error-log-banner" role="alert">
+          {error}
+        </div>
+      )}
+      {notice && (
+        <div className="banner-success error-log-banner" role="status">
+          <span>{notice}</span>
+        </div>
+      )}
+      {!config ? (
+        error ? null : (
+          <div className="empty-state">
+            <span className="loader" />
+            {t('errorAlerts.loading')}
+          </div>
+        )
+      ) : (
+        <form className="panel-body dialog-form" onSubmit={save}>
+          {!config.mail_configured && (
+            <div className="warning-box error-alert-warning">
+              <ShieldAlert size={18} />
+              <span>{t('errorAlerts.mailUnavailable')}</span>
+            </div>
+          )}
+          <div className="backup-status">
+            <div>
+              <strong>
+                {config.enabled
+                  ? t('errorAlerts.statusOn', {
+                      count: config.recipients.length,
+                    })
+                  : t('errorAlerts.statusOff')}
+              </strong>
+              <small className="muted">
+                {config.last_sent_at
+                  ? t('errorAlerts.lastSent', {
+                      date: format.dateTime(config.last_sent_at),
+                    })
+                  : t('errorAlerts.neverSent')}
+              </small>
+              {config.next_send_at && (
+                <small className="muted">
+                  {t('errorAlerts.nextSend', {
+                    date: format.dateTime(config.next_send_at),
+                  })}
+                </small>
+              )}
+              {config.pending_count > 0 && (
+                <small className="backup-error">
+                  {t('errorAlerts.pending', {
+                    groups: config.pending_groups,
+                    count: config.pending_count,
+                  })}
+                </small>
+              )}
+            </div>
+            <button
+              className="button"
+              type="button"
+              onClick={() => void sendTest()}
+              disabled={
+                testing ||
+                !config.mail_configured ||
+                config.recipients.length === 0
+              }
+            >
+              <Send size={14} />
+              {t('errorAlerts.sendTest')}
+            </button>
+          </div>
+          <label className="topup-switch">
+            <input
+              type="checkbox"
+              checked={enabled}
+              onChange={(event) => setEnabled(event.target.checked)}
+            />
+            <span>{t('errorAlerts.enabled')}</span>
+          </label>
+          <label className="field">
+            <span className="field-label">{t('errorAlerts.recipients')}</span>
+            <textarea
+              className="error-alert-recipients"
+              rows={3}
+              value={recipients}
+              placeholder={t('errorAlerts.recipientsPlaceholder')}
+              onChange={(event) => setRecipients(event.target.value)}
+            />
+            <small>{t('errorAlerts.recipientsNote')}</small>
+          </label>
+          <div className="dialog-actions">
+            <button
+              className="button primary"
+              type="submit"
+              disabled={saving || !unsaved}
+            >
+              {saving ? t('errorAlerts.saving') : t('errorAlerts.save')}
+            </button>
+          </div>
+        </form>
+      )}
+    </section>
   );
 }

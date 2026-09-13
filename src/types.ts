@@ -515,6 +515,20 @@ export type ErrorLog = {
   attributes?: Record<string, unknown>;
 };
 
+export type ErrorAlerts = {
+  object: 'error_alerts';
+  enabled: boolean;
+  recipients: string[];
+  mail_configured: boolean;
+  interval_seconds: number;
+  mute_seconds: number;
+  last_sent_at?: string;
+  next_send_at?: string;
+  pending_groups: number;
+  pending_count: number;
+  updated_at?: string;
+};
+
 export type ErrorLogCounts = {
   since: string;
   error: number;

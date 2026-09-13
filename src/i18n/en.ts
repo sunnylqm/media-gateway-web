@@ -921,6 +921,31 @@ export const en = {
     'Every recorded warning and error is removed. The copies in the host journal are not affected.',
   'errorLogs.clearConfirm': 'Clear all',
   'errorLogs.cleared': 'Removed {count} entries.',
+  'errorAlerts.title': 'Alert emails',
+  'errorAlerts.note':
+    'Email these addresses when the gateway logs errors. Repeats are grouped, at most one email goes out an hour, and an error already sent is not sent again for 24 hours.',
+  'errorAlerts.enabled': 'Email alerts for errors',
+  'errorAlerts.recipients': 'Recipients',
+  'errorAlerts.recipientsPlaceholder': 'ops@example.com, oncall@example.com',
+  'errorAlerts.recipientsNote':
+    'Separate addresses with commas or new lines; up to 10. Each gets a separate email.',
+  'errorAlerts.save': 'Save',
+  'errorAlerts.saving': 'Saving…',
+  'errorAlerts.saved': 'Alert settings saved.',
+  'errorAlerts.sendTest': 'Send test email',
+  'errorAlerts.testSent': 'Test email sent. Check the inboxes.',
+  'errorAlerts.testNeedsSave': 'Save the recipients before sending a test.',
+  'errorAlerts.mailUnavailable':
+    'SMTP is not configured on the gateway, so no alert can be sent. Set SMTP_HOST, SMTP_USER, SMTP_PASS and SMTP_FROM.',
+  'errorAlerts.statusOff': 'Alerts are off',
+  'errorAlerts.statusOn': 'Alerts go to {count} addresses',
+  'errorAlerts.neverSent': 'No alert has been sent yet.',
+  'errorAlerts.lastSent': 'Last alert: {date}',
+  'errorAlerts.nextSend': 'Next alert no earlier than {date}',
+  'errorAlerts.pending':
+    '{groups} distinct errors ({count} times) waiting for the next alert',
+  'errorAlerts.loading': 'Loading alert settings…',
+  'errorAlerts.errorLoad': 'Unable to load the alert settings',
 } as const;
 
 export type MessageKey = keyof typeof en;

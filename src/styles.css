@@ -978,3 +978,6 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .error-log-detail dd { min-width: 0; margin: 0; font-size: 12px; }
 .error-log-detail code { font-size: 11px; overflow-wrap: anywhere; }
 .error-log-detail pre { max-height: 360px; margin: 0; overflow: auto; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
+.error-log-page { display: grid; gap: 20px; }
+.error-alert-warning { margin: 0; }
+.field textarea.error-alert-recipients { min-height: 76px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }

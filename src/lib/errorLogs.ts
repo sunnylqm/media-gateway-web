@@ -2,6 +2,15 @@ import type { ErrorLog, ErrorLogLevel } from '../types';
 
 export const errorLogPageSize = 50;
 
+// parseRecipients reads the recipients field: addresses separated by commas,
+// semicolons, or new lines. The gateway validates and de-duplicates them.
+export function parseRecipients(value: string): string[] {
+  return value
+    .split(/[,;\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
 export type ErrorLogFilter = {
   level: '' | ErrorLogLevel;
   search: string;
