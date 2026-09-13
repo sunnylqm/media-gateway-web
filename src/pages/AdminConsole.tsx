@@ -670,6 +670,8 @@ type ModelForm = {
   displayName: string;
   notes: string;
   releasedOn: string;
+  providerName: string;
+  docsUrl: string;
   provider: string;
   modality: 'image' | 'video';
   upstreamModel: string;
@@ -1793,6 +1795,8 @@ const emptyModelForm: ModelForm = {
   displayName: '',
   notes: '',
   releasedOn: '',
+  providerName: '',
+  docsUrl: '',
   provider: 'minimax',
   modality: 'video',
   upstreamModel: 'MiniMax-H3',
@@ -1814,6 +1818,8 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     displayName: preset.display_name,
     notes: preset.notes ?? '',
     releasedOn: preset.released_on ?? '',
+    providerName: preset.provider_name ?? '',
+    docsUrl: preset.docs_url ?? '',
     provider: preset.name,
     modality: preset.modality === 'image' ? 'image' : 'video',
     upstreamModel: preset.upstream_model,
@@ -1898,6 +1904,8 @@ function ModelsPanel({
             displayName: model.display_name,
             notes: model.notes ?? '',
             releasedOn: model.released_on ?? '',
+            providerName: model.provider_name ?? '',
+            docsUrl: model.docs_url ?? '',
             provider: model.provider,
             modality: model.modality,
             upstreamModel: model.upstream_model,
@@ -2071,6 +2079,8 @@ function ModelsPanel({
             display_name: form.displayName,
             notes: form.notes,
             released_on: form.releasedOn,
+            provider_name: form.providerName,
+            docs_url: form.docsUrl,
             provider: form.provider,
             upstream_model: form.upstreamModel,
             protocol_profile: parseProfile(form.profile),
@@ -2176,6 +2186,7 @@ function ModelsPanel({
                       {model.released_on
                         ? `${formatReleaseDate(model.released_on, intlLocale())} · `
                         : ''}
+                      {model.provider_name ? `${model.provider_name} · ` : ''}
                       {model.id} · {model.provider}/{model.upstream_model}
                       {model.profile_customized
                         ? ` · ${t('models.customProfile')}`
@@ -2286,6 +2297,20 @@ function ModelsPanel({
               </div>
               <div className="field-grid two">
                 <label className="field">
+                  <span className="field-label">
+                    {t('models.providerName')}
+                  </span>
+                  <input
+                    value={form.providerName}
+                    maxLength={64}
+                    onChange={(event) =>
+                      field('providerName', event.target.value)
+                    }
+                    placeholder={form.provider || 'Alibaba Cloud'}
+                  />
+                  <small>{t('models.providerNameNote')}</small>
+                </label>
+                <label className="field">
                   <span className="field-label">{t('models.releasedOn')}</span>
                   <input
                     type="date"
@@ -2297,6 +2322,17 @@ function ModelsPanel({
                   <small>{t('models.releasedOnNote')}</small>
                 </label>
               </div>
+              <label className="field">
+                <span className="field-label">{t('models.docsUrl')}</span>
+                <input
+                  type="url"
+                  pattern="https?://.+"
+                  value={form.docsUrl}
+                  onChange={(event) => field('docsUrl', event.target.value)}
+                  placeholder="https://"
+                />
+                <small>{t('models.docsUrlNote')}</small>
+              </label>
               <div className="field">
                 <span className="field-label">{t('models.notes')}</span>
                 <div className="notes-editor">

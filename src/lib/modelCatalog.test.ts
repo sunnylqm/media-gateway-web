@@ -5,7 +5,7 @@ import {
   isNewModel,
   newestFirst,
   priceLabel,
-  vendorName,
+  providerLabel,
 } from './modelCatalog';
 
 const words = { free: 'Free', perSecond: 'second', perImage: 'image' };
@@ -22,10 +22,12 @@ const billing = (patch: Partial<ModelBilling>): ModelBilling => ({
 });
 
 describe('model catalog presentation', () => {
-  it('names the company behind a provider key', () => {
-    expect(vendorName('wan')).toBe('Alibaba Cloud');
-    expect(vendorName('xai')).toBe('xAI');
-    expect(vendorName('acme')).toBe('acme');
+  it('shows the provider name the administrator gave, else the key', () => {
+    expect(
+      providerLabel({ provider: 'wan', provider_name: 'Alibaba Cloud' }),
+    ).toBe('Alibaba Cloud');
+    expect(providerLabel({ provider: 'wan', provider_name: '  ' })).toBe('wan');
+    expect(providerLabel({ provider: 'acme' })).toBe('acme');
   });
 
   it('labels a price by what the model is billed on', () => {

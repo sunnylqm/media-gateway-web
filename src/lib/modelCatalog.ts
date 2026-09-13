@@ -1,18 +1,14 @@
 import type { ModelBilling } from '../types';
 import { fallbackRate, unitAmount } from './requestForm';
 
-// A provider key names a protocol profile, which is not always how people know
-// the company behind it: "wan" is Alibaba's model family, "xai" is written
-// xAI. Keys an administrator invented for a custom provider show as written.
-const vendorNames: Record<string, string> = {
-  minimax: 'MiniMax',
-  xai: 'xAI',
-  openai: 'OpenAI',
-  wan: 'Alibaba Cloud',
-};
-
-export function vendorName(provider: string): string {
-  return vendorNames[provider] ?? provider;
+// providerLabel is the provider as a tenant should read it. The administrator
+// names it on the model; a model without a name shows its protocol key, which
+// is at least never wrong.
+export function providerLabel(model: {
+  provider: string;
+  provider_name?: string;
+}): string {
+  return model.provider_name?.trim() || model.provider;
 }
 
 export type PriceRange = { min: number; max: number } | null;

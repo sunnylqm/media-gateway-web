@@ -259,6 +259,9 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .model-detail-facts dd { margin: 0; }
 .model-detail-price { color: var(--ink); font-weight: 700; font-variant-numeric: tabular-nums; }
 
+.model-docs-link { display: inline-flex; align-items: center; gap: 5px; margin-top: 12px; color: var(--accent-dark); font-size: 12px; font-weight: 700; text-decoration: none; }
+.model-docs-link:hover { text-decoration: underline; }
+
 /* Rendered model notes. Headings are demoted so a note never outshouts the
    page it sits in. */
 .markdown { color: #3d4843; font-size: 12.5px; line-height: 1.6; overflow-wrap: anywhere; }

@@ -1,4 +1,4 @@
-import { Check, ChevronDown } from 'lucide-react';
+import { Check, ChevronDown, ExternalLink } from 'lucide-react';
 import { Popover } from 'radix-ui';
 import {
   type KeyboardEvent,
@@ -9,13 +9,13 @@ import {
   useState,
 } from 'react';
 import { intlLocale, useI18n } from '../i18n';
-import { Markdown, plainText } from '../lib/markdown';
+import { Markdown, plainText, safeHref } from '../lib/markdown';
 import {
   formatReleaseDate,
   isNewModel,
   newestFirst,
   priceLabel,
-  vendorName,
+  providerLabel,
 } from '../lib/modelCatalog';
 import { useMoney } from '../lib/money';
 import type { PublicModel } from '../types';
@@ -124,7 +124,7 @@ export function ModelPicker({
               )}
             </span>
             <span className="model-picker-meta">
-              {vendorName(selected.provider)} ·{' '}
+              {providerLabel(selected)} ·{' '}
               {priceLabel(selected.billing, money, words)}
             </span>
           </span>
@@ -190,7 +190,7 @@ export function ModelPicker({
                       )}
                     </span>
                     <span className="model-option-meta">
-                      {vendorName(model.provider)}
+                      {providerLabel(model)}
                       {released && ` · ${released}`}
                     </span>
                     {model.notes && (
@@ -218,8 +218,8 @@ export function ModelPicker({
               </div>
               <dl className="model-detail-facts">
                 <div>
-                  <dt className="sr-only">{t('models.provider')}</dt>
-                  <dd>{vendorName(active.provider)}</dd>
+                  <dt className="sr-only">{t('models.providerName')}</dt>
+                  <dd>{providerLabel(active)}</dd>
                 </div>
                 {active.released_on && (
                   <div>
@@ -242,6 +242,17 @@ export function ModelPicker({
                 <Markdown source={active.notes} className="model-notes" />
               ) : (
                 <p className="model-notes muted">{t('modelPicker.noNotes')}</p>
+              )}
+              {active.docs_url && safeHref(active.docs_url) && (
+                <a
+                  className="model-docs-link"
+                  href={safeHref(active.docs_url) ?? undefined}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink size={13} aria-hidden="true" />
+                  {t('modelPicker.docs')}
+                </a>
               )}
             </aside>
           )}

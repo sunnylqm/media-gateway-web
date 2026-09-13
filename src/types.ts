@@ -177,6 +177,10 @@ export type PublicModel = {
   notes?: string;
   // The provider's release date, YYYY-MM-DD.
   released_on?: string;
+  // The provider's display name; `provider` is the fixed protocol key.
+  provider_name?: string;
+  // The provider's reference documentation for the model.
+  docs_url?: string;
   modality: 'image' | 'video';
   operations: string[];
   provider: string;
@@ -259,6 +263,8 @@ export type ProtocolPreset = {
   modality: string;
   notes?: string;
   released_on?: string;
+  provider_name?: string;
+  docs_url?: string;
   profile: unknown;
 };
 

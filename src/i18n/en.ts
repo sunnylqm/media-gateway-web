@@ -250,6 +250,7 @@ export const en = {
   'modelPicker.released': 'Released {date}',
   'modelPicker.noNotes': 'No description yet.',
   'modelPicker.listLabel': 'Models',
+  'modelPicker.docs': 'Reference documentation',
   'composer.uploadingAria': 'Uploading',
   'composer.retryAria': 'Retry upload',
   'composer.removeAria': 'Remove {name}',
@@ -365,13 +366,19 @@ export const en = {
     'The protocol profile decides which upstream routes exist, where the task ID and output URL live, and how status maps. Changes become effective for new jobs immediately.',
   'models.id': 'Public model ID',
   'models.displayName': 'Display name',
-  'models.provider': 'Provider',
+  'models.provider': 'Protocol',
   'models.providerNote':
-    'Selects the built-in protocol profile when one ships with that name.',
+    'Selects the built-in protocol profile of that name. It cannot change once the model exists.',
   'models.upstreamModel': 'Upstream model',
   'models.releasedOn': 'Release date',
   'models.releasedOnNote':
     'The day the provider released the model. Users see it to tell newer models from older ones.',
+  'models.providerName': 'Provider name',
+  'models.providerNameNote':
+    'Shown to users beside the model. Blank shows the protocol key.',
+  'models.docsUrl': 'Reference documentation URL',
+  'models.docsUrlNote':
+    "The provider's own documentation for this model, linked from the model picker.",
   'models.notes': 'Notes',
   'models.notesNote':
     'Markdown shown to users beside the model: what it is for, its limits, and rules the upstream enforces.',

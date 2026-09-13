@@ -236,6 +236,7 @@ export const zh: Record<MessageKey, string> = {
   'modelPicker.released': '{date} 发布',
   'modelPicker.noNotes': '暂无说明。',
   'modelPicker.listLabel': '模型',
+  'modelPicker.docs': '参考文档',
   'composer.uploadingAria': '正在上传',
   'composer.retryAria': '重试上传',
   'composer.removeAria': '移除 {name}',
@@ -343,11 +344,17 @@ export const zh: Record<MessageKey, string> = {
     '协议配置决定了存在哪些上游路由、任务 ID 与输出 URL 的位置，以及状态如何映射。修改对新任务立即生效。',
   'models.id': '对外模型 ID',
   'models.displayName': '显示名称',
-  'models.provider': '服务商',
-  'models.providerNote': '若存在同名的内置协议配置，将自动选用。',
+  'models.provider': '协议标识',
+  'models.providerNote': '选择同名的内置协议配置，模型创建后不可修改。',
   'models.upstreamModel': '上游模型',
   'models.releasedOn': '发布时间',
-  'models.releasedOnNote': '厂商发布该模型的日期，用户据此分辨新旧模型。',
+  'models.releasedOnNote': '服务商发布该模型的日期，用户据此分辨新旧模型。',
+  'models.providerName': '服务商名称',
+  'models.providerNameNote':
+    '在选择模型时展示给用户，可随时修改。留空则显示协议标识。',
+  'models.docsUrl': '参考文档地址',
+  'models.docsUrlNote':
+    '服务商为该模型提供的官方文档，会在模型选择器中给出链接。',
   'models.notes': '说明',
   'models.notesNote':
     '支持 Markdown，会在选择模型时展示给用户：适用场景、限制、以及由上游校验的规则。',
