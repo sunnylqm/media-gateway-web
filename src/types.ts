@@ -173,6 +173,8 @@ export type PublicModel = {
   display_name: string;
   // Administrator-written Markdown describing the model.
   notes?: string;
+  // Markdown help for the request form, one `## <field>` section per field.
+  field_notes?: string;
   // The provider's release date, YYYY-MM-DD.
   released_on?: string;
   // The provider's display name; `provider` is the fixed protocol key.
@@ -204,6 +206,8 @@ export type FormParameter = {
   pointer: string;
   type: 'string' | 'integer' | 'boolean';
   required?: boolean;
+  // Optional and rarely changed; forms fold it away until asked.
+  advanced?: boolean;
   enum?: string[];
   minimum?: number;
   maximum?: number;
@@ -271,6 +275,7 @@ export type ProtocolPreset = {
   endpoint: string;
   modality: string;
   notes?: string;
+  field_notes?: string;
   released_on?: string;
   provider_name?: string;
   docs_url?: string;

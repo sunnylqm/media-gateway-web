@@ -13,6 +13,7 @@ import { absoluteGatewayURL, api } from '../api';
 import {
   formatBytes,
   formatDate,
+  formatDateTime,
   formatParameterName,
   formatParameterValue,
   formatStatus,
@@ -250,7 +251,7 @@ export function GenerationDetails({
               <Dialog.Title>{t('details.title')}</Dialog.Title>
               <Dialog.Description>
                 {generation
-                  ? `${generation.id} · ${formatStatus(generation.status)} · ${t('details.created', { date: formatDate(generation.created_at) })}${generation.binding_alias ? ` · ${t('details.via', { alias: generation.binding_alias })}` : ''}`
+                  ? `${generation.id} · ${formatStatus(generation.status)} · ${t('details.created', { date: formatDateTime(generation.created_at) })}${generation.binding_alias ? ` · ${t('details.via', { alias: generation.binding_alias })}` : ''}`
                   : ''}
               </Dialog.Description>
             </div>

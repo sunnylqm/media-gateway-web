@@ -29,7 +29,10 @@ import {
 import { absoluteGatewayURL, api } from '../api';
 import { GenerationDetails } from '../components/Generations';
 import { LayoutSwitch } from '../components/LayoutSwitch';
+import { AdvancedOptions } from '../components/AdvancedOptions';
+import { FieldHelp } from '../components/FieldHelp';
 import { ModelPicker } from '../components/ModelPicker';
+import { PlaygroundParameter } from '../components/PlaygroundParameter';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
 import {
@@ -43,6 +46,7 @@ import {
 } from '../components/VideoCompressDialog';
 import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
 import { useI18n } from '../i18n';
+import { parseFieldNotes } from '../lib/fieldNotes';
 import { useMoney } from '../lib/money';
 import { usePreferences } from '../lib/preferencesContext';
 import {
@@ -160,6 +164,29 @@ export function VideoStudio({
     () => slots.filter((slot) => slot.group === 'reference'),
     [slots],
   );
+  const fieldNotes = useMemo(
+    () => parseFieldNotes(selectedModel?.field_notes),
+    [selectedModel?.field_notes],
+  );
+  const visibleParams = (form?.parameters ?? []).filter(
+    (p) => !isHiddenParameter(p.name),
+  );
+  const basicParams = visibleParams.filter((p) => !p.advanced);
+  const advancedParams = visibleParams.filter((p) => p.advanced);
+  const helpFor = (key: string, label: string) => (
+    <FieldHelp label={label} sections={[{ source: fieldNotes.get(key) ?? '' }]} />
+  );
+  // A group heading stands for each of its slots, so its help lists theirs.
+  const slotHelp = (slots: MediaSlot[], label: string) =>
+    slots.some((slot) => fieldNotes.get(slot.role ?? '')) ? (
+      <FieldHelp
+        label={label}
+        sections={slots.map((slot) => ({
+          title: slot.label,
+          source: fieldNotes.get(slot.role ?? '') ?? '',
+        }))}
+      />
+    ) : null;
 
   // Restart parameters on model changes
   const parameterSignature = useMemo(
@@ -683,6 +710,7 @@ export function VideoStudio({
                     htmlFor="video-prompt-input"
                   >
                     {t('playground.prompt')}
+                    {helpFor('prompt', t('playground.prompt'))}
                   </label>
                   <div
                     className="playground-prompt-area"
@@ -712,6 +740,7 @@ export function VideoStudio({
                   <div>
                     <div className="playground-field-label">
                       <span>{t('playground.frames')}</span>
+                      {slotHelp(frameSlots, t('playground.frames'))}
                     </div>
                     <div className="frame-grid" style={{ marginTop: '8px' }}>
                       {frameSlots.map((slot) => {
@@ -774,16 +803,18 @@ export function VideoStudio({
                   <div>
                     <div className="playground-field-label">
                       <span>{t('playground.imageReferences')}</span>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="playground-tooltip-icon">
-                            <Info size={13} />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent side="top">
-                          {t('playground.referencesTooltip')}
-                        </TooltipContent>
-                      </Tooltip>
+                      {slotHelp(referenceSlots, t('playground.imageReferences')) ?? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="playground-tooltip-icon">
+                              <Info size={13} />
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {t('playground.referencesTooltip')}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
                     </div>
 
                     <div
@@ -856,304 +887,32 @@ export function VideoStudio({
                 )}
 
                 {/* Dynamic Parameters Grid */}
-                {(form?.parameters ?? []).filter(
-                  (p) => !isHiddenParameter(p.name),
-                ).length > 0 && (
+                {basicParams.length > 0 && (
                   <div className="playground-param-row">
-                    {(form?.parameters ?? [])
-                      .filter((p) => !isHiddenParameter(p.name))
-                      .map((param) => {
-                        const isDuration = /duration|second/i.test(param.name);
-                        const isCount =
-                          /^(n|count|quantity|num_outputs|number_of_images|samples|batch_size|image_num)$/i.test(
-                            param.name,
-                          ) || formatLabel(param.name) === '数量';
-                        const isRanged =
-                          param.type === 'integer' &&
-                          param.minimum !== undefined &&
-                          param.maximum !== undefined &&
-                          param.maximum > param.minimum;
-
-                        if (isDuration || isCount || isRanged) {
-                          if (param.enum?.length) {
-                            const options = param.enum;
-                            const currentVal =
-                              parameters[param.name] ??
-                              (param.default !== undefined
-                                ? String(param.default)
-                                : options[0]);
-                            const currentIndex = Math.max(
-                              0,
-                              options.indexOf(currentVal),
-                            );
-                            const currentNum = Number(
-                              options[currentIndex] ?? options[0],
-                            );
-                            return (
-                              <div
-                                key={param.name}
-                                className="playground-slider-col"
-                              >
-                                <div className="playground-slider-header">
-                                  <span className="playground-param-label">
-                                    {formatLabel(param.name)}
-                                  </span>
-                                  <span className="playground-slider-value">
-                                    {Number.isNaN(currentNum)
-                                      ? (options[currentIndex] ?? options[0])
-                                      : formatQuantity(param.name, currentNum)}
-                                  </span>
-                                </div>
-                                <Slider.Root
-                                  className="slider"
-                                  min={0}
-                                  max={options.length - 1}
-                                  step={1}
-                                  value={[currentIndex]}
-                                  onValueChange={([idx]) =>
-                                    setParameters((prev) => ({
-                                      ...prev,
-                                      [param.name]: options[idx],
-                                    }))
-                                  }
-                                >
-                                  <Slider.Track className="slider-track">
-                                    <Slider.Range className="slider-range" />
-                                  </Slider.Track>
-                                  <Slider.Thumb
-                                    className="slider-thumb"
-                                    aria-label={formatLabel(param.name)}
-                                  />
-                                </Slider.Root>
-                                <div className="slider-scale">
-                                  {options.length <= 6 ? (
-                                    options.map((opt, i) => (
-                                      <small
-                                        key={opt}
-                                        style={
-                                          i === currentIndex
-                                            ? {
-                                                fontWeight: 700,
-                                                color: 'var(--accent)',
-                                              }
-                                            : undefined
-                                        }
-                                      >
-                                        {Number.isNaN(Number(opt))
-                                          ? opt
-                                          : formatQuantity(
-                                              param.name,
-                                              Number(opt),
-                                            )}
-                                      </small>
-                                    ))
-                                  ) : (
-                                    <>
-                                      <small>
-                                        {Number.isNaN(Number(options[0]))
-                                          ? options[0]
-                                          : formatQuantity(
-                                              param.name,
-                                              Number(options[0]),
-                                            )}
-                                      </small>
-                                      <small>
-                                        {Number.isNaN(
-                                          Number(options[options.length - 1]),
-                                        )
-                                          ? options[options.length - 1]
-                                          : formatQuantity(
-                                              param.name,
-                                              Number(
-                                                options[options.length - 1],
-                                              ),
-                                            )}
-                                      </small>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          }
-
-                          const min =
-                            param.minimum !== undefined
-                              ? Number(param.minimum)
-                              : isCount
-                                ? 1
-                                : isDuration
-                                  ? 5
-                                  : 1;
-                          const max =
-                            param.maximum !== undefined
-                              ? Number(param.maximum)
-                              : isCount
-                                ? 4
-                                : isDuration
-                                  ? 10
-                                  : 100;
-                          const rawVal =
-                            parameters[param.name] ??
-                            (param.default !== undefined
-                              ? String(param.default)
-                              : String(min));
-                          const current = Number(rawVal) || min;
-
-                          return (
-                            <div
-                              key={param.name}
-                              className="playground-slider-col"
-                            >
-                              <div className="playground-slider-header">
-                                <span className="playground-param-label">
-                                  {formatLabel(param.name)}
-                                </span>
-                                <span className="playground-slider-value">
-                                  {formatQuantity(param.name, current)}
-                                </span>
-                              </div>
-                              <Slider.Root
-                                className="slider"
-                                min={min}
-                                max={max}
-                                step={1}
-                                value={[current]}
-                                onValueChange={([next]) =>
-                                  setParameters((prev) => ({
-                                    ...prev,
-                                    [param.name]: String(next),
-                                  }))
-                                }
-                              >
-                                <Slider.Track className="slider-track">
-                                  <Slider.Range className="slider-range" />
-                                </Slider.Track>
-                                <Slider.Thumb
-                                  className="slider-thumb"
-                                  aria-label={formatLabel(param.name)}
-                                />
-                              </Slider.Root>
-                              <div className="slider-scale">
-                                {max - min <= 5 ? (
-                                  Array.from(
-                                    { length: max - min + 1 },
-                                    (_, i) => min + i,
-                                  ).map((num) => (
-                                    <small
-                                      key={num}
-                                      style={
-                                        num === current
-                                          ? {
-                                              fontWeight: 700,
-                                              color: 'var(--accent)',
-                                            }
-                                          : undefined
-                                      }
-                                    >
-                                      {formatQuantity(param.name, num)}
-                                    </small>
-                                  ))
-                                ) : (
-                                  <>
-                                    <small>
-                                      {formatQuantity(param.name, min)}
-                                    </small>
-                                    <small>
-                                      {formatQuantity(param.name, max)}
-                                    </small>
-                                  </>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        if (param.type === 'boolean') {
-                          return (
-                            <div
-                              key={param.name}
-                              className="playground-param-col"
-                            >
-                              <span className="playground-param-label">
-                                {formatLabel(param.name)}
-                              </span>
-                              <select
-                                className="playground-select"
-                                value={
-                                  parameters[param.name] ??
-                                  (param.default !== undefined
-                                    ? String(param.default)
-                                    : '')
-                                }
-                                onChange={(e) =>
-                                  setParameters((prev) => ({
-                                    ...prev,
-                                    [param.name]: e.target.value,
-                                  }))
-                                }
-                              >
-                                {!param.required && (
-                                  <option value="">{t('composer.auto')}</option>
-                                )}
-                                <option value="true">
-                                  {t('playground.on')}
-                                </option>
-                                <option value="false">
-                                  {t('playground.off')}
-                                </option>
-                              </select>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div
-                            key={param.name}
-                            className="playground-param-col"
-                          >
-                            <span className="playground-param-label">
-                              {formatLabel(param.name)}
-                            </span>
-                            {param.enum?.length ? (
-                              <select
-                                className="playground-select"
-                                value={parameters[param.name] ?? ''}
-                                onChange={(e) =>
-                                  setParameters((prev) => ({
-                                    ...prev,
-                                    [param.name]: e.target.value,
-                                  }))
-                                }
-                              >
-                                {!param.required && (
-                                  <option value="">{t('composer.auto')}</option>
-                                )}
-                                {param.enum.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {formatDimensionOption(opt, locale)}
-                                  </option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type={
-                                  param.type === 'integer' ? 'number' : 'text'
-                                }
-                                className="playground-input"
-                                value={parameters[param.name] ?? ''}
-                                onChange={(e) =>
-                                  setParameters((prev) => ({
-                                    ...prev,
-                                    [param.name]: e.target.value,
-                                  }))
-                                }
-                              />
-                            )}
-                          </div>
-                        );
-                      })}
+                    {basicParams.map((param) => (
+                      <PlaygroundParameter
+                        key={param.name}
+                        param={param}
+                        parameters={parameters}
+                        setParameters={setParameters}
+                        help={helpFor(param.name, formatLabel(param.name))}
+                      />
+                    ))}
                   </div>
                 )}
+                <AdvancedOptions count={advancedParams.length}>
+                  <div className="playground-param-row">
+                    {advancedParams.map((param) => (
+                      <PlaygroundParameter
+                        key={param.name}
+                        param={param}
+                        parameters={parameters}
+                        setParameters={setParameters}
+                        help={helpFor(param.name, formatLabel(param.name))}
+                      />
+                    ))}
+                  </div>
+                </AdvancedOptions>
 
                 {/* Price Table / 价格说明 */}
                 {selectedModel && (

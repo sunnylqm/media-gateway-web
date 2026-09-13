@@ -9,6 +9,18 @@ export function formatDate(value: string) {
   }).format(new Date(value));
 }
 
+// formatDateTime carries the year, for a single timestamp read on its own
+// rather than scanned down a column of recent rows.
+export function formatDateTime(value: string) {
+  return new Intl.DateTimeFormat(intlLocale(), {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+}
+
 export function formatDay(value: string) {
   return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(
     new Date(value),
