@@ -921,6 +921,11 @@ function StoragePanel({
   }
 
   const backupSaved = live.backup_backend !== '';
+  const backupSharesEndpoint =
+    form.backend === 's3' &&
+    form.backupBackend === 's3' &&
+    form.backupS3Endpoint.trim() !== '' &&
+    endpointHost(form.backupS3Endpoint) === endpointHost(form.s3Endpoint);
   const backupEdited =
     form.backupBackend !== live.backup_backend ||
     (form.backupBackend === 'local' &&
@@ -948,9 +953,13 @@ function StoragePanel({
             <select
               value={form.backend}
               onChange={(event) =>
-                setForm({
-                  ...form,
-                  backend: event.target.value as StorageForm['backend'],
+                setForm((current) => {
+                  const backend = event.target.value as StorageForm['backend'];
+                  // Local storage cannot keep its backup on the same host.
+                  return backend === 'local' &&
+                    current.backupBackend === 'local'
+                    ? { ...current, backend, backupBackend: '' }
+                    : { ...current, backend };
                 })
               }
             >
@@ -1031,7 +1040,9 @@ function StoragePanel({
             }
           >
             <option value="">{t('storage.backupNone')}</option>
-            <option value="local">{t('storage.local')}</option>
+            <option value="local" disabled={form.backend === 'local'}>
+              {t('storage.local')}
+            </option>
             <option value="s3">{t('storage.s3')}</option>
           </select>
           <small>{t('storage.backupNote')}</small>
@@ -1072,6 +1083,11 @@ function StoragePanel({
               })
             }
           />
+        )}
+        {backupSharesEndpoint && (
+          <small className="backup-error">
+            {t('storage.backupSameEndpoint')}
+          </small>
         )}
         {backupSaved && status && (
           <div className="backup-status">
@@ -1118,13 +1134,27 @@ function StoragePanel({
           </div>
         )}
         <div className="dialog-actions">
-          <button className="button primary" type="submit" disabled={saving}>
+          <button
+            className="button primary"
+            type="submit"
+            disabled={saving || backupSharesEndpoint}
+          >
             {saving ? t('storage.saving') : t('storage.save')}
           </button>
         </div>
       </form>
     </section>
   );
+}
+
+// endpointHost compares S3 endpoints the way the gateway does: by host, so a
+// different scheme, letter case or trailing slash is still the same provider.
+function endpointHost(endpoint: string): string {
+  try {
+    return new URL(endpoint.trim()).host.toLowerCase();
+  } catch {
+    return endpoint.trim().replace(/\/+$/, '').toLowerCase();
+  }
 }
 
 type S3FieldValues = {

@@ -334,7 +334,9 @@ export const en = {
   'storage.backupBackend': 'Backup backend',
   'storage.backupNone': 'No backup',
   'storage.backupNote':
-    'Every object written to the active backend is copied here. A full sync runs when the backup is saved, at startup and every 6 hours, and objects missing from the active backend are served from the backup. Collecting unreferenced media does not delete backup copies.',
+    'The backup must be a different kind of backend than local storage, or a different S3 endpoint than active S3 storage. Every object written to the active backend is copied here. A full sync runs when the backup is saved, at startup and every 6 hours, and objects missing from the active backend are served from the backup. Collecting unreferenced media does not delete backup copies.',
+  'storage.backupSameEndpoint':
+    'The backup must use a different S3 endpoint than the active backend.',
   'storage.backupLocalPath': 'Backup directory',
   'storage.backupLocalPathNote':
     'Must be outside the local storage path. Ideally on another disk.',

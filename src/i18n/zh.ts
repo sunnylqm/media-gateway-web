@@ -313,7 +313,8 @@ export const zh: Record<MessageKey, string> = {
   'storage.backupBackend': '备份后端',
   'storage.backupNone': '不备份',
   'storage.backupNote':
-    '写入当前后端的每个对象都会复制到这里。保存备份配置、服务启动时以及每 6 小时会做一次全量同步；当前后端缺失的对象会从备份读取。清理无引用媒体不会删除备份中的副本。',
+    '备份后端不能与主后端同类（本地存储不能备份到本地），S3 之间也不能使用同一端点。写入当前后端的每个对象都会复制到这里。保存备份配置、服务启动时以及每 6 小时会做一次全量同步；当前后端缺失的对象会从备份读取。清理无引用媒体不会删除备份中的副本。',
+  'storage.backupSameEndpoint': '备份必须使用与当前后端不同的 S3 端点。',
   'storage.backupLocalPath': '备份目录',
   'storage.backupLocalPathNote':
     '必须位于本地存储路径之外，最好在另一块磁盘上。',
