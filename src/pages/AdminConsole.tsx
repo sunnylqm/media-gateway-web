@@ -84,6 +84,7 @@ import {
   topupStatuses,
   validateTopupConfig,
 } from '../lib/topup';
+import { formatFileSize } from '../lib/videoCompression';
 import type {
   AdminModel,
   AdminOverview,
@@ -97,6 +98,7 @@ import type {
   ModelBilling,
   ModelNotes,
   ProtocolPreset,
+  StorageUsage,
   Tenant,
   Topup,
   TopupConfig,
@@ -731,6 +733,13 @@ type StorageForm = {
   s3Bucket: string;
   s3AccessKeyID: string;
   s3SecretAccessKey: string;
+  backupBackend: '' | 'local' | 's3';
+  backupLocalPath: string;
+  backupS3Endpoint: string;
+  backupS3Region: string;
+  backupS3Bucket: string;
+  backupS3AccessKeyID: string;
+  backupS3SecretAccessKey: string;
 };
 
 function storageForm(storage: AssetStorage): StorageForm {
@@ -744,7 +753,70 @@ function storageForm(storage: AssetStorage): StorageForm {
     s3Bucket: storage.s3_bucket ?? '',
     s3AccessKeyID: '',
     s3SecretAccessKey: '',
+    backupBackend: storage.backup_backend ?? '',
+    backupLocalPath: storage.backup_local_path ?? '',
+    backupS3Endpoint: storage.backup_s3_endpoint ?? '',
+    backupS3Region: storage.backup_s3_region ?? '',
+    backupS3Bucket: storage.backup_s3_bucket ?? '',
+    backupS3AccessKeyID: '',
+    backupS3SecretAccessKey: '',
   };
+}
+
+function StorageUsageMeter({ usage }: { usage: StorageUsage }) {
+  const { t } = useI18n();
+  const total = usage.disk_total_bytes;
+  const used = Math.max(0, total - usage.disk_available_bytes);
+  const percent = (bytes: number) =>
+    total > 0 ? Math.min(100, (bytes / total) * 100) : 0;
+  const assetPercent = percent(usage.object_bytes);
+  const otherPercent = Math.max(0, percent(used) - assetPercent);
+  const low = total > 0 && usage.disk_available_bytes / total < 0.1;
+  return (
+    <div className={`storage-usage${low ? ' low' : ''}`}>
+      <div className="storage-usage-head">
+        <strong>
+          {t('storage.usageDisk', {
+            used: formatFileSize(used),
+            total: formatFileSize(total),
+          })}
+        </strong>
+        <span>
+          {t('storage.usageFree', {
+            free: formatFileSize(usage.disk_available_bytes),
+          })}
+        </span>
+      </div>
+      <div
+        className="storage-usage-bar"
+        role="img"
+        aria-label={t('storage.usageDisk', {
+          used: formatFileSize(used),
+          total: formatFileSize(total),
+        })}
+      >
+        <span className="assets" style={{ width: `${assetPercent}%` }} />
+        <span className="other" style={{ width: `${otherPercent}%` }} />
+      </div>
+      <div className="storage-usage-foot">
+        <span>
+          <i className="swatch assets" />
+          {t('storage.usageAssets', {
+            size: formatFileSize(usage.object_bytes),
+            count: usage.objects.toLocaleString(intlLocale()),
+          })}
+        </span>
+        <span>
+          <i className="swatch other" />
+          {t('storage.usageLegendOther')}
+        </span>
+        <code title={usage.path}>{usage.path}</code>
+      </div>
+      {low && (
+        <small className="storage-usage-warning">{t('storage.usageLow')}</small>
+      )}
+    </div>
+  );
 }
 
 function StoragePanel({
@@ -758,11 +830,30 @@ function StoragePanel({
 }) {
   const { t } = useI18n();
   const [form, setForm] = useState<StorageForm>(() => storageForm(storage));
+  const [live, setLive] = useState<AssetStorage>(storage);
   const [saving, setSaving] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     setForm(storageForm(storage));
+    setLive(storage);
   }, [storage]);
+
+  const status = live.backup_status;
+  const busy = Boolean(status && (status.syncing || status.pending > 0));
+  useEffect(() => {
+    if (!busy) return;
+    // Refresh only the reported state while a sync runs, so edits in the form
+    // are not replaced.
+    const timer = window.setInterval(async () => {
+      try {
+        setLive(await api<AssetStorage>('/v1/admin/storage', {}, true));
+      } catch {
+        // The next save or page load reports the state again.
+      }
+    }, 3000);
+    return () => window.clearInterval(timer);
+  }, [busy]);
 
   async function save(event: FormEvent) {
     event.preventDefault();
@@ -788,6 +879,13 @@ function StoragePanel({
             s3_bucket: form.s3Bucket,
             s3_access_key_id: form.s3AccessKeyID,
             s3_secret_access_key: form.s3SecretAccessKey,
+            backup_backend: form.backupBackend,
+            backup_local_path: form.backupLocalPath,
+            backup_s3_endpoint: form.backupS3Endpoint,
+            backup_s3_region: form.backupS3Region,
+            backup_s3_bucket: form.backupS3Bucket,
+            backup_s3_access_key_id: form.backupS3AccessKeyID,
+            backup_s3_secret_access_key: form.backupS3SecretAccessKey,
           }),
         },
         true,
@@ -802,6 +900,32 @@ function StoragePanel({
     }
   }
 
+  async function syncBackup() {
+    onError('');
+    setSyncing(true);
+    try {
+      setLive(
+        await api<AssetStorage>(
+          '/v1/admin/storage/backup/sync',
+          { method: 'POST' },
+          true,
+        ),
+      );
+    } catch (reason) {
+      onError(
+        reason instanceof Error ? reason.message : t('storage.errorSync'),
+      );
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const backupSaved = live.backup_backend !== '';
+  const backupEdited =
+    form.backupBackend !== live.backup_backend ||
+    (form.backupBackend === 'local' &&
+      form.backupLocalPath !== (live.backup_local_path ?? ''));
+
   return (
     <section className="panel storage-panel">
       <div className="panel-heading">
@@ -812,6 +936,12 @@ function StoragePanel({
         <HardDrive size={19} />
       </div>
       <form className="panel-body dialog-form" onSubmit={save}>
+        {live.usage && (
+          <>
+            <span className="field-label">{t('storage.usageTitle')}</span>
+            <StorageUsageMeter usage={live.usage} />
+          </>
+        )}
         <div className="field-grid">
           <label className="field">
             <span className="field-label">{t('storage.backend')}</span>
@@ -866,72 +996,126 @@ function StoragePanel({
         {form.backend === 's3' && (
           <>
             <div className="form-section-title">{t('storage.s3Section')}</div>
-            <div className="field-grid">
-              <label className="field">
-                <span className="field-label">{t('storage.endpoint')}</span>
-                <input
-                  type="url"
-                  value={form.s3Endpoint}
-                  onChange={(event) =>
-                    setForm({ ...form, s3Endpoint: event.target.value })
-                  }
-                  placeholder="https://s3.example.com"
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">{t('storage.region')}</span>
-                <input
-                  value={form.s3Region}
-                  onChange={(event) =>
-                    setForm({ ...form, s3Region: event.target.value })
-                  }
-                  placeholder="us-east-1"
-                />
-              </label>
-            </div>
-            <label className="field">
-              <span className="field-label">{t('storage.bucket')}</span>
-              <input
-                value={form.s3Bucket}
-                onChange={(event) =>
-                  setForm({ ...form, s3Bucket: event.target.value })
-                }
-                placeholder="media"
-              />
-            </label>
-            <div className="field-grid">
-              <label className="field">
-                <span className="field-label">{t('storage.accessKey')}</span>
-                <input
-                  value={form.s3AccessKeyID}
-                  onChange={(event) =>
-                    setForm({ ...form, s3AccessKeyID: event.target.value })
-                  }
-                  placeholder={
-                    storage.s3_access_key_configured
-                      ? t('storage.keepConfigured')
-                      : t('storage.required')
-                  }
-                />
-              </label>
-              <label className="field">
-                <span className="field-label">{t('storage.secretKey')}</span>
-                <input
-                  type="password"
-                  value={form.s3SecretAccessKey}
-                  onChange={(event) =>
-                    setForm({ ...form, s3SecretAccessKey: event.target.value })
-                  }
-                  placeholder={
-                    storage.s3_secret_key_configured
-                      ? t('storage.keepConfigured')
-                      : t('storage.required')
-                  }
-                />
-              </label>
-            </div>
-            <small className="muted">{t('storage.secretNote')}</small>
+            <S3Fields
+              endpoint={form.s3Endpoint}
+              region={form.s3Region}
+              bucket={form.s3Bucket}
+              accessKeyID={form.s3AccessKeyID}
+              secretAccessKey={form.s3SecretAccessKey}
+              accessKeyConfigured={storage.s3_access_key_configured}
+              secretKeyConfigured={storage.s3_secret_key_configured}
+              onChange={(next) =>
+                setForm({
+                  ...form,
+                  s3Endpoint: next.endpoint,
+                  s3Region: next.region,
+                  s3Bucket: next.bucket,
+                  s3AccessKeyID: next.accessKeyID,
+                  s3SecretAccessKey: next.secretAccessKey,
+                })
+              }
+            />
           </>
+        )}
+        <div className="form-section-title">{t('storage.backupSection')}</div>
+        <label className="field">
+          <span className="field-label">{t('storage.backupBackend')}</span>
+          <select
+            value={form.backupBackend}
+            onChange={(event) =>
+              setForm({
+                ...form,
+                backupBackend: event.target
+                  .value as StorageForm['backupBackend'],
+              })
+            }
+          >
+            <option value="">{t('storage.backupNone')}</option>
+            <option value="local">{t('storage.local')}</option>
+            <option value="s3">{t('storage.s3')}</option>
+          </select>
+          <small>{t('storage.backupNote')}</small>
+        </label>
+        {form.backupBackend === 'local' && (
+          <label className="field">
+            <span className="field-label">{t('storage.backupLocalPath')}</span>
+            <input
+              value={form.backupLocalPath}
+              onChange={(event) =>
+                setForm({ ...form, backupLocalPath: event.target.value })
+              }
+              placeholder="/mnt/backup/media-gateway"
+            />
+            <small>{t('storage.backupLocalPathNote')}</small>
+          </label>
+        )}
+        {form.backupBackend === 'local' &&
+          live.backup_backend === 'local' &&
+          live.backup_usage && <StorageUsageMeter usage={live.backup_usage} />}
+        {form.backupBackend === 's3' && (
+          <S3Fields
+            endpoint={form.backupS3Endpoint}
+            region={form.backupS3Region}
+            bucket={form.backupS3Bucket}
+            accessKeyID={form.backupS3AccessKeyID}
+            secretAccessKey={form.backupS3SecretAccessKey}
+            accessKeyConfigured={storage.backup_s3_access_key_configured}
+            secretKeyConfigured={storage.backup_s3_secret_key_configured}
+            onChange={(next) =>
+              setForm({
+                ...form,
+                backupS3Endpoint: next.endpoint,
+                backupS3Region: next.region,
+                backupS3Bucket: next.bucket,
+                backupS3AccessKeyID: next.accessKeyID,
+                backupS3SecretAccessKey: next.secretAccessKey,
+              })
+            }
+          />
+        )}
+        {backupSaved && status && (
+          <div className="backup-status">
+            <div>
+              <span className="field-label">{t('storage.backupStatus')}</span>
+              <strong>
+                {status.syncing
+                  ? t('storage.backupSyncing')
+                  : t('storage.backupStats', {
+                      replicated: status.replicated,
+                      failed: status.failed,
+                      pending: status.pending,
+                    })}
+              </strong>
+              <small className="muted">
+                {status.last_sync_at
+                  ? t('storage.backupLastSync', {
+                      date: formatDate(status.last_sync_at),
+                      count: status.last_sync_copied,
+                    })
+                  : t('storage.backupNeverSynced')}
+              </small>
+              {status.last_error && (
+                <small className="backup-error">
+                  {t('storage.backupLastError', {
+                    date: status.last_error_at
+                      ? formatDate(status.last_error_at)
+                      : '—',
+                    error: status.last_error,
+                  })}
+                </small>
+              )}
+            </div>
+            <button
+              className="button"
+              type="button"
+              onClick={syncBackup}
+              disabled={syncing || status.syncing || backupEdited}
+              title={backupEdited ? t('storage.backupSaveFirst') : undefined}
+            >
+              <RotateCcw size={14} />
+              {t('storage.backupSync')}
+            </button>
+          </div>
         )}
         <div className="dialog-actions">
           <button className="button primary" type="submit" disabled={saving}>
@@ -940,6 +1124,88 @@ function StoragePanel({
         </div>
       </form>
     </section>
+  );
+}
+
+type S3FieldValues = {
+  endpoint: string;
+  region: string;
+  bucket: string;
+  accessKeyID: string;
+  secretAccessKey: string;
+};
+
+function S3Fields({
+  accessKeyConfigured,
+  secretKeyConfigured,
+  onChange,
+  ...values
+}: S3FieldValues & {
+  accessKeyConfigured: boolean;
+  secretKeyConfigured: boolean;
+  onChange: (next: S3FieldValues) => void;
+}) {
+  const { t } = useI18n();
+  const set = (patch: Partial<S3FieldValues>) =>
+    onChange({ ...values, ...patch });
+  return (
+    <>
+      <div className="field-grid">
+        <label className="field">
+          <span className="field-label">{t('storage.endpoint')}</span>
+          <input
+            type="url"
+            value={values.endpoint}
+            onChange={(event) => set({ endpoint: event.target.value })}
+            placeholder="https://s3.example.com"
+          />
+        </label>
+        <label className="field">
+          <span className="field-label">{t('storage.region')}</span>
+          <input
+            value={values.region}
+            onChange={(event) => set({ region: event.target.value })}
+            placeholder="us-east-1"
+          />
+        </label>
+      </div>
+      <label className="field">
+        <span className="field-label">{t('storage.bucket')}</span>
+        <input
+          value={values.bucket}
+          onChange={(event) => set({ bucket: event.target.value })}
+          placeholder="media"
+        />
+      </label>
+      <div className="field-grid">
+        <label className="field">
+          <span className="field-label">{t('storage.accessKey')}</span>
+          <input
+            value={values.accessKeyID}
+            onChange={(event) => set({ accessKeyID: event.target.value })}
+            placeholder={
+              accessKeyConfigured
+                ? t('storage.keepConfigured')
+                : t('storage.required')
+            }
+          />
+        </label>
+        <label className="field">
+          <span className="field-label">{t('storage.secretKey')}</span>
+          <input
+            type="password"
+            value={values.secretAccessKey}
+            onChange={(event) => set({ secretAccessKey: event.target.value })}
+            placeholder={
+              secretKeyConfigured
+                ? t('storage.keepConfigured')
+                : t('storage.required')
+            }
+          />
+        </label>
+      </div>
+      <small className="muted">{t('storage.secretNote')}</small>
+    </>
   );
 }
 

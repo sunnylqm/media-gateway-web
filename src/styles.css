@@ -931,3 +931,22 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .field-notes-key code { font-size: 11px; font-weight: 700; }
 .field-notes-unknown { color: var(--red); font-size: 10.5px; }
 .field-notes-missing { display: block; margin-top: 10px; color: #9a6b12; font-size: 11px; }
+
+.storage-usage { display: grid; gap: 8px; padding: 13px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fafbfa; }
+.storage-usage-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px 14px; }
+.storage-usage-head strong { color: var(--ink); font-size: 13px; }
+.storage-usage-head span { color: #3e4b45; font-size: 12px; font-weight: 600; }
+.storage-usage-bar { display: flex; height: 8px; overflow: hidden; border-radius: 4px; background: #e6ebe8; }
+.storage-usage-bar span { height: 100%; }
+.storage-usage-bar .assets, .storage-usage .swatch.assets { background: #4f9a70; }
+.storage-usage-bar .other, .storage-usage .swatch.other { background: #b7c3bd; }
+.storage-usage-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; color: var(--muted); font-size: 11px; }
+.storage-usage-foot span { display: inline-flex; align-items: center; gap: 6px; }
+.storage-usage-foot code { min-width: 0; margin-left: auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 10px; }
+.storage-usage .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 2px; }
+.storage-usage.low .storage-usage-bar .other { background: #c18a3c; }
+.storage-usage-warning, .backup-error { color: #a4454a; font-size: 11px; }
+.backup-status { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fafbfa; }
+.backup-status > div { min-width: 0; display: grid; gap: 4px; }
+.backup-status strong { font-size: 13px; }
+.backup-status .backup-error { overflow-wrap: anywhere; }

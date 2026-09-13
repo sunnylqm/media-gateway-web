@@ -21,6 +21,10 @@ export function isOversizedVideo(
 
 export function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
+  if (bytes >= 1024 ** 4) {
+    const tb = bytes / 1024 ** 4;
+    return `${tb.toFixed(2).replace(/\.?0+$/, '')} TB`;
+  }
   if (bytes >= 1024 * 1024 * 1024) {
     const gb = bytes / (1024 * 1024 * 1024);
     return `${gb.toFixed(1).replace(/\.0$/, '')} GB`;

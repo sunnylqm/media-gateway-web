@@ -379,7 +379,37 @@ export type AssetStorage = {
   s3_bucket?: string;
   s3_access_key_configured: boolean;
   s3_secret_key_configured: boolean;
+  backup_backend: '' | 'local' | 's3';
+  backup_local_path?: string;
+  backup_s3_endpoint?: string;
+  backup_s3_region?: string;
+  backup_s3_bucket?: string;
+  backup_s3_access_key_configured: boolean;
+  backup_s3_secret_key_configured: boolean;
   updated_at: string;
+  usage?: StorageUsage;
+  backup_usage?: StorageUsage;
+  backup_status?: AssetBackupStatus;
+};
+
+export type StorageUsage = {
+  path: string;
+  object_bytes: number;
+  objects: number;
+  disk_total_bytes: number;
+  disk_available_bytes: number;
+  measured_at: string;
+};
+
+export type AssetBackupStatus = {
+  syncing: boolean;
+  pending: number;
+  replicated: number;
+  failed: number;
+  last_error?: string;
+  last_error_at?: string;
+  last_sync_at?: string;
+  last_sync_copied: number;
 };
 
 export type AdminTenant = Tenant & {
