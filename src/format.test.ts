@@ -9,41 +9,60 @@ import {
   formatParameterValue,
   formatRelativeTime,
   formatStatus,
+  formatters,
   isFreeNumber,
 } from './format';
 
 describe('format utilities', () => {
   it('formats byte sizes cleanly', () => {
-    expect(formatBytes(500)).toContain('500');
-    expect(formatBytes(1500)).toContain('1.5');
-    expect(formatBytes(2000000)).toContain('2');
+    expect(formatBytes(500, 'en')).toContain('500');
+    expect(formatBytes(1500, 'en')).toContain('1.5');
+    expect(formatBytes(2000000, 'en')).toContain('2');
   });
 
   it('formats relative times and falls back to a date past a year', () => {
     const now = Date.parse('2026-01-01T00:00:00Z');
-    expect(formatRelativeTime('2025-12-31T21:00:00Z', now)).toContain('3');
-    expect(formatRelativeTime('2024-01-01T00:00:00Z', now)).not.toContain(
+    expect(formatRelativeTime('2025-12-31T21:00:00Z', 'en', now)).toContain(
+      '3',
+    );
+    expect(formatRelativeTime('2024-01-01T00:00:00Z', 'en', now)).not.toContain(
       'ago',
     );
-    expect(formatRelativeTime('not a date', now)).toBe('not a date');
+    expect(formatRelativeTime('not a date', 'en', now)).toBe('not a date');
   });
 
   it('formats parameter names and statuses', () => {
-    expect(formatParameterName('aspect_ratio')).toBe('aspect ratio');
+    expect(formatParameterName('aspect_ratio', 'en')).toBe('aspect ratio');
     expect(formatParameterValue('test')).toBe('test');
     expect(formatParameterValue(123)).toBe('123');
     expect(formatParameterValue({ a: 1 })).toBe('{"a":1}');
-    expect(formatStatus('in_progress')).toBe('in progress');
+    expect(formatStatus('in_progress', 'en')).toBe('in progress');
   });
 
   it('formats labels and handles acronyms', () => {
-    expect(formatLabel('ai_model')).toBe('AI model');
-    expect(formatLabel('fps_rate')).toBe('FPS rate');
-    expect(formatLabel('custom_field')).toBe('Custom field');
+    expect(formatLabel('ai_model', 'en')).toBe('AI model');
+    expect(formatLabel('fps_rate', 'en')).toBe('FPS rate');
+    expect(formatLabel('custom_field', 'en')).toBe('Custom field');
+  });
+
+  it('formats in the locale it is given, not a global one', () => {
+    expect(formatStatus('in_progress', 'zh')).toBe('生成中');
+    expect(formatLabel('first_frame', 'zh')).toBe('首帧');
+    expect(formatLabel('first_frame', 'en')).toBe('First frame');
+  });
+
+  it('binds every formatter to one locale', () => {
+    const zh = formatters('zh');
+    const en = formatters('en');
+    expect(zh.intl).toBe('zh-CN');
+    expect(zh.label('first_frame')).toBe('首帧');
+    expect(en.label('first_frame')).toBe('First frame');
+    expect(zh.optionValue('quality', 'hd')).toBe('高清');
+    expect(en.optionValue('quality', 'hd')).toBe('HD');
   });
 
   it('formats currency amounts', () => {
-    const formatted = formatAmount(150, 'USD');
+    const formatted = formatAmount(150, 'USD', 'en');
     expect(formatted).toContain('1.50');
   });
 

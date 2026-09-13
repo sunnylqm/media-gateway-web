@@ -21,12 +21,7 @@ import {
   useState,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
-import {
-  formatBytes,
-  formatLabel,
-  formatOptionValue,
-  isFreeNumber,
-} from '../format';
+import { isFreeNumber } from '../format';
 import { useI18n } from '../i18n';
 import { selectComposerModel } from '../lib/composerSelection';
 import { parseFieldNotes } from '../lib/fieldNotes';
@@ -99,7 +94,7 @@ export function GenerationComposer({
   admin?: boolean;
   user?: User;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const { money } = useMoney();
   const [open, setOpen] = useState(false);
   const imageAllowed = admin || user?.image_enabled !== false;
@@ -163,7 +158,7 @@ export function GenerationComposer({
     <FieldHelp
       label={label}
       sections={group.map((slot) => ({
-        title: slot.label,
+        title: format.label(slot.name),
         source: fieldNotes.get(slot.role ?? '') ?? '',
       }))}
     />
@@ -950,7 +945,7 @@ function FrameCard({
   onDetach: (key: string) => void;
   onRetry: (attachment: Attachment) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [over, setOver] = useState(false);
   if (attachment) {
     return (
@@ -958,8 +953,8 @@ function FrameCard({
         <MediaPreview attachment={attachment} />
         <figcaption>
           <div>
-            <b>{slot.label}</b>
-            <small>{formatBytes(attachment.file.size)}</small>
+            <b>{format.label(slot.name)}</b>
+            <small>{format.bytes(attachment.file.size)}</small>
           </div>
           <AttachmentActions
             attachment={attachment}
@@ -985,7 +980,7 @@ function FrameCard({
       }}
     >
       {kindIcon[mediaKind(slot.mimePrefix)]}
-      <b>{slot.label}</b>
+      <b>{format.label(slot.name)}</b>
       <small>{t('composer.frameHint')}</small>
       <input
         type="file"
@@ -1016,7 +1011,7 @@ function ReferenceCard({
   onDetach: () => void;
   onRetry: () => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   return (
     <figure className="reference-card">
       <span className="reference-index">{index}</span>
@@ -1030,18 +1025,18 @@ function ReferenceCard({
           >
             {roles.map((role) => (
               <option key={role.id} value={role.id}>
-                {role.label}
+                {format.label(role.name)}
               </option>
             ))}
           </select>
         ) : (
           <div>
-            <b>{slot.label}</b>
+            <b>{format.label(slot.name)}</b>
             <small>
               {attachment.seconds
                 ? `${Math.round(attachment.seconds)}s · `
                 : ''}
-              {formatBytes(attachment.file.size)}
+              {format.bytes(attachment.file.size)}
             </small>
           </div>
         )}
@@ -1130,8 +1125,8 @@ function ParameterTile({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const { t, locale } = useI18n();
-  const label = formatLabel(parameter.name);
+  const { t, format } = useI18n();
+  const label = format.label(parameter.name);
   const tileLabel = (
     <span className="tile-label label-with-help">
       {label}
@@ -1146,7 +1141,7 @@ function ParameterTile({
         ]
       : (parameter.enum ?? []).map((option) => ({
           value: option,
-          label: formatOptionValue(parameter.name, option, locale),
+          label: format.optionValue(parameter.name, option),
         }));
   const chips =
     options.length > 0 &&

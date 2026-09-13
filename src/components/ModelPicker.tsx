@@ -8,7 +8,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { intlLocale, useI18n } from '../i18n';
+import { useI18n } from '../i18n';
 import { Markdown, plainText, safeHref } from '../lib/markdown';
 import {
   formatReleaseDate,
@@ -42,7 +42,7 @@ export function ModelPicker({
   size?: 'field' | 'compact';
   ariaLabel?: string;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const { money } = useMoney();
   const listId = useId();
   const listRef = useRef<HTMLDivElement>(null);
@@ -59,7 +59,7 @@ export function ModelPicker({
     }),
     [t],
   );
-  const locale = intlLocale();
+  const locale = format.intl;
 
   useEffect(() => {
     if (open) setActiveId(value || ordered[0]?.id || '');

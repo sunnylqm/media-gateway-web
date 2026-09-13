@@ -6,8 +6,7 @@ import {
   useState,
 } from 'react';
 import { api } from '../api';
-import { formatDate, formatStatus } from '../format';
-import { useI18n } from '../i18n';
+import { translate, useI18n } from '../i18n';
 import { transactionKind, transactionPageSize } from '../lib/billing';
 import { useMoney } from '../lib/money';
 import type { TransactionRecord } from '../types';
@@ -27,7 +26,6 @@ function isAbortError(reason: unknown): boolean {
 }
 
 export function useTransactions(path: string, admin = false): TransactionFeed {
-  const { t } = useI18n();
   const [transactions, setTransactions] = useState<TransactionRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -70,7 +68,7 @@ export function useTransactions(path: string, admin = false): TransactionFeed {
         setError(
           reason instanceof Error
             ? reason.message
-            : t('billing.errorTransactions'),
+            : translate('billing.errorTransactions'),
         );
       } finally {
         if (!signal?.aborted && sequence === requestSequence.current) {
@@ -79,7 +77,7 @@ export function useTransactions(path: string, admin = false): TransactionFeed {
         }
       }
     },
-    [admin, path, t],
+    [admin, path],
   );
 
   useEffect(() => {
@@ -133,7 +131,7 @@ export function TransactionsTable({
   onReload: () => Promise<void>;
   onSelectGeneration?: (generationId: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   // Every ledger record carries the currency it was written in, which is the
   // one currency the workspace is billed in. Nothing is converted.
   const { money } = useMoney();
@@ -183,7 +181,7 @@ export function TransactionsTable({
                     ? t('billing.typeCredit')
                     : kind === 'capture'
                       ? t('billing.typeCapture')
-                      : formatStatus(transaction.type);
+                      : format.status(transaction.type);
                 const prompt = transaction.prompt
                   ? transaction.prompt.length > 35
                     ? `${transaction.prompt.slice(0, 35)}…`
@@ -210,7 +208,7 @@ export function TransactionsTable({
                       },
                     })}
                   >
-                    <td>{formatDate(transaction.created_at)}</td>
+                    <td>{format.date(transaction.created_at)}</td>
                     <td>
                       <span className={`status ${statusClass}`}>
                         {typeLabel}

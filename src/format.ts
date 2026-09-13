@@ -1,7 +1,22 @@
-import { getLocale, intlLocale, term } from './i18n';
+import type { Locale } from './i18n';
+import { translateTerm } from './i18n/terms';
 
-export function formatDate(value: string) {
-  return new Intl.DateTimeFormat(intlLocale(), {
+// Every formatter here takes the locale it formats for rather than reading the
+// active one. Components get these bound to the current locale from useI18n():
+// the React Compiler caches a call by its arguments, so a formatter that read
+// the locale on its own would keep showing the previous language.
+
+// Dates, numbers, and currency follow the reader. An English reader keeps their
+// own regional conventions rather than being pushed to one English region.
+export function intlLocale(locale: Locale): string {
+  if (locale === 'zh') return 'zh-CN';
+  const preferred =
+    typeof navigator === 'undefined' ? '' : (navigator.language ?? '');
+  return preferred.toLowerCase().startsWith('en') ? preferred : 'en-US';
+}
+
+export function formatDate(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -11,8 +26,8 @@ export function formatDate(value: string) {
 
 // formatDateTime carries the year, for a single timestamp read on its own
 // rather than scanned down a column of recent rows.
-export function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat(intlLocale(), {
+export function formatDateTime(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -21,10 +36,10 @@ export function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
-export function formatDay(value: string) {
-  return new Intl.DateTimeFormat(intlLocale(), { dateStyle: 'medium' }).format(
-    new Date(value),
-  );
+export function formatDay(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
+    dateStyle: 'medium',
+  }).format(new Date(value));
 }
 
 const relativeUnits: [Intl.RelativeTimeFormatUnit, number][] = [
@@ -37,13 +52,17 @@ const relativeUnits: [Intl.RelativeTimeFormatUnit, number][] = [
 
 // The plaza reads better with "3 hours ago" than a timestamp, but anything
 // older than a year is easier to place by its date.
-export function formatRelativeTime(value: string, now: number = Date.now()) {
+export function formatRelativeTime(
+  value: string,
+  locale: Locale,
+  now: number = Date.now(),
+) {
   const at = new Date(value).getTime();
   if (Number.isNaN(at)) return value;
   const seconds = Math.round((at - now) / 1000);
   const magnitude = Math.abs(seconds);
-  if (magnitude >= relativeUnits[0][1]) return formatDay(value);
-  const formatter = new Intl.RelativeTimeFormat(intlLocale(), {
+  if (magnitude >= relativeUnits[0][1]) return formatDay(value, locale);
+  const formatter = new Intl.RelativeTimeFormat(intlLocale(locale), {
     numeric: 'auto',
   });
   for (const [unit, size] of relativeUnits) {
@@ -64,14 +83,14 @@ const byteUnits = [
 
 // The unit is chosen here rather than left to compact notation, which counts a
 // file in 万 and 亿 for Chinese and in billions of bytes for English.
-export function formatBytes(value: number) {
+export function formatBytes(value: number, locale: Locale) {
   let size = value;
   let unit = 0;
   while (size >= 1000 && unit < byteUnits.length - 1) {
     size /= 1000;
     unit += 1;
   }
-  return new Intl.NumberFormat(intlLocale(), {
+  return new Intl.NumberFormat(intlLocale(locale), {
     style: 'unit',
     unit: byteUnits[unit],
     unitDisplay: 'narrow',
@@ -79,8 +98,8 @@ export function formatBytes(value: number) {
   }).format(size);
 }
 
-export function formatParameterName(value: string) {
-  return term(value) ?? value.replaceAll('_', ' ');
+export function formatParameterName(value: string, locale: Locale) {
+  return translateTerm(locale, value) ?? value.replaceAll('_', ' ');
 }
 
 export function formatParameterValue(value: unknown) {
@@ -95,8 +114,8 @@ export function formatParameterValue(value: unknown) {
 
 // Statuses arrive as gateway vocabulary. A locale that has a word for one uses
 // it; anything else keeps the value the API sent, spaced for reading.
-export function formatStatus(value: string) {
-  return term(value) ?? value.replaceAll('_', ' ');
+export function formatStatus(value: string, locale: Locale) {
+  return translateTerm(locale, value) ?? value.replaceAll('_', ' ');
 }
 
 const acronyms = new Set([
@@ -111,8 +130,8 @@ const acronyms = new Set([
   'cfg',
 ]);
 
-export function formatLabel(value: string) {
-  const translated = term(value);
+export function formatLabel(value: string, locale: Locale) {
+  const translated = translateTerm(locale, value);
   if (translated) return translated;
   return value
     .split('_')
@@ -127,9 +146,13 @@ export function formatLabel(value: string) {
 
 // Billing amounts travel as currency minor units, so the divisor comes from the
 // locale's own fraction digits for that currency rather than a fixed 100.
-export function formatAmount(minorUnits: number, currency: string) {
+export function formatAmount(
+  minorUnits: number,
+  currency: string,
+  locale: Locale,
+) {
   try {
-    const formatter = new Intl.NumberFormat(intlLocale(), {
+    const formatter = new Intl.NumberFormat(intlLocale(locale), {
       style: 'currency',
       currency,
     });
@@ -160,12 +183,9 @@ const dimensionExplanationsEn: Record<string, string> = {
   '2160x3840': '2160x3840 (4K portrait)',
 };
 
-export function formatDimensionOption(
-  value: string,
-  locale: string = getLocale(),
-): string {
+export function formatDimensionOption(value: string, locale: Locale): string {
   const normalized = value.trim();
-  const isZh = locale.toLowerCase().startsWith('zh');
+  const isZh = locale === 'zh';
   const explanations = isZh ? dimensionExplanationsZh : dimensionExplanationsEn;
 
   if (explanations[normalized]) {
@@ -257,11 +277,11 @@ const dimensionParameter =
 export function formatOptionValue(
   name: string,
   value: string,
-  locale: string = getLocale(),
+  locale: Locale,
 ): string {
   if (dimensionParameter.test(name) || /^\d+[xX:]\d+$/.test(value.trim()))
     return formatDimensionOption(value, locale);
-  const isZh = locale.toLowerCase().startsWith('zh');
+  const isZh = locale === 'zh';
   const key = value.trim().toLowerCase();
   if (/moderation/i.test(name)) {
     const word = (isZh ? moderationWordsZh : moderationWordsEn)[key];
@@ -277,4 +297,35 @@ export function isFreeNumber(name: string, minimum?: number, maximum?: number) {
   return (
     minimum !== undefined && maximum !== undefined && maximum - minimum > 1000
   );
+}
+
+export function formatNumber(value: number, locale: Locale) {
+  return new Intl.NumberFormat(intlLocale(locale)).format(value);
+}
+
+export type Formatters = ReturnType<typeof formatters>;
+
+// formatters binds every locale-aware formatter to one locale. useI18n() hands
+// out a fresh set whenever the language changes, which is what lets compiled
+// components see that their cached output is stale.
+export function formatters(locale: Locale) {
+  return {
+    // The locale in Intl's terms, for Intl APIs called outside this module.
+    intl: intlLocale(locale),
+    date: (value: string) => formatDate(value, locale),
+    dateTime: (value: string) => formatDateTime(value, locale),
+    day: (value: string) => formatDay(value, locale),
+    relativeTime: (value: string, now?: number) =>
+      formatRelativeTime(value, locale, now),
+    bytes: (value: number) => formatBytes(value, locale),
+    number: (value: number) => formatNumber(value, locale),
+    amount: (minorUnits: number, currency: string) =>
+      formatAmount(minorUnits, currency, locale),
+    parameterName: (value: string) => formatParameterName(value, locale),
+    status: (value: string) => formatStatus(value, locale),
+    label: (value: string) => formatLabel(value, locale),
+    dimensionOption: (value: string) => formatDimensionOption(value, locale),
+    optionValue: (name: string, value: string) =>
+      formatOptionValue(name, value, locale),
+  };
 }

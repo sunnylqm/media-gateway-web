@@ -10,14 +10,7 @@ import {
 import { Dialog } from 'radix-ui';
 import { useState } from 'react';
 import { absoluteGatewayURL, api } from '../api';
-import {
-  formatBytes,
-  formatDate,
-  formatDateTime,
-  formatParameterName,
-  formatParameterValue,
-  formatStatus,
-} from '../format';
+import { formatParameterValue } from '../format';
 import { useI18n } from '../i18n';
 import { generationFailure } from '../lib/failure';
 import type { Artifact, Generation } from '../types';
@@ -41,7 +34,7 @@ export function GenerationsTable({
   // jobs can be read without opening each one.
   diagnostics?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   if (!generations.length)
     return (
       <div className="empty-state">
@@ -120,7 +113,7 @@ export function GenerationsTable({
                   diagnostics={diagnostics}
                 />
               </td>
-              <td>{formatDate(item.created_at)}</td>
+              <td>{format.date(item.created_at)}</td>
             </tr>
           ))}
         </tbody>
@@ -184,8 +177,9 @@ function GenerationThumbnail({ generation }: { generation: Generation }) {
 }
 
 export function GenerationStatus({ value }: { value: string }) {
+  const { format } = useI18n();
   return (
-    <span className={`status status-${value}`}>{formatStatus(value)}</span>
+    <span className={`status status-${value}`}>{format.status(value)}</span>
   );
 }
 
@@ -233,7 +227,7 @@ export function GenerationDetails({
   diagnostics?: boolean;
   onGenerationChange?: (generation: Generation) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const failure = diagnostics ? generationFailure(generation) : null;
   const parameters = Object.entries(generation?.parameters ?? {}).sort(
     ([left], [right]) => left.localeCompare(right),
@@ -251,7 +245,7 @@ export function GenerationDetails({
               <Dialog.Title>{t('details.title')}</Dialog.Title>
               <Dialog.Description>
                 {generation
-                  ? `${generation.id} · ${formatStatus(generation.status)} · ${t('details.created', { date: formatDateTime(generation.created_at) })}${generation.binding_alias ? ` · ${t('details.via', { alias: generation.binding_alias })}` : ''}`
+                  ? `${generation.id} · ${format.status(generation.status)} · ${t('details.created', { date: format.dateTime(generation.created_at) })}${generation.binding_alias ? ` · ${t('details.via', { alias: generation.binding_alias })}` : ''}`
                   : ''}
               </Dialog.Description>
             </div>
@@ -298,7 +292,7 @@ export function GenerationDetails({
                   <dl className="parameter-list">
                     {parameters.map(([name, value]) => (
                       <div key={name}>
-                        <dt>{formatParameterName(name)}</dt>
+                        <dt>{format.parameterName(name)}</dt>
                         <dd>{formatParameterValue(value)}</dd>
                       </div>
                     ))}
@@ -433,7 +427,7 @@ function InputPreview({
 }: {
   input: NonNullable<Generation['inputs']>[number];
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const mediaType = input.mime_type.split('/', 1)[0];
   const url = absoluteGatewayURL(input.url);
   return (
@@ -444,7 +438,7 @@ function InputPreview({
             src={url}
             loading="lazy"
             alt={t('details.inputAlt', {
-              role: formatParameterName(input.role),
+              role: format.parameterName(input.role),
             })}
           />
         </a>
@@ -462,9 +456,9 @@ function InputPreview({
         <audio src={url} controls preload="metadata" />
       ) : null}
       <div>
-        <span>{formatParameterName(input.role)}</span>
+        <span>{format.parameterName(input.role)}</span>
         <small>
-          {input.mime_type} · {formatBytes(input.size_bytes)}
+          {input.mime_type} · {format.bytes(input.size_bytes)}
         </small>
       </div>
     </article>
@@ -472,7 +466,7 @@ function InputPreview({
 }
 
 function ArtifactPreview({ artifact }: { artifact: Artifact }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [previewFailed, setPreviewFailed] = useState(false);
   const isVideo = artifact.mime_type.toLowerCase().startsWith('video/');
   const isImage = artifact.mime_type.toLowerCase().startsWith('image/');
@@ -508,7 +502,7 @@ function ArtifactPreview({ artifact }: { artifact: Artifact }) {
       <div className="artifact-meta">
         <div>
           <span>{artifact.mime_type}</span>
-          <small>{formatBytes(artifact.size_bytes)}</small>
+          <small>{format.bytes(artifact.size_bytes)}</small>
         </div>
         <a href={url} download target="_blank" rel="noreferrer">
           <Download size={16} />

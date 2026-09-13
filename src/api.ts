@@ -1,4 +1,4 @@
-import { t } from './i18n';
+import { translate } from './i18n';
 
 type ErrorEnvelope = {
   error?: {
@@ -99,7 +99,7 @@ export async function api<T>(
       response.status,
       payload.error?.code ?? 'request_failed',
       payload.error?.message ??
-        t('api.requestFailed', { status: response.status }),
+        translate('api.requestFailed', { status: response.status }),
     );
   }
   throw new APIError(403, 'csrf_failed', 'a valid CSRF token is required');

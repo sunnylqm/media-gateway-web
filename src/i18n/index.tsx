@@ -7,8 +7,8 @@ import {
   useMemo,
   useState,
 } from 'react';
+import { type Formatters, formatters } from '../format';
 import { en, type MessageKey } from './en';
-import { translateTerm } from './terms';
 import { zh } from './zh';
 
 export type Locale = 'en' | 'zh';
@@ -44,51 +44,45 @@ function preferredLocale(): Locale {
   return 'en';
 }
 
-// The active locale is module state as well as React state: formatters and the
-// API client translate outside the component tree, and both are read during a
-// render that the provider has already re-run.
+// The active locale is also module state, for code that runs outside a render:
+// the API client's errors, validation thrown from a submit handler, the
+// document title. Rendering must never read it. The React Compiler caches what a
+// component renders by the values it can see, and module state is invisible to
+// it, so text read from here would survive a language change. Components use
+// useI18n(), whose translator and formatters change identity with the locale.
 let active: Locale = storedLocale() ?? preferredLocale();
 
 export function getLocale(): Locale {
   return active;
 }
 
-// Dates, numbers, and currency follow the reader. An English reader keeps their
-// own regional conventions rather than being pushed to one English region.
-export function intlLocale(): string | undefined {
-  if (active === 'zh') return 'zh-CN';
-  const preferred = navigator.language ?? '';
-  return preferred.toLowerCase().startsWith('en') ? preferred : 'en-US';
-}
+type Values = Record<string, string | number>;
 
-export function t(
-  key: MessageKey,
-  values?: Record<string, string | number>,
-): string {
-  const message = dictionaries[active][key] ?? en[key] ?? key;
-  if (!values) return message;
+function message(locale: Locale, key: MessageKey, values?: Values): string {
+  const text = dictionaries[locale][key] ?? en[key] ?? key;
+  if (!values) return text;
   return Object.entries(values).reduce(
-    (text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
-    message,
+    (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
+    text,
   );
 }
 
-// Vocabulary the gateway sends — statuses, media roles, parameter names — has
-// no key of its own; an untranslated term keeps the value the API returned.
-export function term(value: string): string | undefined {
-  return translateTerm(active, value);
+// translate is for code outside a render; see `active` above.
+export function translate(key: MessageKey, values?: Values): string {
+  return message(active, key, values);
 }
 
 function apply(locale: Locale) {
   active = locale;
   document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
-  document.title = t('app.title');
+  document.title = translate('app.title');
 }
 
 type LocaleContextValue = {
   locale: Locale;
   setLocale: (locale: Locale) => void;
-  t: typeof t;
+  t: (key: MessageKey, values?: Values) => string;
+  format: Formatters;
 };
 
 const LocaleContext = createContext<LocaleContextValue | null>(null);
@@ -110,7 +104,15 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
     setCurrent(next);
   }, []);
 
-  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale]);
+  const value = useMemo(
+    () => ({
+      locale,
+      setLocale,
+      t: (key: MessageKey, values?: Values) => message(locale, key, values),
+      format: formatters(locale),
+    }),
+    [locale, setLocale],
+  );
   return (
     <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>
   );
@@ -120,8 +122,4 @@ export function useI18n(): LocaleContextValue {
   const value = useContext(LocaleContext);
   if (!value) throw new Error('useI18n must be used inside LocaleProvider');
   return value;
-}
-
-export function localeName(locale: Locale) {
-  return t(locale === 'zh' ? 'language.zh' : 'language.en');
 }

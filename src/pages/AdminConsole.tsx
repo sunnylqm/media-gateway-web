@@ -49,8 +49,7 @@ import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { TopupDialog } from '../components/TopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
-import { formatAmount, formatDate, formatDay, formatStatus } from '../format';
-import { intlLocale, t, useI18n } from '../i18n';
+import { type MessageKey, translate, useI18n } from '../i18n';
 import { currentAdminUserPath } from '../lib/adminUserPath';
 import type { CreditRequest } from '../lib/billing';
 import {
@@ -107,7 +106,7 @@ import { ImagePlayground } from './ImagePlayground';
 import { VideoStudio } from './VideoStudio';
 
 export function AdminConsole() {
-  const { locale, t: translate } = useI18n();
+  const { locale, t } = useI18n();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<AdminProfile | null>(null);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
@@ -163,7 +162,7 @@ export function AdminConsole() {
     } finally {
       setLoading(false);
     }
-  }, [navigate, translate]);
+  }, [navigate]);
 
   useEffect(() => {
     void load();
@@ -186,7 +185,7 @@ export function AdminConsole() {
         reason instanceof Error ? reason.message : translate('admin.errorLoad'),
       );
     }
-  }, [navigate, translate]);
+  }, [navigate]);
 
   useEffect(() => {
     if (
@@ -240,9 +239,7 @@ export function AdminConsole() {
       setArtifacts(artifactList.data);
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : translate('tenant.errorDetails'),
+        reason instanceof Error ? reason.message : t('tenant.errorDetails'),
       );
     } finally {
       setDetailsLoading(false);
@@ -261,9 +258,7 @@ export function AdminConsole() {
       await load();
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : translate('admin.errorStatus'),
+        reason instanceof Error ? reason.message : t('admin.errorStatus'),
       );
     }
   }
@@ -282,9 +277,7 @@ export function AdminConsole() {
       await load();
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : translate('users.capabilitiesError'),
+        reason instanceof Error ? reason.message : t('users.capabilitiesError'),
       );
       throw reason;
     }
@@ -304,9 +297,7 @@ export function AdminConsole() {
       await load();
     } catch (reason) {
       setError(
-        reason instanceof Error
-          ? reason.message
-          : translate('users.topupError'),
+        reason instanceof Error ? reason.message : t('users.topupError'),
       );
       throw reason;
     }
@@ -350,7 +341,7 @@ export function AdminConsole() {
     return (
       <div className="loading-screen">
         <span className="loader" />
-        <b>{translate('admin.loading')}</b>
+        <b>{t('admin.loading')}</b>
       </div>
     );
   if (!profile || !overview) return null;
@@ -362,57 +353,57 @@ export function AdminConsole() {
     <PreferencesProvider persist={false}>
       <Shell
         admin
-        identity={translate('admin.identity')}
+        identity={t('admin.identity')}
         navigation={[
           {
-            label: translate('admin.navOverview'),
+            label: t('admin.navOverview'),
             to: '/admin',
             icon: <Gauge size={17} />,
           },
           {
-            label: translate('admin.navImage'),
+            label: t('admin.navImage'),
             to: '/admin/image',
             icon: <ImageIcon size={17} />,
           },
           {
-            label: translate('admin.navVideo'),
+            label: t('admin.navVideo'),
             to: '/admin/video',
             icon: <Film size={17} />,
           },
           {
-            label: translate('admin.navVideoGeneration'),
+            label: t('admin.navVideoGeneration'),
             to: '/admin/generations',
             icon: <Boxes size={17} />,
           },
           {
-            label: translate('admin.navAccounts'),
+            label: t('admin.navAccounts'),
             to: '/admin/users',
             icon: <Users size={17} />,
             nested: true,
           },
           {
-            label: translate('admin.navModels'),
+            label: t('admin.navModels'),
             to: '/admin/models',
             icon: <Cpu size={17} />,
           },
           {
-            label: translate('admin.navStorage'),
+            label: t('admin.navStorage'),
             to: '/admin/storage',
             icon: <HardDrive size={17} />,
           },
           {
-            label: translate('admin.navTopup'),
+            label: t('admin.navTopup'),
             to: '/admin/topup',
             icon: <CreditCard size={17} />,
           },
           {
-            label: translate('admin.navTopupOrders'),
+            label: t('admin.navTopupOrders'),
             to: '/admin/topups',
             icon: <ReceiptText size={17} />,
           },
         ]}
-        title={translate('admin.title')}
-        description={translate('admin.description', { email: profile.email })}
+        title={t('admin.title')}
+        description={t('admin.description', { email: profile.email })}
         onLogout={() => void logout()}
       >
         {error && (
@@ -562,7 +553,7 @@ function AdminOverviewView({
   users: AdminUser[];
   models: AdminModel[];
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const utilization = useMemo(
     () =>
       overview.tenant_count
@@ -668,7 +659,7 @@ function AdminOverviewView({
                 <span
                   className={`status status-${user.tenant.status || user.status}`}
                 >
-                  {formatStatus(user.tenant.status || 'none')}
+                  {format.status(user.tenant.status || 'none')}
                 </span>
               </div>
             ))}
@@ -764,7 +755,7 @@ function storageForm(storage: AssetStorage): StorageForm {
 }
 
 function StorageUsageMeter({ usage }: { usage: StorageUsage }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const total = usage.disk_total_bytes;
   const used = Math.max(0, total - usage.disk_available_bytes);
   const percent = (bytes: number) =>
@@ -803,7 +794,7 @@ function StorageUsageMeter({ usage }: { usage: StorageUsage }) {
           <i className="swatch assets" />
           {t('storage.usageAssets', {
             size: formatFileSize(usage.object_bytes),
-            count: usage.objects.toLocaleString(intlLocale()),
+            count: format.number(usage.objects),
           })}
         </span>
         <span>
@@ -828,7 +819,7 @@ function StoragePanel({
   onSaved: () => Promise<void>;
   onError: (message: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [form, setForm] = useState<StorageForm>(() => storageForm(storage));
   const [live, setLive] = useState<AssetStorage>(storage);
   const [saving, setSaving] = useState(false);
@@ -1105,7 +1096,7 @@ function StoragePanel({
               <small className="muted">
                 {status.last_sync_at
                   ? t('storage.backupLastSync', {
-                      date: formatDate(status.last_sync_at),
+                      date: format.date(status.last_sync_at),
                       count: status.last_sync_copied,
                     })
                   : t('storage.backupNeverSynced')}
@@ -1114,7 +1105,7 @@ function StoragePanel({
                 <small className="backup-error">
                   {t('storage.backupLastError', {
                     date: status.last_error_at
-                      ? formatDate(status.last_error_at)
+                      ? format.date(status.last_error_at)
                       : '—',
                     error: status.last_error,
                   })}
@@ -1308,12 +1299,14 @@ function TopupSettingsPanel() {
       setError('');
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : t('topupAdmin.errorLoad'),
+        reason instanceof Error
+          ? reason.message
+          : translate('topupAdmin.errorLoad'),
       );
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     void load();
@@ -1819,7 +1812,7 @@ function TopupSettingsPanel() {
 // The panel owns its own fetching: the console's start-up load would otherwise
 // wait on a list nobody has asked to see yet.
 function TopupOrdersPanel() {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [orders, setOrders] = useState<AdminTopup[]>([]);
   const [total, setTotal] = useState(0);
   const [status, setStatus] = useState('');
@@ -1857,7 +1850,9 @@ function TopupOrdersPanel() {
           return;
         }
         setError(
-          reason instanceof Error ? reason.message : t('topupOrders.errorLoad'),
+          reason instanceof Error
+            ? reason.message
+            : translate('topupOrders.errorLoad'),
         );
         setOrders([]);
         setTotal(0);
@@ -1867,7 +1862,7 @@ function TopupOrdersPanel() {
     return () => {
       controller.abort();
     };
-  }, [offset, status, t]);
+  }, [offset, status]);
 
   const first = total === 0 ? 0 : offset + 1;
   const last = offset + orders.length;
@@ -1891,7 +1886,7 @@ function TopupOrdersPanel() {
             <option value="">{t('topupOrders.filterAll')}</option>
             {topupStatuses.map((value) => (
               <option key={value} value={value}>
-                {formatStatus(value)}
+                {format.status(value)}
               </option>
             ))}
           </select>
@@ -1936,7 +1931,7 @@ function TopupOrdersPanel() {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id}>
-                  <td>{formatDate(order.created_at)}</td>
+                  <td>{format.date(order.created_at)}</td>
                   <td>
                     {order.user_id ? (
                       <Link
@@ -1956,11 +1951,11 @@ function TopupOrdersPanel() {
                     <span
                       className={`status ${topupStatusClass(order.status)}`}
                     >
-                      {formatStatus(order.status)}
+                      {format.status(order.status)}
                     </span>
                   </td>
                   <td>
-                    {order.completed_at ? formatDate(order.completed_at) : '—'}
+                    {order.completed_at ? format.date(order.completed_at) : '—'}
                   </td>
                   <td>
                     {order.invoice_number ? (
@@ -2195,7 +2190,7 @@ function ModelsPanel({
   onSaved: () => Promise<void>;
   onError: (message: string) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminModel | null>(null);
   const [form, setForm] = useState<ModelForm>(emptyModelForm);
@@ -2554,7 +2549,7 @@ function ModelsPanel({
                     <b>{model.display_name}</b>
                     <small>
                       {model.released_on
-                        ? `${formatReleaseDate(model.released_on, intlLocale())} · `
+                        ? `${formatReleaseDate(model.released_on, format.intl)} · `
                         : ''}
                       {model.provider_name ? `${model.provider_name} · ` : ''}
                       {model.id} · {model.provider}/{model.upstream_model}
@@ -2597,12 +2592,12 @@ function ModelsPanel({
               <td>
                 <span className="billing-cell">
                   <CircleDollarSign size={14} />
-                  {billingLabel(model.billing, model.modality)}
+                  {billingLabel(t, model.billing, model.modality)}
                 </span>
               </td>
               <td>
                 <span className={`status status-${model.status}`}>
-                  {formatStatus(model.status)}
+                  {format.status(model.status)}
                 </span>
               </td>
               <td>
@@ -3242,11 +3237,17 @@ function parseProfile(text: string): unknown {
   try {
     return JSON.parse(trimmed);
   } catch {
-    throw new Error(t('models.errorProfileJSON'));
+    throw new Error(translate('models.errorProfileJSON'));
   }
 }
 
-function billingLabel(billing: ModelBilling, modality?: 'image' | 'video') {
+// billingLabel is rendered, so it translates with the caller's `t` rather than
+// the module-level translator.
+function billingLabel(
+  t: (key: MessageKey, values?: Record<string, string | number>) => string,
+  billing: ModelBilling,
+  modality?: 'image' | 'video',
+) {
   if (billing.mode === 'free') return t('models.billingFree');
   const rates = billing.rates ?? [];
   if (rates.length === 0) return t('models.billingUnpriced');
@@ -3277,14 +3278,14 @@ function parseRateDimensions(value: string): Record<string, string> {
     .filter(Boolean)) {
     const separator = entry.indexOf('=');
     if (separator <= 0 || separator === entry.length - 1) {
-      throw new Error(t('models.errorSelector', { entry }));
+      throw new Error(translate('models.errorSelector', { entry }));
     }
     dimensions[entry.slice(0, separator).trim()] = entry
       .slice(separator + 1)
       .trim();
   }
   if (!Object.keys(dimensions).length)
-    throw new Error(t('models.errorSelectorMissing'));
+    throw new Error(translate('models.errorSelectorMissing'));
   return dimensions;
 }
 
@@ -3302,7 +3303,7 @@ function UsersTable({
   ) => Promise<void>;
   onTopup: (user: AdminUser, request: CreditRequest) => Promise<void>;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [selected, setSelected] = useState<AdminUser | null>(null);
   const [nextStatus, setNextStatus] = useState<Tenant['status']>('suspended');
   const [capabilityUser, setCapabilityUser] = useState<AdminUser | null>(null);
@@ -3370,7 +3371,7 @@ function UsersTable({
                       <b>{user.email}</b>
                       <small>
                         {t('users.registered', {
-                          date: formatDate(user.created_at),
+                          date: format.date(user.created_at),
                         })}
                       </small>
                     </div>
@@ -3397,7 +3398,7 @@ function UsersTable({
                   {user.tenant.id && user.balance ? (
                     <div>
                       <b>
-                        {formatAmount(
+                        {format.amount(
                           user.balance.available,
                           user.balance.currency || 'CNY',
                         )}
@@ -3408,7 +3409,7 @@ function UsersTable({
                           style={{ display: 'block', fontSize: '11px' }}
                         >
                           {t('billing.reserved')}:{' '}
-                          {formatAmount(
+                          {format.amount(
                             user.balance.reserved,
                             user.balance.currency || 'CNY',
                           )}
@@ -3442,7 +3443,7 @@ function UsersTable({
                     </span>
                   </div>
                 </td>
-                <td>{user.role ? formatStatus(user.role) : '—'}</td>
+                <td>{user.role ? format.status(user.role) : '—'}</td>
                 <td>{user.tenant.id ? user.member_count : '—'}</td>
                 <td>{user.generation_count}</td>
                 <td>{user.api_key_count}</td>
@@ -3450,7 +3451,7 @@ function UsersTable({
                   <div className="status-cell">
                     {user.tenant.id ? (
                       <span className={`status status-${user.tenant.status}`}>
-                        {formatStatus(user.tenant.status)}
+                        {format.status(user.tenant.status)}
                       </span>
                     ) : (
                       <span className="muted">{t('users.noWorkspace')}</span>
@@ -3458,7 +3459,7 @@ function UsersTable({
                     {user.status !== 'active' && (
                       <span className={`status status-${user.status}`}>
                         {t('users.accountStatus', {
-                          status: formatStatus(user.status),
+                          status: format.status(user.status),
                         })}
                       </span>
                     )}
@@ -3466,7 +3467,7 @@ function UsersTable({
                 </td>
                 <td>
                   {user.last_seen_at
-                    ? formatDate(user.last_seen_at)
+                    ? format.date(user.last_seen_at)
                     : t('common.never')}
                 </td>
                 <td>
@@ -3695,7 +3696,7 @@ function UsersTable({
 }
 
 function UserDetail() {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const { userId = '' } = useParams();
   const [user, setUser] = useState<AdminUser | null>(null);
   const [generations, setGenerations] = useState<Generation[]>([]);
@@ -3761,7 +3762,9 @@ function UserDetail() {
           return;
         }
         setError(
-          reason instanceof Error ? reason.message : t('userDetail.errorLoad'),
+          reason instanceof Error
+            ? reason.message
+            : translate('userDetail.errorLoad'),
         );
       } finally {
         if (!signal?.aborted && sequence === loadSequence.current) {
@@ -3769,7 +3772,7 @@ function UserDetail() {
         }
       }
     },
-    [base, t],
+    [base],
   );
 
   useEffect(() => {
@@ -4016,7 +4019,7 @@ function UserDetail() {
                         fontWeight: 700,
                       }}
                     >
-                      {formatAmount(
+                      {format.amount(
                         user.balance.available,
                         user.balance.currency || 'CNY',
                       )}
@@ -4064,29 +4067,29 @@ function UserDetail() {
                   </div>
                   <div>
                     <dt>{t('userDetail.accountStatus')}</dt>
-                    <dd>{formatStatus(user.status)}</dd>
+                    <dd>{format.status(user.status)}</dd>
                   </div>
                   <div>
                     <dt>{t('userDetail.role')}</dt>
-                    <dd>{user.role ? formatStatus(user.role) : '—'}</dd>
+                    <dd>{user.role ? format.status(user.role) : '—'}</dd>
                   </div>
                   <div>
                     <dt>{t('userDetail.verified')}</dt>
                     <dd>
                       {user.email_verified_at
-                        ? formatDay(user.email_verified_at)
+                        ? format.day(user.email_verified_at)
                         : t('common.no')}
                     </dd>
                   </div>
                   <div>
                     <dt>{t('userDetail.registered')}</dt>
-                    <dd>{formatDay(user.created_at)}</dd>
+                    <dd>{format.day(user.created_at)}</dd>
                   </div>
                   <div>
                     <dt>{t('userDetail.lastSeen')}</dt>
                     <dd>
                       {user.last_seen_at
-                        ? formatDate(user.last_seen_at)
+                        ? format.date(user.last_seen_at)
                         : t('common.never')}
                     </dd>
                   </div>
@@ -4118,7 +4121,7 @@ function UserDetail() {
                     </div>
                     <div>
                       <dt>{t('userDetail.status')}</dt>
-                      <dd>{formatStatus(user.tenant.status)}</dd>
+                      <dd>{format.status(user.tenant.status)}</dd>
                     </div>
                     <div>
                       <dt>{t('userDetail.billingCurrency')}</dt>
@@ -4138,13 +4141,13 @@ function UserDetail() {
                     </div>
                     <div>
                       <dt>{t('userDetail.created')}</dt>
-                      <dd>{formatDay(user.tenant.created_at)}</dd>
+                      <dd>{format.day(user.tenant.created_at)}</dd>
                     </div>
                     <div>
                       <dt>{t('userDetail.lastActivity')}</dt>
                       <dd>
                         {user.last_activity_at
-                          ? formatDate(user.last_activity_at)
+                          ? format.date(user.last_activity_at)
                           : t('common.none')}
                       </dd>
                     </div>
@@ -4160,7 +4163,7 @@ function UserDetail() {
               <article className="metric green">
                 <span>{t('billing.available')}</span>
                 <strong>
-                  {formatAmount(
+                  {format.amount(
                     user.balance.available,
                     user.balance.currency || 'CNY',
                   )}
@@ -4176,7 +4179,7 @@ function UserDetail() {
               <article className="metric blue">
                 <span>{t('billing.totalCredited')}</span>
                 <strong>
-                  {formatAmount(
+                  {format.amount(
                     user.balance.credited,
                     user.balance.currency || 'CNY',
                   )}
@@ -4186,7 +4189,7 @@ function UserDetail() {
               <article className="metric amber">
                 <span>{t('billing.totalSpent')}</span>
                 <strong>
-                  {formatAmount(
+                  {format.amount(
                     user.balance.spent,
                     user.balance.currency || 'CNY',
                   )}
@@ -4196,7 +4199,7 @@ function UserDetail() {
               <article className="metric">
                 <span>{t('billing.reserved')}</span>
                 <strong>
-                  {formatAmount(
+                  {format.amount(
                     user.balance.reserved,
                     user.balance.currency || 'CNY',
                   )}
@@ -4244,15 +4247,15 @@ function UserDetail() {
                 <tbody>
                   {topups.map((topup) => (
                     <tr key={topup.id}>
-                      <td>{formatDate(topup.created_at)}</td>
+                      <td>{format.date(topup.created_at)}</td>
                       <td>
-                        <b>{formatAmount(topup.amount, topup.currency)}</b>
+                        <b>{format.amount(topup.amount, topup.currency)}</b>
                       </td>
                       <td>
                         <span
                           className={`status ${topupStatusClass(topup.status)}`}
                         >
-                          {formatStatus(topup.status)}
+                          {format.status(topup.status)}
                         </span>
                       </td>
                       <td>

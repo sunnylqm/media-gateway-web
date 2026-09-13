@@ -33,7 +33,6 @@ import { ModelPicker } from '../components/ModelPicker';
 import { PlaygroundParameter } from '../components/PlaygroundParameter';
 import { PriceTable } from '../components/PriceTable';
 import { ShareOptions } from '../components/ShareOptions';
-import { formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import { parseFieldNotes } from '../lib/fieldNotes';
 import { defaultModelID } from '../lib/modelGuidance';
@@ -88,7 +87,7 @@ export function ImagePlayground({
   admin?: boolean;
   user?: User;
 }) {
-  const { t, locale } = useI18n();
+  const { t, format } = useI18n();
   const { money } = useMoney();
   const { preferences } = usePreferences();
 
@@ -365,8 +364,14 @@ export function ImagePlayground({
     }
   }
 
+  // The pool holds as many images as the model says its slots take; a model
+  // that says nothing gets the console's own ceiling.
+  const referenceLimit = imageRefSlots.some((slot) => slot.maxItems)
+    ? imageRefSlots.reduce((sum, slot) => sum + (slot.maxItems ?? 0), 0)
+    : 3;
+
   function handleFiles(files: FileList | File[]) {
-    let remaining = Math.max(0, 3 - attachments.length);
+    let remaining = Math.max(0, referenceLimit - attachments.length);
     if (remaining <= 0) return;
     for (const file of Array.from(files)) {
       const slot = imageRefSlots.find((item) => slotAccepts(item, file.type));
@@ -691,7 +696,9 @@ export function ImagePlayground({
                         label={t('playground.imageReferences')}
                         sections={imageRefSlots.map((slot) => ({
                           title:
-                            imageRefSlots.length > 1 ? slot.label : undefined,
+                            imageRefSlots.length > 1
+                              ? format.label(slot.name)
+                              : undefined,
                           source: fieldNotes.get(slot.role ?? '') ?? '',
                         }))}
                       />
@@ -701,7 +708,7 @@ export function ImagePlayground({
                       className="playground-ref-list"
                       style={{ marginTop: '6px' }}
                     >
-                      {attachments.length < 3 && (
+                      {attachments.length < referenceLimit && (
                         <label className="ref-add-btn">
                           <Plus size={18} />
                           <span>{t('playground.add')}</span>
@@ -749,7 +756,7 @@ export function ImagePlayground({
                         param={param}
                         parameters={parameters}
                         setParameters={setParameters}
-                        help={helpFor(param.name, formatLabel(param.name))}
+                        help={helpFor(param.name, format.label(param.name))}
                       />
                     ))}
                   </div>
@@ -762,7 +769,7 @@ export function ImagePlayground({
                         param={param}
                         parameters={parameters}
                         setParameters={setParameters}
-                        help={helpFor(param.name, formatLabel(param.name))}
+                        help={helpFor(param.name, format.label(param.name))}
                       />
                     ))}
                   </div>
@@ -922,7 +929,7 @@ export function ImagePlayground({
                     <b>{t('playground.generating')}</b>
                     <span>
                       {activeGen?.model} ·{' '}
-                      {activeGen?.status ? formatLabel(activeGen.status) : ''}
+                      {activeGen?.status ? format.label(activeGen.status) : ''}
                     </span>
                   </div>
                 ) : activeImageUrl ? (

@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router';
 import { api } from '../api';
 import { AuthShell } from '../components/AuthShell';
 import { Field, FormError } from '../components/Form';
-import { intlLocale, useI18n } from '../i18n';
+import { useI18n } from '../i18n';
 import {
   browserLocales,
   currencyOptionLabel,
@@ -33,7 +33,7 @@ type CurrencyRequired = {
 };
 
 export function TenantLogin() {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -227,7 +227,7 @@ export function TenantLogin() {
                 >
                   {currencies.map((code) => (
                     <option key={code} value={code}>
-                      {currencyOptionLabel(code, intlLocale())}
+                      {currencyOptionLabel(code, format.intl)}
                     </option>
                   ))}
                 </select>

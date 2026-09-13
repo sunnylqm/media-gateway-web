@@ -1,11 +1,6 @@
 import { Slider } from 'radix-ui';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import {
-  formatLabel,
-  formatOptionValue,
-  formatQuantity,
-  isFreeNumber,
-} from '../format';
+import { formatQuantity, isFreeNumber } from '../format';
 import { useI18n } from '../i18n';
 import type { FormParameter } from '../types';
 
@@ -25,8 +20,8 @@ export function PlaygroundParameter({
   setParameters: Dispatch<SetStateAction<Parameters>>;
   help?: ReactNode;
 }) {
-  const { t, locale } = useI18n();
-  const label = formatLabel(param.name);
+  const { t, format } = useI18n();
+  const label = format.label(param.name);
   const set = (value: string) =>
     setParameters((prev) => ({ ...prev, [param.name]: value }));
   const heading = (
@@ -215,7 +210,7 @@ export function PlaygroundParameter({
             )}
           {param.enum.map((opt) => (
             <option key={opt} value={opt}>
-              {formatOptionValue(param.name, opt, locale)}
+              {format.optionValue(param.name, opt)}
             </option>
           ))}
         </select>

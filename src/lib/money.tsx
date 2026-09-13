@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { api } from '../api';
 import { formatAmount } from '../format';
+import { useI18n } from '../i18n';
 import type { CurrencyPresentation } from '../types';
 import { basePresentation, normalizePresentation } from './currency';
 
@@ -60,12 +61,13 @@ export type MoneyFormatter = {
 
 export function useMoney(): MoneyFormatter {
   const presentation = useCurrency();
+  const { locale } = useI18n();
   return useMemo(
     () => ({
       currency: presentation.currency,
       money: (minorUnits: number, currency?: string) =>
-        formatAmount(minorUnits, currency || presentation.currency),
+        formatAmount(minorUnits, currency || presentation.currency, locale),
     }),
-    [presentation],
+    [presentation, locale],
   );
 }

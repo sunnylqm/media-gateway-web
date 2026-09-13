@@ -44,7 +44,6 @@ import {
   VideoCompressDialog,
   type VideoCompressRequest,
 } from '../components/VideoCompressDialog';
-import { formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import { parseFieldNotes } from '../lib/fieldNotes';
 import { useMoney } from '../lib/money';
@@ -106,7 +105,7 @@ export function VideoStudio({
   admin?: boolean;
   user?: User;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const { money } = useMoney();
   const { preferences } = usePreferences();
 
@@ -195,7 +194,7 @@ export function VideoStudio({
       <FieldHelp
         label={label}
         sections={slots.map((slot) => ({
-          title: slot.label,
+          title: format.label(slot.name),
           source: fieldNotes.get(slot.role ?? '') ?? '',
         }))}
       />
@@ -791,7 +790,7 @@ export function VideoStudio({
                                 style={{ width: '100%', height: '110px' }}
                               >
                                 <ImageIcon size={20} />
-                                <span>{slot.label}</span>
+                                <span>{format.label(slot.name)}</span>
                                 <input
                                   type="file"
                                   accept={`${slot.mimePrefix}*`}
@@ -925,7 +924,7 @@ export function VideoStudio({
                         param={param}
                         parameters={parameters}
                         setParameters={setParameters}
-                        help={helpFor(param.name, formatLabel(param.name))}
+                        help={helpFor(param.name, format.label(param.name))}
                       />
                     ))}
                   </div>
@@ -938,7 +937,7 @@ export function VideoStudio({
                         param={param}
                         parameters={parameters}
                         setParameters={setParameters}
-                        help={helpFor(param.name, formatLabel(param.name))}
+                        help={helpFor(param.name, format.label(param.name))}
                       />
                     ))}
                   </div>
@@ -1098,7 +1097,7 @@ export function VideoStudio({
                     <b>{t('playground.generating')}</b>
                     <span>
                       {activeGen?.model} ·{' '}
-                      {activeGen?.status ? formatLabel(activeGen.status) : ''}
+                      {activeGen?.status ? format.label(activeGen.status) : ''}
                     </span>
                   </div>
                 ) : activeVideoUrl ? (

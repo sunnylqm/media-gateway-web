@@ -1,4 +1,4 @@
-import { t } from '../i18n';
+import { translate } from '../i18n';
 
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024; // 50 MB
 export const TARGET_VIDEO_BYTES = 42 * 1024 * 1024; // 42 MB
@@ -117,7 +117,7 @@ export async function compressVideo(
 
   const videoTrack = await input.getPrimaryVideoTrack();
   if (!videoTrack) {
-    throw new Error(t('videoCompress.noVideoTrack'));
+    throw new Error(translate('videoCompress.noVideoTrack'));
   }
 
   const origWidth = (await videoTrack.getDisplayWidth()) || 1920;
@@ -176,7 +176,7 @@ export async function compressVideo(
     const reasons = conversion.discardedTracks
       .map((d) => `${d.track.type}: ${d.reason}`)
       .join(', ');
-    throw new Error(t('videoCompress.cannotConvert', { reasons }));
+    throw new Error(translate('videoCompress.cannotConvert', { reasons }));
   }
 
   if (options?.signal) {
@@ -195,7 +195,7 @@ export async function compressVideo(
 
   const buffer = output.target.buffer;
   if (!buffer || buffer.byteLength === 0) {
-    throw new Error(t('videoCompress.emptyOutput'));
+    throw new Error(translate('videoCompress.emptyOutput'));
   }
 
   // Safety second pass if encoder overshot target beyond maxBytes

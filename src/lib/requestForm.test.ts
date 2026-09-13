@@ -81,13 +81,24 @@ describe('requestForm utilities', () => {
           pointer: '/video_url',
           mime_prefix: 'video/',
         },
+        {
+          name: 'reference',
+          pointer: '/images',
+          mime_prefix: 'image/',
+          array: true,
+          max_items: 16,
+        },
       ],
     });
-    expect(slots.length).toBe(2);
+    expect(slots.length).toBe(3);
     expect(slots[0].mimePrefix).toBe('image/');
     expect(slots[0].group).toBe('frame');
-    expect(slots[1].mimePrefix).toBe('video/');
+    expect(slots[1].mimePrefix).toBe('image/');
     expect(slots[1].group).toBe('reference');
+    expect(slots[1].maxItems).toBe(16);
+    expect(slots[2].mimePrefix).toBe('video/');
+    expect(slots[2].group).toBe('reference');
+    expect(slots[2].maxItems).toBeUndefined();
   });
 
   it('expands a typed input into one slot per entry type', () => {

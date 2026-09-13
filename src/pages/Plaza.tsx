@@ -3,8 +3,7 @@ import { Dialog } from 'radix-ui';
 import { useCallback, useEffect, useState } from 'react';
 import { absoluteGatewayURL, api } from '../api';
 import { ShareToggles } from '../components/ShareToggles';
-import { formatDate, formatRelativeTime } from '../format';
-import { useI18n } from '../i18n';
+import { translate, useI18n } from '../i18n';
 import type { Generation, PlazaArtifact, PlazaItem, PlazaList } from '../types';
 
 type Filter = 'all' | 'image' | 'video';
@@ -26,7 +25,7 @@ function PlazaCard({
   item: PlazaItem;
   onOpen: (item: PlazaItem) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [failed, setFailed] = useState(false);
   const artifact = primaryArtifact(item);
   const mime = artifact?.mime_type.toLowerCase() ?? '';
@@ -75,7 +74,7 @@ function PlazaCard({
       <span className="plaza-card-body">
         <span className="plaza-card-head">
           <b>{item.author_name}</b>
-          <small>{formatRelativeTime(item.created_at)}</small>
+          <small>{format.relativeTime(item.created_at)}</small>
         </span>
         <span className="plaza-model">{item.model}</span>
         {item.prompt ? (
@@ -97,7 +96,7 @@ function PlazaDialog({
   onClose: () => void;
   onShareChange: (id: string, generation: Generation) => void;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [expanded, setExpanded] = useState(false);
   const artifact = item ? primaryArtifact(item) : undefined;
   const mime = artifact?.mime_type.toLowerCase() ?? '';
@@ -123,7 +122,7 @@ function PlazaDialog({
             <div>
               <Dialog.Title>{item?.author_name ?? ''}</Dialog.Title>
               <Dialog.Description>
-                {item ? `${item.model} · ${formatDate(item.created_at)}` : ''}
+                {item ? `${item.model} · ${format.date(item.created_at)}` : ''}
               </Dialog.Description>
             </div>
             <Dialog.Close className="icon-button">
@@ -230,7 +229,9 @@ export function Plaza({ viewerId }: { viewerId?: string }) {
         setCursor(undefined);
         setTotal(0);
         setError(
-          reason instanceof Error ? reason.message : t('plaza.errorLoad'),
+          reason instanceof Error
+            ? reason.message
+            : translate('plaza.errorLoad'),
         );
       })
       .finally(() => {
@@ -239,7 +240,7 @@ export function Plaza({ viewerId }: { viewerId?: string }) {
     return () => {
       active = false;
     };
-  }, [listPath, t]);
+  }, [listPath]);
 
   async function loadMore() {
     if (!cursor || loadingMore) return;

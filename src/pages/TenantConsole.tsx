@@ -30,8 +30,7 @@ import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
 import { StripeTopupDialog } from '../components/StripeTopupDialog';
 import { TransactionsTable, useTransactions } from '../components/Transactions';
-import { formatDate, formatStatus } from '../format';
-import { getLocale, useI18n } from '../i18n';
+import { getLocale, translate, useI18n } from '../i18n';
 import {
   cachedModelNotes,
   modelListPath,
@@ -164,7 +163,7 @@ function TenantWorkspace() {
         setBalanceError(
           balanceResult.reason instanceof Error
             ? balanceResult.reason.message
-            : t('billing.errorBalance'),
+            : translate('billing.errorBalance'),
         );
       }
       if (!heldNotes) {
@@ -184,13 +183,15 @@ function TenantWorkspace() {
         return;
       }
       setError(
-        reason instanceof Error ? reason.message : t('tenant.errorLoad'),
+        reason instanceof Error
+          ? reason.message
+          : translate('tenant.errorLoad'),
       );
     } finally {
       setLoading(false);
       setBalanceLoading(false);
     }
-  }, [adopt, navigate, t]);
+  }, [adopt, navigate]);
 
   useEffect(() => {
     void load();
@@ -220,11 +221,17 @@ function TenantWorkspace() {
     const pending = takeTopupReturn();
     if (!pending) return;
     if (pending.result !== 'success') {
-      setTopupNotice({ tone: 'neutral', message: t('topup.noticeCanceled') });
+      setTopupNotice({
+        tone: 'neutral',
+        message: translate('topup.noticeCanceled'),
+      });
       return;
     }
     let active = true;
-    setTopupNotice({ tone: 'neutral', message: t('topup.noticeProcessing') });
+    setTopupNotice({
+      tone: 'neutral',
+      message: translate('topup.noticeProcessing'),
+    });
     const deadline = Date.now() + 60_000;
     // The webhook usually lands first, but this poll asks Stripe through the
     // gateway so the landing page never waits on it.
@@ -241,7 +248,7 @@ function TenantWorkspace() {
               // currency: a workspace pays in the currency it is billed in.
               setTopupNotice({
                 tone: 'success',
-                message: t('topup.noticePaid', {
+                message: translate('topup.noticePaid', {
                   amount: topupAmountLabel(topup.amount, topup.currency),
                 }),
                 invoiceNumber: topup.invoice_number,
@@ -252,7 +259,7 @@ function TenantWorkspace() {
             } else {
               setTopupNotice({
                 tone: 'neutral',
-                message: t('topup.noticeCanceled'),
+                message: translate('topup.noticeCanceled'),
               });
             }
             return;
@@ -262,14 +269,16 @@ function TenantWorkspace() {
           setTopupNotice({
             tone: 'neutral',
             message:
-              reason instanceof Error ? reason.message : t('topup.noticeError'),
+              reason instanceof Error
+                ? reason.message
+                : translate('topup.noticeError'),
           });
           return;
         }
         if (Date.now() >= deadline) {
           setTopupNotice({
             tone: 'neutral',
-            message: t('topup.noticePending'),
+            message: translate('topup.noticePending'),
           });
           return;
         }
@@ -282,7 +291,7 @@ function TenantWorkspace() {
     return () => {
       active = false;
     };
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     if (
@@ -541,7 +550,7 @@ function TenantWorkspace() {
 }
 
 function APIKeysView({ models }: { models: PublicModel[] }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   const [keys, setKeys] = useState<APIKey[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -563,12 +572,14 @@ function APIKeysView({ models }: { models: PublicModel[] }) {
       setKeys(response.data);
     } catch (reason) {
       setError(
-        reason instanceof Error ? reason.message : t('apiKeys.errorLoad'),
+        reason instanceof Error
+          ? reason.message
+          : translate('apiKeys.errorLoad'),
       );
     } finally {
       setLoading(false);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     void loadKeys();
@@ -746,15 +757,15 @@ function APIKeysView({ models }: { models: PublicModel[] }) {
                   </td>
                   <td>
                     <span className={`status status-${key.status}`}>
-                      {formatStatus(key.status)}
+                      {format.status(key.status)}
                     </span>
                   </td>
                   <td>
                     {key.last_used_at
-                      ? formatDate(key.last_used_at)
+                      ? format.date(key.last_used_at)
                       : t('common.never')}
                   </td>
-                  <td>{formatDate(key.created_at)}</td>
+                  <td>{format.date(key.created_at)}</td>
                   <td>
                     <div className="key-actions">
                       <button

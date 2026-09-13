@@ -1,4 +1,3 @@
-import { formatLabel, formatOptionValue } from '../format';
 import { useI18n } from '../i18n';
 import { useMoney } from '../lib/money';
 import { estimateQuantity, resolveRate, unitAmount } from '../lib/requestForm';
@@ -15,7 +14,7 @@ export function PriceTable({
   admin?: boolean;
   showNote?: boolean;
 }) {
-  const { t } = useI18n();
+  const { t, format } = useI18n();
   // Prices arrive already resolved into the workspace's billing currency, and
   // carry it, so they are formatted exactly as they came.
   const { money } = useMoney();
@@ -82,7 +81,7 @@ export function PriceTable({
             const selector = Object.entries(rate.dimensions ?? {})
               .map(
                 ([name, value]) =>
-                  `${formatLabel(name)} = ${formatOptionValue(name, String(value))}`,
+                  `${format.label(name)} = ${format.optionValue(name, String(value))}`,
               )
               .join(' · ');
             return (

@@ -246,6 +246,9 @@ export type FormInput = {
   name?: string;
   mime_prefix?: string;
   array?: boolean;
+  // How many entries an array of one kind takes; a typed array carries the
+  // limit per type instead.
+  max_items?: number;
   type_field?: string;
   types?: FormInputType[];
 };

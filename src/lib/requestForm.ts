@@ -1,5 +1,5 @@
 import { formatLabel } from '../format';
-import { t } from '../i18n';
+import { getLocale, translate } from '../i18n';
 import type {
   FormInput,
   FormParameter,
@@ -15,9 +15,13 @@ export type MediaSlot = {
   // Frames anchor the clip at a fixed position and take one file each;
   // references are a pool the provider draws style and subject from.
   group: 'frame' | 'reference';
-  label: string;
+  // The slot's name in the provider's own words. It is translated where it is
+  // shown, so the slots of a form never go stale when the language changes.
+  name: string;
   mimePrefix: string;
   multiple: boolean;
+  // How many files the provider takes in this slot, when it says.
+  maxItems?: number;
   // Exactly one placement is set: a typed content item, or a flat body field.
   content?: {
     pointer: string;
@@ -129,7 +133,9 @@ export function buildRequestBody(
     if (raw === '') {
       if (parameter.required)
         throw new Error(
-          t('form.required', { label: formatLabel(parameter.name) }),
+          translate('form.required', {
+            label: formatLabel(parameter.name, getLocale()),
+          }),
         );
       continue;
     }
@@ -155,7 +161,9 @@ export function coerceParameter(
     const value = Number(raw);
     if (!Number.isInteger(value))
       throw new Error(
-        t('form.integer', { label: formatLabel(parameter.name) }),
+        translate('form.integer', {
+          label: formatLabel(parameter.name, getLocale()),
+        }),
       );
     return value;
   }
@@ -288,7 +296,7 @@ function contentSlots(
     return roles.map((role) => ({
       id: `${media.type}:${role}`,
       group: isFrameRole(role) ? ('frame' as const) : ('reference' as const),
-      label: formatLabel(role || media.type.replace(/_url$/, '')),
+      name: role || media.type.replace(/_url$/, ''),
       role,
       mimePrefix: media.mime_prefix,
       multiple: !isFrameRole(role),
@@ -313,10 +321,11 @@ function inputSlots(inputs: FormInput[]): MediaSlot[] {
         group: isFrameRole(entry.role)
           ? ('frame' as const)
           : ('reference' as const),
-        label: formatLabel(entry.type),
+        name: entry.type,
         role: entry.type,
         mimePrefix: entry.mime_prefix,
         multiple: array && entry.max_items !== 1,
+        maxItems: entry.max_items,
         input: { pointer: input.pointer, array, typeField, type: entry.type },
       }));
     }
@@ -325,10 +334,11 @@ function inputSlots(inputs: FormInput[]): MediaSlot[] {
       {
         id: input.pointer,
         group: isFrameRole(name) ? ('frame' as const) : ('reference' as const),
-        label: formatLabel(name || 'media'),
+        name: name || 'media',
         role: name,
         mimePrefix: input.mime_prefix ?? '',
         multiple: array,
+        maxItems: input.max_items,
         input: { pointer: input.pointer, array },
       },
     ];
@@ -344,7 +354,7 @@ function isFrameRole(role: string) {
 function slotRank(slot: MediaSlot) {
   if (slot.group !== 'frame')
     return 10 + kindOrder.indexOf(mediaKind(slot.mimePrefix));
-  const role = (slot.role ?? slot.label).toLowerCase();
+  const role = (slot.role ?? slot.name).toLowerCase();
   const position = framePositions.findIndex((keyword) =>
     role.includes(keyword),
   );
