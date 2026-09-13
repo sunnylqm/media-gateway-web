@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   acceptAttribute,
+  buildRequestBody,
   estimateAmount,
   estimateQuantity,
   isHiddenParameter,
@@ -87,6 +88,66 @@ describe('requestForm utilities', () => {
     expect(slots[0].group).toBe('frame');
     expect(slots[1].mimePrefix).toBe('video/');
     expect(slots[1].group).toBe('reference');
+  });
+
+  it('expands a typed input into one slot per entry type', () => {
+    const form = {
+      method: 'POST',
+      path: '/v1/wan/generations',
+      model: '/model',
+      prompt: { pointer: '/input/prompt' },
+      inputs: [
+        {
+          pointer: '/input/media',
+          array: true,
+          type_field: 'type',
+          types: [
+            {
+              type: 'reference_image',
+              role: 'reference',
+              mime_prefix: 'image/',
+              max_items: 10,
+            },
+            {
+              type: 'last_frame',
+              role: 'last_frame',
+              mime_prefix: 'image/',
+              max_items: 1,
+            },
+            {
+              type: 'first_frame',
+              role: 'first_frame',
+              mime_prefix: 'image/',
+              max_items: 1,
+            },
+          ],
+        },
+      ],
+    };
+    const slots = mediaSlots(form);
+    expect(slots.map((slot) => slot.role)).toEqual([
+      'first_frame',
+      'last_frame',
+      'reference_image',
+    ]);
+    expect(slots[0].group).toBe('frame');
+    expect(slots[0].multiple).toBe(false);
+    expect(slots[2].multiple).toBe(true);
+
+    const body = buildRequestBody(form, 'wan3.0-video', 'a cat', {}, [
+      { slot: slots[0], url: 'https://a/first.png' },
+      { slot: slots[2], url: 'https://a/ref.png' },
+    ]);
+    expect(body).toEqual({
+      model: 'wan3.0-video',
+      input: {
+        prompt: 'a cat',
+        media: [
+          { type: 'first_frame', url: 'https://a/first.png' },
+          { type: 'reference_image', url: 'https://a/ref.png' },
+        ],
+      },
+    });
   });
 });
 

@@ -1,6 +1,5 @@
 import {
   Download,
-  Eye,
   Image,
   Play,
   ShieldOff,
@@ -61,12 +60,23 @@ export function GenerationsTable({
             <th>{t('generations.columnModel')}</th>
             <th>{t('generations.columnStatus')}</th>
             <th>{t('generations.columnCreated')}</th>
-            <th />
           </tr>
         </thead>
         <tbody>
           {generations.map((item) => (
-            <tr key={item.id}>
+            <tr
+              key={item.id}
+              className="clickable-row"
+              tabIndex={0}
+              aria-label={t('generations.view', { id: item.id })}
+              onClick={() => onSelect(item)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onSelect(item);
+                }
+              }}
+            >
               {thumbnails && (
                 <td className="thumb-column">
                   <GenerationThumbnail generation={item} />
@@ -110,15 +120,6 @@ export function GenerationsTable({
                 />
               </td>
               <td>{formatDate(item.created_at)}</td>
-              <td>
-                <button
-                  className="row-action"
-                  onClick={() => onSelect(item)}
-                  aria-label={t('generations.view', { id: item.id })}
-                >
-                  <Eye size={15} />
-                </button>
-              </td>
             </tr>
           ))}
         </tbody>

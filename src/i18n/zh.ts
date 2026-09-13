@@ -112,7 +112,6 @@ export const zh: Record<MessageKey, string> = {
   'details.inputAlt': '{role} 输入',
 
   'tenant.navOverview': '概览',
-  'tenant.navGenerations': '历史记录',
   'tenant.navAPIKeys': 'API 密钥',
   'tenant.title': '你的工作区',
   'tenant.description': '当前登录：{email}',
@@ -130,7 +129,6 @@ export const zh: Record<MessageKey, string> = {
   'overview.failedNote': '失败或状态不明',
   'overview.recent': '最近任务',
   'overview.recentNote': '图像与视频的最新任务。',
-  'overview.viewAll': '查看全部',
   'overview.summaryAria': '任务概览',
   'overview.emptyHint': '暂无最近任务，可前往图片画板或视频工作室开始生成。',
 

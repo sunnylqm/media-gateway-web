@@ -26,7 +26,16 @@ export type MediaSlot = {
     urlField: string;
     role: string;
   };
-  input?: { pointer: string; array: boolean };
+  // A typed input names each entry's purpose in `typeField`.
+  input?: {
+    pointer: string;
+    array: boolean;
+    typeField?: string;
+    type?: string;
+  };
+  // The role in the provider's own words, which orders frames regardless of
+  // the language the label is shown in.
+  role?: string;
 };
 
 export type MediaReference = { slot: MediaSlot; url: string };
@@ -102,15 +111,16 @@ export function buildRequestBody(
     setPointer(body, content.pointer, items);
   } else {
     setPointer(body, form.prompt.pointer ?? '/prompt', prompt);
-    const grouped = new Map<string, { slot: MediaSlot; urls: string[] }>();
+    const grouped = new Map<string, { array: boolean; items: unknown[] }>();
     for (const { slot, url } of media) {
       if (!slot.input) continue;
-      const entry = grouped.get(slot.input.pointer) ?? { slot, urls: [] };
-      entry.urls.push(url);
-      grouped.set(slot.input.pointer, entry);
+      const { pointer, array, typeField, type } = slot.input;
+      const entry = grouped.get(pointer) ?? { array, items: [] };
+      entry.items.push(typeField && type ? { [typeField]: type, url } : url);
+      grouped.set(pointer, entry);
     }
-    for (const { slot, urls } of grouped.values()) {
-      setPointer(body, slot.input!.pointer, slot.input!.array ? urls : urls[0]);
+    for (const [pointer, { array, items }] of grouped) {
+      setPointer(body, pointer, array ? items : items[0]);
     }
   }
 
@@ -279,6 +289,7 @@ function contentSlots(
       id: `${media.type}:${role}`,
       group: isFrameRole(role) ? ('frame' as const) : ('reference' as const),
       label: formatLabel(role || media.type.replace(/_url$/, '')),
+      role,
       mimePrefix: media.mime_prefix,
       multiple: !isFrameRole(role),
       content: {
@@ -293,16 +304,35 @@ function contentSlots(
 }
 
 function inputSlots(inputs: FormInput[]): MediaSlot[] {
-  return inputs.map((input) => ({
-    id: input.pointer,
-    group: isFrameRole(input.name)
-      ? ('frame' as const)
-      : ('reference' as const),
-    label: formatLabel(input.name),
-    mimePrefix: input.mime_prefix,
-    multiple: Boolean(input.array),
-    input: { pointer: input.pointer, array: Boolean(input.array) },
-  }));
+  return inputs.flatMap((input) => {
+    const array = Boolean(input.array);
+    if (input.types?.length) {
+      const typeField = input.type_field || 'type';
+      return input.types.map((entry) => ({
+        id: `${input.pointer}:${entry.type}`,
+        group: isFrameRole(entry.role)
+          ? ('frame' as const)
+          : ('reference' as const),
+        label: formatLabel(entry.type),
+        role: entry.type,
+        mimePrefix: entry.mime_prefix,
+        multiple: array && entry.max_items !== 1,
+        input: { pointer: input.pointer, array, typeField, type: entry.type },
+      }));
+    }
+    const name = input.name ?? '';
+    return [
+      {
+        id: input.pointer,
+        group: isFrameRole(name) ? ('frame' as const) : ('reference' as const),
+        label: formatLabel(name || 'media'),
+        role: name,
+        mimePrefix: input.mime_prefix ?? '',
+        multiple: array,
+        input: { pointer: input.pointer, array },
+      },
+    ];
+  });
 }
 
 function isFrameRole(role: string) {
@@ -314,9 +344,9 @@ function isFrameRole(role: string) {
 function slotRank(slot: MediaSlot) {
   if (slot.group !== 'frame')
     return 10 + kindOrder.indexOf(mediaKind(slot.mimePrefix));
-  const label = slot.label.toLowerCase();
+  const role = (slot.role ?? slot.label).toLowerCase();
   const position = framePositions.findIndex((keyword) =>
-    label.includes(keyword),
+    role.includes(keyword),
   );
   return position < 0 ? framePositions.length : position;
 }

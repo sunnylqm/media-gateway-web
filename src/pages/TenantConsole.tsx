@@ -1,6 +1,5 @@
 import {
   Activity,
-  ArrowRight,
   Check,
   Compass,
   Copy,
@@ -8,7 +7,6 @@ import {
   Eye,
   EyeOff,
   Film,
-  History,
   Image as ImageIcon,
   KeyRound,
   Plus,
@@ -26,7 +24,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Link, Navigate, Route, Routes, useNavigate } from 'react-router';
+import { Navigate, Route, Routes, useNavigate } from 'react-router';
 import { APIError, absoluteGatewayURL, api } from '../api';
 import { GenerationDetails, GenerationsTable } from '../components/Generations';
 import { Shell } from '../components/Shell';
@@ -370,6 +368,11 @@ function TenantWorkspace() {
       identity={profile.user.email}
       navigation={[
         {
+          label: t('tenant.navPlaza'),
+          to: '/app/plaza',
+          icon: <Compass size={17} />,
+        },
+        {
           label: t('tenant.navOverview'),
           to: '/app',
           icon: <Activity size={17} />,
@@ -383,16 +386,6 @@ function TenantWorkspace() {
           label: t('tenant.navVideo'),
           to: '/app/video',
           icon: <Film size={17} />,
-        },
-        {
-          label: t('tenant.navPlaza'),
-          to: '/app/plaza',
-          icon: <Compass size={17} />,
-        },
-        {
-          label: t('tenant.navGenerations'),
-          to: '/app/generations',
-          icon: <History size={17} />,
         },
         {
           label: t('tenant.navAPIKeys'),
@@ -489,15 +482,6 @@ function TenantWorkspace() {
           }
         />
         <Route path="plaza" element={<Plaza viewerId={profile.user.id} />} />
-        <Route
-          path="generations"
-          element={
-            <GenerationsTable
-              generations={generations}
-              onSelect={openDetails}
-            />
-          }
-        />
         <Route path="api-keys" element={<APIKeysView models={models} />} />
         <Route
           path="billing"
@@ -993,12 +977,6 @@ function Overview({
               </span>
             ))}
           </div>
-          {generations.length > 0 && (
-            <Link to="/app/generations" className="button secondary view-all">
-              <span>{t('overview.viewAll')}</span>
-              <ArrowRight size={13} />
-            </Link>
-          )}
         </div>
       </div>
       <GenerationsTable

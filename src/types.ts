@@ -228,9 +228,20 @@ export type FormContent = {
 
 export type FormInput = {
   pointer: string;
-  name: string;
-  mime_prefix: string;
+  // A typed input has no name or media of its own: every entry in its array
+  // says what it is in `type_field`, and `types` lists what each value means.
+  name?: string;
+  mime_prefix?: string;
   array?: boolean;
+  type_field?: string;
+  types?: FormInputType[];
+};
+
+export type FormInputType = {
+  type: string;
+  role: string;
+  mime_prefix: string;
+  max_items?: number;
 };
 
 // RequestForm describes how to build this model's own native request. It is

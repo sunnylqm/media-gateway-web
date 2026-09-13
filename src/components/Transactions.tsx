@@ -1,5 +1,10 @@
-import { Eye } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type KeyboardEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { api } from '../api';
 import { formatDate, formatStatus } from '../format';
 import { useI18n } from '../i18n';
@@ -162,7 +167,6 @@ export function TransactionsTable({
                 <th>{t('billing.columnType')}</th>
                 <th>{t('billing.columnAmount')}</th>
                 <th>{t('billing.columnDetails')}</th>
-                {onSelectGeneration && <th />}
               </tr>
             </thead>
             <tbody>
@@ -185,8 +189,27 @@ export function TransactionsTable({
                     ? `${transaction.prompt.slice(0, 35)}…`
                     : transaction.prompt
                   : '';
+                const generationId = onSelectGeneration
+                  ? transaction.generation_id
+                  : undefined;
                 return (
-                  <tr key={transaction.id}>
+                  <tr
+                    key={transaction.id}
+                    {...(generationId && {
+                      className: 'clickable-row',
+                      tabIndex: 0,
+                      title: t('billing.viewTask'),
+                      onClick: () => onSelectGeneration!(generationId),
+                      onKeyDown: (
+                        event: KeyboardEvent<HTMLTableRowElement>,
+                      ) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onSelectGeneration!(generationId);
+                        }
+                      },
+                    })}
+                  >
                     <td>{formatDate(transaction.created_at)}</td>
                     <td>
                       <span className={`status ${statusClass}`}>
@@ -206,48 +229,15 @@ export function TransactionsTable({
                         {transaction.reason && (
                           <span>{transaction.reason}</span>
                         )}
-                        {transaction.generation_id && onSelectGeneration ? (
-                          <button
-                            type="button"
-                            className="transaction-task-link"
-                            onClick={() =>
-                              onSelectGeneration(transaction.generation_id!)
-                            }
-                            title={t('billing.viewTask')}
-                          >
-                            <small className="transaction-model">
-                              {t('billing.modelLabel')}:{' '}
-                              {transaction.model || transaction.generation_id}{' '}
-                              {prompt ? `· ${prompt}` : ''}
-                            </small>
-                          </button>
-                        ) : (
-                          transaction.model && (
-                            <small className="transaction-model">
-                              {t('billing.modelLabel')}: {transaction.model}{' '}
-                              {prompt ? `· ${prompt}` : ''}
-                            </small>
-                          )
+                        {(transaction.model || generationId) && (
+                          <small className="transaction-model">
+                            {t('billing.modelLabel')}:{' '}
+                            {transaction.model || generationId}{' '}
+                            {prompt ? `· ${prompt}` : ''}
+                          </small>
                         )}
                       </div>
                     </td>
-                    {onSelectGeneration && (
-                      <td>
-                        {transaction.generation_id ? (
-                          <button
-                            type="button"
-                            className="row-action"
-                            onClick={() =>
-                              onSelectGeneration(transaction.generation_id!)
-                            }
-                            title={t('billing.viewTask')}
-                            aria-label={t('billing.viewTask')}
-                          >
-                            <Eye size={15} />
-                          </button>
-                        ) : null}
-                      </td>
-                    )}
                   </tr>
                 );
               })}

@@ -114,7 +114,6 @@ export const en = {
   'details.inputAlt': '{role} input',
 
   'tenant.navOverview': 'Overview',
-  'tenant.navGenerations': 'History',
   'tenant.navAPIKeys': 'API keys',
   'tenant.title': 'Your workspace',
   'tenant.description': 'Signed in as {email}',
@@ -132,7 +131,6 @@ export const en = {
   'overview.failedNote': 'Failed or ambiguous',
   'overview.recent': 'Recent tasks',
   'overview.recentNote': 'The latest jobs across image and video.',
-  'overview.viewAll': 'View all',
   'overview.summaryAria': 'Task summary',
   'overview.emptyHint':
     'No recent tasks yet. Head to Image Playground or Video Studio to start generating.',

@@ -42,6 +42,8 @@ const zhTerms: Record<string, string> = {
   file: '文件',
   reference: '参考素材',
   reference_image: '参考图像',
+  reference_video: '参考视频',
+  reference_audio: '参考音频',
   subject_reference: '主体参考',
   style_reference: '风格参考',
   mask: '蒙版',
