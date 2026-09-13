@@ -2,6 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import {
   basePresentation,
   convertToAlternate,
+  currencyOptionLabel,
   currencySymbol,
   defaultBillingCurrency,
   exchangeRateLabel,
@@ -125,5 +126,17 @@ describe('exchange rate editing', () => {
   it('renders a stored rate back into the input', () => {
     expect(formatExchangeRate(715)).toBe('7.15');
     expect(formatExchangeRate(700)).toBe('7.00');
+  });
+});
+
+describe('currency option label', () => {
+  it('names the currency in the console language', () => {
+    expect(currencyOptionLabel('CNY', 'zh-CN')).toBe('人民币 (CNY ¥)');
+    expect(currencyOptionLabel('usd', 'zh-CN')).toBe('美元 (USD $)');
+    expect(currencyOptionLabel('USD', 'en-US')).toBe('US Dollar (USD $)');
+  });
+
+  it('falls back to the code when no name is known', () => {
+    expect(currencyOptionLabel('XYZ', 'en-US')).toBe('XYZ');
   });
 });

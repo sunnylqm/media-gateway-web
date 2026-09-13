@@ -30,6 +30,25 @@ export function currencySymbol(currency: string): string {
   return currencySymbols[code] ?? code;
 }
 
+// `人民币 (CNY ¥)` / `US Dollar (USD $)`: the name follows the console language
+// rather than the browser, so switching language renames the options too. A
+// runtime without a name for the code shows the code alone.
+export function currencyOptionLabel(currency: string, locale?: string): string {
+  const code = currency.trim().toUpperCase();
+  const symbol = currencySymbol(code);
+  const suffix = symbol === code ? code : `${code} ${symbol}`;
+  let name = '';
+  try {
+    name =
+      new Intl.DisplayNames(locale ? [locale] : undefined, {
+        type: 'currency',
+      }).of(code) ?? '';
+  } catch {
+    // No display names, or a code Intl rejects: the code still identifies it.
+  }
+  return name && name.toUpperCase() !== code ? `${name} (${suffix})` : suffix;
+}
+
 // `rate` is stated as base minor units per one hundred alternate minor units,
 // so an integer carries a two-decimal rate without a float: USD 1.00 =
 // CNY 7.00 is 700. A currency priced in itself is the identity rate, 100.

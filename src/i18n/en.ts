@@ -49,7 +49,7 @@ export const en = {
   'login.changeEmail': 'Use another email',
   'login.currency': 'Billing currency',
   'login.currencyHint':
-    'New accounts only: this sets the currency your prices are quoted in and your payments are made in. It is fixed for the life of the workspace and cannot be changed later. Signing in to an existing account keeps its currency.',
+    'This email has no account yet, so one will be created. Your prices are quoted in this currency and your payments are made in it. It is fixed for the life of the workspace and cannot be changed later.',
   'login.errorContinue': 'Unable to continue',
   'login.errorResend': 'Unable to resend the code',
 

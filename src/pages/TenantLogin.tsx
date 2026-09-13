@@ -4,13 +4,11 @@ import { useNavigate } from 'react-router';
 import { api } from '../api';
 import { AuthShell } from '../components/AuthShell';
 import { Field, FormError } from '../components/Form';
-import { useI18n } from '../i18n';
+import { intlLocale, useI18n } from '../i18n';
 import {
   browserLocales,
-  currencySymbol,
+  currencyOptionLabel,
   defaultBillingCurrency,
-  fallbackBillingCurrencies,
-  normalizePresentation,
 } from '../lib/currency';
 import type { IdentityProfile } from '../types';
 
@@ -26,6 +24,14 @@ type EmailVerificationRequired = {
   resend_after: string;
 };
 
+// The address has no account yet and the gateway offers more than one currency
+// to create it in, the first being the default.
+type CurrencyRequired = {
+  object: 'currency_required';
+  email: string;
+  currencies: string[];
+};
+
 export function TenantLogin() {
   const { t } = useI18n();
   const navigate = useNavigate();
@@ -38,39 +44,11 @@ export function TenantLogin() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   // A workspace is billed in one currency for its whole life, so the choice is
-  // made here, at the only moment it can be made. An existing account ignores
-  // the field, which is why it is always sent.
-  const [currency, setCurrency] = useState(() =>
-    defaultBillingCurrency(browserLocales()),
-  );
-  const [currencies, setCurrencies] = useState<string[]>(
-    fallbackBillingCurrencies,
-  );
-
-  // The endpoint needs a session, so a signed-out visitor keeps the built-in
-  // list. It is asked anyway because a gateway that offers more currencies than
-  // the two built in should still be able to say so.
-  useEffect(() => {
-    let active = true;
-    api<unknown>('/v1/billing/currency').then(
-      (value) => {
-        if (!active) return;
-        const offered = normalizePresentation(value).currencies;
-        if (offered?.length) setCurrencies(offered);
-      },
-      () => {
-        // No session, no list: the built-in choices stand.
-      },
-    );
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (currencies.length && !currencies.includes(currency))
-      setCurrency(currencies[0]);
-  }, [currencies, currency]);
+  // made at registration, the only moment it can be made. An existing account
+  // is never asked: the first submit sends no currency, and only an address
+  // without an account comes back with the list to choose from.
+  const [currencies, setCurrencies] = useState<string[] | null>(null);
+  const [currency, setCurrency] = useState('');
 
   useEffect(() => {
     if (!verification) return;
@@ -97,13 +75,20 @@ export function TenantLogin() {
           body: JSON.stringify({ email: verification.email, password, code }),
         });
       } else {
-        const response = await api<LoginResponse | EmailVerificationRequired>(
-          '/v1/auth/login',
-          {
-            method: 'POST',
-            body: JSON.stringify({ email, password, currency }),
-          },
-        );
+        const response = await api<
+          LoginResponse | EmailVerificationRequired | CurrencyRequired
+        >('/v1/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(
+            currencies
+              ? { email, password, currency }
+              : { email, password, ask_currency: true },
+          ),
+        });
+        if ('object' in response && response.object === 'currency_required') {
+          askCurrency(response.currencies);
+          return;
+        }
         if (
           'object' in response &&
           response.object === 'email_verification_required'
@@ -119,6 +104,22 @@ export function TenantLogin() {
       );
     } finally {
       setBusy(false);
+    }
+  }
+
+  function askCurrency(offered: string[]) {
+    const preferred = defaultBillingCurrency(browserLocales());
+    setCurrencies(offered);
+    setCurrency(offered.includes(preferred) ? preferred : (offered[0] ?? ''));
+  }
+
+  // The choice belongs to the address it was asked for; another address has
+  // to be asked again.
+  function editEmail(value: string) {
+    setEmail(value);
+    if (currencies) {
+      setCurrencies(null);
+      setCurrency('');
     }
   }
 
@@ -203,7 +204,7 @@ export function TenantLogin() {
               type="email"
               autoComplete="email"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => editEmail(event.target.value)}
               required
             />
             <Field
@@ -216,22 +217,23 @@ export function TenantLogin() {
               hint={t('login.passwordHint')}
               required
             />
-            <label className="field">
-              <span className="field-label">{t('login.currency')}</span>
-              <select
-                value={currency}
-                onChange={(event) => setCurrency(event.target.value)}
-              >
-                {currencies.map((code) => (
-                  <option key={code} value={code}>
-                    {currencySymbol(code) === code
-                      ? code
-                      : `${code} (${currencySymbol(code)})`}
-                  </option>
-                ))}
-              </select>
-              <span className="field-hint">{t('login.currencyHint')}</span>
-            </label>
+            {currencies && (
+              <label className="field">
+                <span className="field-label">{t('login.currency')}</span>
+                <select
+                  value={currency}
+                  onChange={(event) => setCurrency(event.target.value)}
+                  autoFocus
+                >
+                  {currencies.map((code) => (
+                    <option key={code} value={code}>
+                      {currencyOptionLabel(code, intlLocale())}
+                    </option>
+                  ))}
+                </select>
+                <span className="field-hint">{t('login.currencyHint')}</span>
+              </label>
+            )}
           </>
         )}
         <FormError>{error}</FormError>

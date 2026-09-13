@@ -49,7 +49,7 @@ export const zh: Record<MessageKey, string> = {
   'login.changeEmail': '换一个邮箱',
   'login.currency': '结算货币',
   'login.currencyHint':
-    '仅对新账号生效：价格与付款都使用该货币，一经创建即固定，之后无法更改。登录已有账号时沿用其原有货币。',
+    '该邮箱尚未注册，将为你创建新账号。价格与付款都使用该货币，一经创建即固定，之后无法更改。',
   'login.errorContinue': '无法继续',
   'login.errorResend': '无法重新发送验证码',
 
