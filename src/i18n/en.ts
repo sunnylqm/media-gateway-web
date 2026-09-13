@@ -620,7 +620,7 @@ export const en = {
   'playground.promptHint': 'Enter to generate · Shift+Enter for a new line',
   'playground.imageReferences': 'Image References',
   'playground.referencesTooltip':
-    'Allows uploading up to three images—you can select three at once or add them one by one.',
+    'Up to three items — select several at once or add them one by one.',
   'playground.add': 'Add',
   'playground.resolution': 'Resolution',
   'playground.aspectRatio': 'Aspect Ratio',

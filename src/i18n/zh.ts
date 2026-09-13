@@ -580,7 +580,7 @@ export const zh: Record<MessageKey, string> = {
   'playground.promptHint': '按 Enter 生成 · Shift+Enter 换行',
   'playground.imageReferences': '参考图像',
   'playground.referencesTooltip':
-    '允许上传最多三张，可以一次选三张，也可以一张张添加。',
+    '最多上传三个，可以一次选多个，也可以逐个添加。',
   'playground.add': '添加',
   'playground.resolution': '分辨率',
   'playground.aspectRatio': '宽高比',

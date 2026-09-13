@@ -608,6 +608,7 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .ref-add-btn:hover { border-color: #7c3aed; color: #7c3aed; background: #fdfaff; }
 .ref-item-thumb { width: 68px; height: 68px; border-radius: 8px; border: 1px solid var(--line); position: relative; overflow: hidden; background: #eef1ef; }
 .ref-item-thumb img, .ref-item-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ref-item-glyph { width: 100%; height: 100%; display: grid; place-items: center; color: #707a75; }
 .ref-remove-btn { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: rgba(0,0,0,.65); color: white; border: 0; display: grid; place-items: center; cursor: pointer; transition: background .15s; }
 .ref-remove-btn:hover { background: rgba(180,30,30,.9); }
 .ref-spinner { position: absolute; inset: 0; background: rgba(255,255,255,.75); display: grid; place-items: center; }

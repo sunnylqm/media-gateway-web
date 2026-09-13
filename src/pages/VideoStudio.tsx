@@ -1,5 +1,6 @@
 import {
   AlertCircle,
+  AudioLines,
   Check,
   Code2,
   Copy,
@@ -49,12 +50,15 @@ import { parseFieldNotes } from '../lib/fieldNotes';
 import { useMoney } from '../lib/money';
 import { usePreferences } from '../lib/preferencesContext';
 import {
+  acceptAttribute,
   buildRequestBody,
   defaultParameterValue,
   estimateAmount,
   isHiddenParameter,
   type MediaSlot,
+  mediaKind,
   mediaSlots,
+  slotAccepts,
 } from '../lib/requestForm';
 import {
   readSharePreference,
@@ -163,6 +167,13 @@ export function VideoStudio({
     () => slots.filter((slot) => slot.group === 'reference'),
     [slots],
   );
+  // Only a pool of nothing but images is "reference images"; one that also
+  // takes video or audio is reference material.
+  const referenceLabel = referenceSlots.every(
+    (slot) => mediaKind(slot.mimePrefix) === 'image',
+  )
+    ? t('playground.imageReferences')
+    : t('composer.references');
   const fieldNotes = useMemo(
     () => parseFieldNotes(selectedModel?.field_notes),
     [selectedModel?.field_notes],
@@ -804,11 +815,8 @@ export function VideoStudio({
                 {referenceSlots.length > 0 && (
                   <div>
                     <div className="playground-field-label">
-                      <span>{t('playground.imageReferences')}</span>
-                      {slotHelp(
-                        referenceSlots,
-                        t('playground.imageReferences'),
-                      ) ?? (
+                      <span>{referenceLabel}</span>
+                      {slotHelp(referenceSlots, referenceLabel) ?? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="playground-tooltip-icon">
@@ -834,12 +842,11 @@ export function VideoStudio({
                           <span>{t('playground.add')}</span>
                           <input
                             type="file"
-                            accept="image/*,video/*"
+                            accept={acceptAttribute(referenceSlots)}
                             multiple
                             style={{ display: 'none' }}
                             onChange={(e) => {
                               if (e.target.files) {
-                                const defaultRefSlot = referenceSlots[0];
                                 const currentRefs = attachments.filter((att) =>
                                   referenceSlots.some(
                                     (slot) => slot.id === att.slotID,
@@ -852,7 +859,18 @@ export function VideoStudio({
                                 for (const f of Array.from(
                                   e.target.files,
                                 ).slice(0, remaining)) {
-                                  handleSelectFile(f, defaultRefSlot);
+                                  // Each file goes to the slot for its own
+                                  // kind, so a clip is never sent as an image.
+                                  const slot = referenceSlots.find((item) =>
+                                    slotAccepts(item, f.type),
+                                  );
+                                  if (slot) handleSelectFile(f, slot);
+                                  else
+                                    setError(
+                                      t('composer.errorMediaType', {
+                                        name: f.name,
+                                      }),
+                                    );
                                 }
                               }
                               e.target.value = '';
@@ -869,6 +887,13 @@ export function VideoStudio({
                           <div key={att.key} className="ref-item-thumb">
                             {att.file.type.startsWith('video/') ? (
                               <video src={att.preview} muted />
+                            ) : att.file.type.startsWith('audio/') ? (
+                              <span
+                                className="ref-item-glyph"
+                                title={att.file.name}
+                              >
+                                <AudioLines size={20} />
+                              </span>
                             ) : (
                               <img src={att.preview} alt={att.file.name} />
                             )}
