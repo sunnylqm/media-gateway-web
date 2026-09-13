@@ -55,7 +55,7 @@ export function PriceTable({
         <h4>{t('composer.priceTable')}</h4>
         <small>
           {[
-            flat ? t('composer.priceFlatRule') : t('composer.priceRule'),
+            flat ? t('composer.priceFlatRule') : '',
             quantity === null
               ? ''
               : t('composer.priceQuantity', { count: quantity, unit }),

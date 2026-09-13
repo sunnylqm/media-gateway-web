@@ -83,7 +83,6 @@ export function ShareToggles({
         />
         <span>{t('share.sharePrompt')}</span>
       </label>
-      <small className="share-note">{t('share.note')}</small>
       {error && (
         <small className="share-error" role="alert">
           {error}

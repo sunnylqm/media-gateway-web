@@ -94,6 +94,7 @@ export const zh: Record<MessageKey, string> = {
   'generations.thumbnailAlt': '{id} 的结果预览',
 
   'details.title': '生成任务详情',
+  'details.created': '创建于 {date}',
   'details.via': '经由 {alias}',
   'details.loading': '正在加载任务详情…',
   'details.input': '输入',
@@ -216,7 +217,6 @@ export const zh: Record<MessageKey, string> = {
   'composer.priceUnavailable':
     '这组参数没有配置价格，提交会被拒绝，请换其他参数。',
   'composer.priceUnset': '该模型尚未配置价格，暂时无法提交。',
-  'composer.priceRule': '匹配参数最多的档位生效',
   'composer.priceQuantity': '本次 {count} {unit}',
   'composer.priceTier': '档位',
   'composer.priceSelector': '参数条件',
@@ -724,8 +724,6 @@ export const zh: Record<MessageKey, string> = {
   'share.title': '广场分享',
   'share.shareWork': '分享作品到广场',
   'share.sharePrompt': '同时分享提示词',
-  'share.note':
-    '这里决定广场上展示的内容：作品本身，以及单独决定是否展示提示词。',
   'share.errorUpdate': '无法修改该任务的分享设置',
   'share.moderationTitle': '广场管理',
   'share.moderationNote':

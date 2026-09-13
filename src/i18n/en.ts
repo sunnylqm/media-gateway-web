@@ -94,6 +94,7 @@ export const en = {
   'generations.thumbnailAlt': 'Result preview for {id}',
 
   'details.title': 'Generation details',
+  'details.created': 'Created {date}',
   'details.via': 'via {alias}',
   'details.loading': 'Loading generation details…',
   'details.input': 'Input',
@@ -231,7 +232,6 @@ export const en = {
     'No price is set for these parameters, so this request would be refused. Choose other values.',
   'composer.priceUnset':
     'This model has no price yet, so requests are refused.',
-  'composer.priceRule': 'The tier matching the most parameters applies',
   'composer.priceQuantity': '{count} {unit} this request',
   'composer.priceTier': 'Tier',
   'composer.priceSelector': 'Parameters',
@@ -777,8 +777,6 @@ export const en = {
   'share.title': 'Plaza sharing',
   'share.shareWork': 'Share to the plaza',
   'share.sharePrompt': 'Also share the prompt',
-  'share.note':
-    'This controls what the plaza shows: the work, and — separately — the prompt behind it.',
   'share.errorUpdate': 'Unable to change the sharing of this generation',
   'share.moderationTitle': 'Plaza moderation',
   'share.moderationNote':
