@@ -383,6 +383,12 @@ export const en = {
   'models.notesNote':
     'Markdown shown to users beside the model: what it is for, its limits, and rules the upstream enforces.',
   'models.notesPreview': 'Preview',
+  'models.fieldNotes': 'Field help',
+  'models.fieldNotesNote':
+    'Markdown with one "## field" section per form field — prompt, a media role such as first_frame, or a parameter name. Shown behind the ! beside that field when users generate.',
+  'models.fieldNotesRestore': 'Reset to documented default',
+  'models.fieldNotesUnknown': 'Not a field of this model',
+  'models.fieldNotesMissing': 'No help yet: {fields}',
   'models.bindings': 'Upstream bindings',
   'models.bindingsNote':
     'Each binding is one base URL and credential under an alias. The gateway picks an active binding at random by weight and moves to the next one when a submission cannot be placed. Tenants never see or choose a binding.',
@@ -593,6 +599,8 @@ export const en = {
 
   'api.requestFailed': 'Request failed with HTTP {status}',
   'form.required': '{label} is required',
+  'form.advanced': 'Advanced options ({count})',
+  'fieldHelp.aria': 'About {label}',
   'form.integer': '{label} must be a whole number',
 
   'tenant.navImage': 'Image Generation',

@@ -358,6 +358,12 @@ export const zh: Record<MessageKey, string> = {
   'models.notesNote':
     '支持 Markdown，会在选择模型时展示给用户：适用场景、限制、以及由上游校验的规则。',
   'models.notesPreview': '预览',
+  'models.fieldNotes': '字段说明',
+  'models.fieldNotesNote':
+    '支持 Markdown，每个表单字段一节，标题写成「## 字段名」：prompt、媒体角色（如 first_frame）或参数名。用户生成时，悬停或点击字段旁的感叹号即可查看。',
+  'models.fieldNotesRestore': '恢复为文档默认',
+  'models.fieldNotesUnknown': '该模型没有这个字段',
+  'models.fieldNotesMissing': '尚未填写说明：{fields}',
   'models.bindings': '上游绑定',
   'models.bindingsNote':
     '每个绑定是一个别名下的基础地址与凭据。网关按权重随机选取一个活跃绑定，提交失败时切换到下一个。租户既看不到也无法选择绑定。',
@@ -554,6 +560,8 @@ export const zh: Record<MessageKey, string> = {
 
   'api.requestFailed': '请求失败，HTTP {status}',
   'form.required': '{label}为必填项',
+  'form.advanced': '高级选项（{count}）',
+  'fieldHelp.aria': '{label}说明',
   'form.integer': '{label}必须是整数',
 
   'tenant.navImage': '生图',

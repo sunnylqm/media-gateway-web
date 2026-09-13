@@ -16,7 +16,6 @@ import {
   Trash2,
   Video,
 } from 'lucide-react';
-import { Slider } from 'radix-ui';
 import {
   type FormEvent,
   type KeyboardEvent,
@@ -27,10 +26,10 @@ import {
   ViewTransition,
 } from 'react';
 import { absoluteGatewayURL, api } from '../api';
-import { GenerationDetails } from '../components/Generations';
-import { LayoutSwitch } from '../components/LayoutSwitch';
 import { AdvancedOptions } from '../components/AdvancedOptions';
 import { FieldHelp } from '../components/FieldHelp';
+import { GenerationDetails } from '../components/Generations';
+import { LayoutSwitch } from '../components/LayoutSwitch';
 import { ModelPicker } from '../components/ModelPicker';
 import { PlaygroundParameter } from '../components/PlaygroundParameter';
 import { PriceTable } from '../components/PriceTable';
@@ -44,7 +43,7 @@ import {
   VideoCompressDialog,
   type VideoCompressRequest,
 } from '../components/VideoCompressDialog';
-import { formatDimensionOption, formatLabel, formatQuantity } from '../format';
+import { formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import { parseFieldNotes } from '../lib/fieldNotes';
 import { useMoney } from '../lib/money';
@@ -103,7 +102,7 @@ export function VideoStudio({
   admin?: boolean;
   user?: User;
 }) {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const { money } = useMoney();
   const { preferences } = usePreferences();
 
@@ -174,7 +173,10 @@ export function VideoStudio({
   const basicParams = visibleParams.filter((p) => !p.advanced);
   const advancedParams = visibleParams.filter((p) => p.advanced);
   const helpFor = (key: string, label: string) => (
-    <FieldHelp label={label} sections={[{ source: fieldNotes.get(key) ?? '' }]} />
+    <FieldHelp
+      label={label}
+      sections={[{ source: fieldNotes.get(key) ?? '' }]}
+    />
   );
   // A group heading stands for each of its slots, so its help lists theirs.
   const slotHelp = (slots: MediaSlot[], label: string) =>
@@ -803,7 +805,10 @@ export function VideoStudio({
                   <div>
                     <div className="playground-field-label">
                       <span>{t('playground.imageReferences')}</span>
-                      {slotHelp(referenceSlots, t('playground.imageReferences')) ?? (
+                      {slotHelp(
+                        referenceSlots,
+                        t('playground.imageReferences'),
+                      ) ?? (
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="playground-tooltip-icon">

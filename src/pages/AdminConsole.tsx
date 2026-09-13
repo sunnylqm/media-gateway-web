@@ -59,6 +59,7 @@ import {
   formatExchangeRate,
   parseExchangeRate,
 } from '../lib/currency';
+import { fieldNoteKeys, parseFieldNotes } from '../lib/fieldNotes';
 import { Markdown } from '../lib/markdown';
 import { formatReleaseDate } from '../lib/modelCatalog';
 import { PreferencesProvider } from '../lib/preferencesContext';
@@ -669,6 +670,7 @@ type ModelForm = {
   id: string;
   displayName: string;
   notes: string;
+  fieldNotes: string;
   releasedOn: string;
   providerName: string;
   docsUrl: string;
@@ -1821,6 +1823,7 @@ const emptyModelForm: ModelForm = {
   id: '',
   displayName: '',
   notes: '',
+  fieldNotes: '',
   releasedOn: '',
   providerName: '',
   docsUrl: '',
@@ -1841,6 +1844,7 @@ function presetForm(preset: ProtocolPreset): ModelForm {
     id: preset.model_id,
     displayName: preset.display_name,
     notes: preset.notes ?? '',
+    fieldNotes: preset.field_notes ?? '',
     releasedOn: preset.released_on ?? '',
     providerName: preset.provider_name ?? '',
     docsUrl: preset.docs_url ?? '',
@@ -1914,6 +1918,7 @@ function ModelsPanel({
             id: model.id,
             displayName: model.display_name,
             notes: model.notes ?? '',
+            fieldNotes: model.field_notes ?? '',
             releasedOn: model.released_on ?? '',
             providerName: model.provider_name ?? '',
             docsUrl: model.docs_url ?? '',
@@ -2075,6 +2080,7 @@ function ModelsPanel({
             id: form.id,
             display_name: form.displayName,
             notes: form.notes,
+            field_notes: form.fieldNotes,
             released_on: form.releasedOn,
             provider_name: form.providerName,
             docs_url: form.docsUrl,
@@ -2342,6 +2348,15 @@ function ModelsPanel({
                 </div>
                 <small>{t('models.notesNote')}</small>
               </div>
+              <FieldNotesEditor
+                value={form.fieldNotes}
+                onChange={(value) => field('fieldNotes', value)}
+                fields={fieldNoteKeys(editing?.request_form)}
+                documented={
+                  presets.find((preset) => preset.model_id === form.id)
+                    ?.field_notes
+                }
+              />
               <div className="field-grid two">
                 <label className="field">
                   <span className="field-label">{t('models.provider')}</span>
@@ -3903,6 +3918,76 @@ function UserDetail() {
         diagnostics
         onGenerationChange={applyGenerationChange}
       />
+    </div>
+  );
+}
+
+// FieldNotesEditor edits the help shown beside each field of the model's
+// request form. The preview checks each section against the form, so a key
+// that names no field — which no one would ever see — stands out.
+function FieldNotesEditor({
+  value,
+  onChange,
+  fields,
+  documented,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  fields: string[];
+  documented?: string;
+}) {
+  const { t } = useI18n();
+  const sections = parseFieldNotes(value);
+  const known = new Set(fields);
+  const missing = fields.filter((key) => !sections.has(key));
+  return (
+    <div className="field">
+      <span className="field-label field-label-row">
+        {t('models.fieldNotes')}
+        {documented && documented !== value && (
+          <button
+            type="button"
+            className="row-action text-action"
+            onClick={() => onChange(documented)}
+          >
+            <RotateCcw size={12} /> {t('models.fieldNotesRestore')}
+          </button>
+        )}
+      </span>
+      <div className="notes-editor">
+        <textarea
+          className="field-notes-input"
+          value={value}
+          maxLength={16000}
+          aria-label={t('models.fieldNotes')}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder={'## prompt\n\n…\n\n## duration\n\n…'}
+        />
+        <div className="notes-preview field-notes-preview" aria-live="polite">
+          <span className="notes-preview-label">
+            {t('models.notesPreview')}
+          </span>
+          {[...sections].map(([key, source]) => (
+            <div className="field-notes-section" key={key}>
+              <div className="field-notes-key">
+                <code>{key}</code>
+                {fields.length > 0 && !known.has(key) && (
+                  <small className="field-notes-unknown">
+                    {t('models.fieldNotesUnknown')}
+                  </small>
+                )}
+              </div>
+              <Markdown source={source} />
+            </div>
+          ))}
+          {missing.length > 0 && (
+            <small className="field-notes-missing">
+              {t('models.fieldNotesMissing', { fields: missing.join(', ') })}
+            </small>
+          )}
+        </div>
+      </div>
+      <small>{t('models.fieldNotesNote')}</small>
     </div>
   );
 }

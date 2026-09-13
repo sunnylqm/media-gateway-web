@@ -24,6 +24,7 @@ import { absoluteGatewayURL, api } from '../api';
 import { formatBytes, formatDimensionOption, formatLabel } from '../format';
 import { useI18n } from '../i18n';
 import { selectComposerModel } from '../lib/composerSelection';
+import { parseFieldNotes } from '../lib/fieldNotes';
 import { useMoney } from '../lib/money';
 import {
   acceptAttribute,
@@ -39,6 +40,8 @@ import {
 } from '../lib/requestForm';
 import { isOversizedVideo } from '../lib/videoCompression';
 import type { Asset, FormParameter, PublicModel, User } from '../types';
+import { AdvancedOptions } from './AdvancedOptions';
+import { FieldHelp } from './FieldHelp';
 import { ModelPicker } from './ModelPicker';
 import { PriceTable } from './PriceTable';
 import {
@@ -136,6 +139,29 @@ export function GenerationComposer({
   const referenceSlots = useMemo(
     () => slots.filter((slot) => slot.group === 'reference'),
     [slots],
+  );
+  const fieldNotes = useMemo(
+    () => parseFieldNotes(selectedModel?.field_notes),
+    [selectedModel?.field_notes],
+  );
+  const visibleParameters = (form?.parameters ?? []).filter(
+    (parameter) => !isHiddenParameter(parameter.name),
+  );
+  const basicParameters = visibleParameters.filter(
+    (parameter) => !parameter.advanced,
+  );
+  const advancedParameters = visibleParameters.filter(
+    (parameter) => parameter.advanced,
+  );
+  // A group heading stands for each of its slots, so its help lists theirs.
+  const slotHelp = (group: MediaSlot[], label: string) => (
+    <FieldHelp
+      label={label}
+      sections={group.map((slot) => ({
+        title: slot.label,
+        source: fieldNotes.get(slot.role ?? '') ?? '',
+      }))}
+    />
   );
   const referenceKinds = useMemo(
     () => [
@@ -493,7 +519,10 @@ export function GenerationComposer({
           'frame',
           <>
             <div className="section-heading">
-              <b>{t('composer.frames')}</b>
+              <b className="label-with-help">
+                {t('composer.frames')}
+                {slotHelp(frameSlots, t('composer.frames'))}
+              </b>
               <small>
                 {t(
                   frameSlots.length > 1
@@ -523,7 +552,10 @@ export function GenerationComposer({
           'reference',
           <>
             <div className="section-heading">
-              <b>{t('composer.references')}</b>
+              <b className="label-with-help">
+                {t('composer.references')}
+                {slotHelp(referenceSlots, t('composer.references'))}
+              </b>
               <div className="counter-row">
                 {referenceKinds.map((kind) => (
                   <Counter key={kind} kind={kind} attachments={references} />
@@ -683,7 +715,13 @@ export function GenerationComposer({
                   )}
 
                   <div className="field composer-prompt">
-                    <span className="field-label">{t('composer.prompt')}</span>
+                    <span className="field-label label-with-help">
+                      {t('composer.prompt')}
+                      <FieldHelp
+                        label={t('composer.prompt')}
+                        sections={[{ source: fieldNotes.get('prompt') ?? '' }]}
+                      />
+                    </span>
                     <div className="prompt-box">
                       <textarea
                         required
@@ -705,27 +743,42 @@ export function GenerationComposer({
                   {mediaSections}
                 </Tabs.Root>
 
-                {(form?.parameters ?? []).filter(
-                  (parameter) => !isHiddenParameter(parameter.name),
-                ).length > 0 && (
+                {basicParameters.length > 0 && (
                   <div className="parameter-grid">
-                    {(form?.parameters ?? [])
-                      .filter((parameter) => !isHiddenParameter(parameter.name))
-                      .map((parameter) => (
-                        <ParameterTile
-                          key={parameter.name}
-                          parameter={parameter}
-                          value={parameters[parameter.name] ?? ''}
-                          onChange={(value) =>
-                            setParameters((current) => ({
-                              ...current,
-                              [parameter.name]: value,
-                            }))
-                          }
-                        />
-                      ))}
+                    {basicParameters.map((parameter) => (
+                      <ParameterTile
+                        key={parameter.name}
+                        parameter={parameter}
+                        help={fieldNotes.get(parameter.name)}
+                        value={parameters[parameter.name] ?? ''}
+                        onChange={(value) =>
+                          setParameters((current) => ({
+                            ...current,
+                            [parameter.name]: value,
+                          }))
+                        }
+                      />
+                    ))}
                   </div>
                 )}
+                <AdvancedOptions count={advancedParameters.length}>
+                  <div className="parameter-grid">
+                    {advancedParameters.map((parameter) => (
+                      <ParameterTile
+                        key={parameter.name}
+                        parameter={parameter}
+                        help={fieldNotes.get(parameter.name)}
+                        value={parameters[parameter.name] ?? ''}
+                        onChange={(value) =>
+                          setParameters((current) => ({
+                            ...current,
+                            [parameter.name]: value,
+                          }))
+                        }
+                      />
+                    ))}
+                  </div>
+                </AdvancedOptions>
 
                 {selectedModel && form && (
                   <PriceTable
@@ -1063,15 +1116,23 @@ function MediaPreview({ attachment }: { attachment: Attachment }) {
 // long vocabulary takes the full row so every value stays on one line.
 function ParameterTile({
   parameter,
+  help,
   value,
   onChange,
 }: {
   parameter: FormParameter;
+  help?: string;
   value: string;
   onChange: (value: string) => void;
 }) {
   const { t, locale } = useI18n();
   const label = formatLabel(parameter.name);
+  const tileLabel = (
+    <span className="tile-label label-with-help">
+      {label}
+      <FieldHelp label={label} sections={[{ source: help ?? '' }]} />
+    </span>
+  );
   const isDimension =
     /^(resolution|size|dimensions?|aspect_ratio|aspectratio|ar|ratio)$/i.test(
       parameter.name,
@@ -1109,7 +1170,7 @@ function ParameterTile({
           choices.length > 3 ? 'parameter-tile wide' : 'parameter-tile'
         }
       >
-        <span className="tile-label">{label}</span>
+        {tileLabel}
         <div className="segmented compact" role="radiogroup" aria-label={label}>
           {choices.map((option) => (
             <button
@@ -1134,7 +1195,7 @@ function ParameterTile({
     const current = value === '' ? minimum : Number(value);
     return (
       <div className="parameter-tile">
-        <span className="tile-label">{label}</span>
+        {tileLabel}
         <div className="slider-cell">
           <Slider.Root
             className="slider"
@@ -1166,7 +1227,7 @@ function ParameterTile({
   if (options.length) {
     return (
       <div className="parameter-tile">
-        <span className="tile-label">{label}</span>
+        {tileLabel}
         <select
           value={value}
           onChange={(event) => onChange(event.target.value)}
@@ -1187,7 +1248,7 @@ function ParameterTile({
 
   return (
     <div className="parameter-tile">
-      <span className="tile-label">{label}</span>
+      {tileLabel}
       <input
         type={parameter.type === 'integer' ? 'number' : 'text'}
         min={parameter.minimum}

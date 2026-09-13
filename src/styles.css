@@ -897,3 +897,36 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation-duration: .01ms !important; }
 }
+
+/* Field help: the ! beside a form field and the card it opens. */
+.label-with-help { display: inline-flex; align-items: center; gap: 4px; }
+.playground-param-label { display: inline-flex; align-items: center; gap: 4px; }
+.field-help { display: inline-grid; place-items: center; width: 18px; height: 18px; margin: -2px 0; padding: 0; border: 0; border-radius: 50%; background: none; color: #97a09c; cursor: pointer; text-transform: none; letter-spacing: normal; }
+.field-help:hover, .field-help[data-state="open"] { color: var(--accent-dark); }
+.field-help:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field-help-card { z-index: 95; width: min(340px, calc(100vw - 24px)); max-height: min(420px, 70vh); overflow-y: auto; padding: 12px 14px; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--paper); box-shadow: var(--shadow); animation: fade-in .12s ease-out; }
+.field-help-section + .field-help-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.field-help-section > b { display: block; margin-bottom: 4px; color: var(--ink); font-size: 12px; }
+.field-help-card .markdown { font-size: 12px; }
+
+/* Advanced options: optional parameters folded away until asked. */
+.advanced-options { border: 1px solid var(--line); border-radius: 8px; background: #fafbfa; }
+.advanced-options > summary { display: flex; align-items: center; gap: 6px; padding: 9px 12px; color: #55605b; font-size: 12px; font-weight: 700; cursor: pointer; list-style: none; user-select: none; }
+.advanced-options > summary::-webkit-details-marker { display: none; }
+.advanced-options > summary:hover { color: var(--ink); }
+.advanced-chevron { transition: transform .15s ease; }
+.advanced-options[open] .advanced-chevron { transform: rotate(90deg); }
+.advanced-options-body { padding: 0 12px 12px; }
+.composer-body .advanced-options { margin-top: 10px; }
+.composer-body .advanced-options .parameter-tile { background: var(--paper); }
+
+/* Field help editor in the model form. */
+.field-label-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.field-label-row .row-action.text-action { display: inline-flex; align-items: center; gap: 5px; height: 26px; }
+.field-notes-input { min-height: 260px !important; }
+.field-notes-preview { max-height: 420px; overflow-y: auto; }
+.field-notes-section + .field-notes-section { margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--line); }
+.field-notes-key { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.field-notes-key code { font-size: 11px; font-weight: 700; }
+.field-notes-unknown { color: var(--red); font-size: 10.5px; }
+.field-notes-missing { display: block; margin-top: 10px; color: #9a6b12; font-size: 11px; }
