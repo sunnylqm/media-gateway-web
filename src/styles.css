@@ -981,3 +981,10 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
 .error-log-page { display: grid; gap: 20px; }
 .error-alert-warning { margin: 0; }
 .field textarea.error-alert-recipients { min-height: 76px; font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
+.binding-actions { display: flex; align-items: center; gap: 6px; }
+.button.compact { min-height: 28px; padding: 0 10px; font-size: 12px; gap: 5px; }
+.binding-test-result { display: grid; gap: 4px; margin-top: 10px; padding: 9px 11px; border: 1px solid var(--line-strong); font-size: 12px; line-height: 1.45; }
+.binding-test-result.good { border-color: #b7dcc7; background: #eef7f2; color: #1e6045; }
+.binding-test-result.warn { border-color: #e7d3a4; background: #fbf5e6; color: #7a5a14; }
+.binding-test-result.bad { border-color: #ebc0bb; background: #fbefed; color: #8f3128; }
+.binding-test-result code { overflow-wrap: anywhere; white-space: pre-wrap; font-size: 11px; }

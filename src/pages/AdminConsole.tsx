@@ -726,6 +726,39 @@ type BindingForm = {
   status: 'active' | 'inactive';
   weight: string;
   configured: boolean;
+  // The last connection test of this binding as it stands; editing the binding
+  // clears it, because the answer was about the old values.
+  test?: BindingTest;
+};
+
+type BindingVerdict =
+  | 'ok'
+  | 'rate_limited'
+  | 'auth_failed'
+  | 'not_found'
+  | 'upstream_error'
+  | 'unreachable'
+  | 'accepted';
+
+type BindingTest =
+  | { state: 'running' }
+  | { state: 'failed'; message: string }
+  | {
+      state: 'done';
+      verdict: BindingVerdict;
+      httpStatus?: number;
+      latencyMs: number;
+      message?: string;
+    };
+
+const bindingVerdictKeys: Record<BindingVerdict, MessageKey> = {
+  ok: 'models.testOk',
+  rate_limited: 'models.testRateLimited',
+  auth_failed: 'models.testAuthFailed',
+  not_found: 'models.testNotFound',
+  upstream_error: 'models.testUpstreamError',
+  unreachable: 'models.testUnreachable',
+  accepted: 'models.testAccepted',
 };
 
 type RateForm = {
@@ -2534,6 +2567,39 @@ function presetForm(preset: ProtocolPreset): ModelForm {
   };
 }
 
+function BindingTestResult({
+  test,
+}: {
+  test: Exclude<BindingTest, { state: 'running' }>;
+}) {
+  const { t } = useI18n();
+  if (test.state === 'failed') {
+    return (
+      <p className="binding-test-result bad" role="status">
+        {test.message}
+      </p>
+    );
+  }
+  const good = test.verdict === 'ok';
+  const warning = test.verdict === 'rate_limited';
+  const details = [
+    test.httpStatus ? `HTTP ${test.httpStatus}` : '',
+    `${test.latencyMs} ms`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  return (
+    <div
+      className={`binding-test-result ${good ? 'good' : warning ? 'warn' : 'bad'}`}
+      role="status"
+    >
+      <strong>{t(bindingVerdictKeys[test.verdict])}</strong>
+      <span className="muted">{details}</span>
+      {test.message && <code>{test.message}</code>}
+    </div>
+  );
+}
+
 function ModelsPanel({
   models,
   presets,
@@ -2722,9 +2788,65 @@ function ModelsPanel({
     setForm((current) => ({
       ...current,
       bindings: current.bindings.map((binding, bindingIndex) =>
-        bindingIndex === index ? { ...binding, [key]: value } : binding,
+        bindingIndex === index
+          ? { ...binding, [key]: value, test: undefined }
+          : binding,
       ),
     }));
+  }
+
+  function setBindingTest(index: number, alias: string, test: BindingTest) {
+    setForm((current) => ({
+      ...current,
+      bindings: current.bindings.map((binding, bindingIndex) =>
+        bindingIndex === index && binding.alias === alias
+          ? { ...binding, test }
+          : binding,
+      ),
+    }));
+  }
+
+  // testBinding asks the gateway to probe one binding as the form holds it,
+  // saved or not. The probe sends no prompt, so nothing is generated or billed.
+  async function testBinding(index: number) {
+    const binding = form.bindings[index];
+    if (!binding) return;
+    setBindingTest(index, binding.alias, { state: 'running' });
+    try {
+      const result = await api<{
+        verdict: BindingVerdict;
+        http_status?: number;
+        latency_ms: number;
+        message?: string;
+      }>(
+        `/v1/admin/models/${encodeURIComponent(form.id || 'new')}/bindings/test`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            provider: form.provider,
+            protocol_profile: parseProfile(form.profile),
+            upstream_model: form.upstreamModel,
+            alias: binding.alias,
+            endpoint: binding.endpoint,
+            api_key: binding.apiKey || undefined,
+          }),
+        },
+        true,
+      );
+      setBindingTest(index, binding.alias, {
+        state: 'done',
+        verdict: result.verdict,
+        httpStatus: result.http_status,
+        latencyMs: result.latency_ms,
+        message: result.message,
+      });
+    } catch (reason) {
+      setBindingTest(index, binding.alias, {
+        state: 'failed',
+        message:
+          reason instanceof Error ? reason.message : t('models.testFailed'),
+      });
+    }
   }
 
   function addBinding() {
@@ -3158,18 +3280,37 @@ function ModelsPanel({
                             {binding.alias ||
                               t('models.binding', { index: index + 1 })}
                           </strong>
-                          {form.bindings.length > 1 && (
+                          <div className="binding-actions">
                             <button
                               type="button"
-                              className="icon-button danger-icon"
-                              onClick={() => removeBinding(index)}
-                              aria-label={t('models.removeBinding', {
-                                alias: binding.alias,
-                              })}
+                              className="button secondary compact"
+                              onClick={() => void testBinding(index)}
+                              disabled={
+                                binding.test?.state === 'running' ||
+                                !binding.endpoint ||
+                                !form.upstreamModel ||
+                                (!binding.apiKey && !binding.configured)
+                              }
+                              title={t('models.testBindingNote')}
                             >
-                              <Trash2 size={14} />
+                              <Activity size={14} />
+                              {binding.test?.state === 'running'
+                                ? t('models.testing')
+                                : t('models.testBinding')}
                             </button>
-                          )}
+                            {form.bindings.length > 1 && (
+                              <button
+                                type="button"
+                                className="icon-button danger-icon"
+                                onClick={() => removeBinding(index)}
+                                aria-label={t('models.removeBinding', {
+                                  alias: binding.alias,
+                                })}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="field-grid three">
                           <label className="field">
@@ -3269,6 +3410,9 @@ function ModelsPanel({
                           />
                           <small>{t('models.apiKeyNote')}</small>
                         </label>
+                        {binding.test && binding.test.state !== 'running' && (
+                          <BindingTestResult test={binding.test} />
+                        )}
                       </article>
                     ))}
                   </div>

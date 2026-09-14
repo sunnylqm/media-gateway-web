@@ -479,6 +479,22 @@ export const en = {
   'models.apiKeyKeep': 'Leave blank to keep the current encrypted key',
   'models.apiKeyRequired': 'Required before activation',
   'models.apiKeyNote': 'Encrypted with AES-256-GCM before SQLite persistence.',
+  'models.testBinding': 'Test',
+  'models.testing': 'Testing…',
+  'models.testBindingNote':
+    'Sends the upstream model name with no prompt, so nothing is generated and no tokens are used. Uses the key typed here, or the saved one.',
+  'models.testOk':
+    'Connected: the key was accepted and the empty request refused as expected',
+  'models.testRateLimited':
+    'Reached, but the upstream is rate limiting this key',
+  'models.testAuthFailed': 'The upstream refused the key',
+  'models.testNotFound':
+    'Route or model not found: check the base URL and the upstream model',
+  'models.testUpstreamError': 'The upstream answered with a server error',
+  'models.testUnreachable': 'Could not reach the upstream',
+  'models.testAccepted':
+    'The upstream accepted a request with no prompt; the base URL may not serve this protocol',
+  'models.testFailed': 'The test could not be run',
   'models.bindingsEmpty': 'Add at least one upstream binding.',
   'models.billing': 'Billing rule',
   'models.billingMode': 'Charge by',
