@@ -67,7 +67,9 @@ describe('format utilities', () => {
   });
 
   it('translates option values without changing what is sent', () => {
-    expect(formatOptionValue('ratio', 'adaptive', 'zh')).toBe('自适应');
+    expect(formatOptionValue('ratio', 'adaptive', 'zh')).toBe(
+      'adaptive (自适应)',
+    );
     expect(formatOptionValue('ratio', '16:9', 'zh')).toBe('16:9 (横版)');
     expect(formatOptionValue('quality', 'xhigh', 'zh')).toBe('超高');
     expect(formatOptionValue('quality', 'max', 'en')).toBe('Max');

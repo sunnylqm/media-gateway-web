@@ -194,7 +194,7 @@ export function formatDimensionOption(value: string, locale: Locale): string {
 
   const lower = normalized.toLowerCase();
   if (lower === 'auto') return isZh ? '自动' : 'Auto';
-  if (lower === 'adaptive') return isZh ? '自适应' : 'Adaptive';
+  if (lower === 'adaptive') return isZh ? 'adaptive (自适应)' : 'Adaptive';
   if (lower === 'square') return isZh ? '正方形' : 'Square';
   if (lower === 'landscape') return isZh ? '横版' : 'Landscape';
   if (lower === 'portrait') return isZh ? '竖版' : 'Portrait';
@@ -230,7 +230,7 @@ export function formatQuantity(name: string, value: number) {
 // entry is shown as sent, so a provider's new level still reads.
 const optionWordsZh: Record<string, string> = {
   auto: '自动',
-  adaptive: '自适应',
+  adaptive: 'adaptive (自适应)',
   low: '低',
   medium: '中',
   high: '高',

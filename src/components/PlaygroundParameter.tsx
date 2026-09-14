@@ -37,6 +37,13 @@ export function PlaygroundParameter({
       param.name,
     ) || label === '数量';
   const freeNumber = isFreeNumber(param.name, param.minimum, param.maximum);
+  // Leaving a field unset only means something the listed values don't: not
+  // when it is required, when the vocabulary has its own "auto", or when the
+  // model declares a default, which the form already shows selected.
+  const offersUnset =
+    !param.required &&
+    (param.default === undefined || param.default === null) &&
+    !param.enum?.some((opt) => opt.toLowerCase() === 'auto');
   const isRanged =
     !freeNumber &&
     param.type === 'integer' &&
@@ -186,7 +193,7 @@ export function PlaygroundParameter({
           }
           onChange={(e) => set(e.target.value)}
         >
-          {!param.required && <option value="">{t('composer.auto')}</option>}
+          {offersUnset && <option value="">{t('composer.auto')}</option>}
           <option value="true">{t('playground.on')}</option>
           <option value="false">{t('playground.off')}</option>
         </select>
@@ -201,13 +208,13 @@ export function PlaygroundParameter({
         <select
           className="playground-select"
           aria-label={label}
-          value={parameters[param.name] ?? ''}
+          value={
+            parameters[param.name] ??
+            (param.default !== undefined ? String(param.default) : '')
+          }
           onChange={(e) => set(e.target.value)}
         >
-          {!param.required &&
-            !param.enum.some((opt) => opt.toLowerCase() === 'auto') && (
-              <option value="">{t('composer.auto')}</option>
-            )}
+          {offersUnset && <option value="">{t('composer.auto')}</option>}
           {param.enum.map((opt) => (
             <option key={opt} value={opt}>
               {format.optionValue(param.name, opt)}

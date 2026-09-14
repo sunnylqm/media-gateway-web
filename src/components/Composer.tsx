@@ -1147,10 +1147,13 @@ function ParameterTile({
     options.length > 0 &&
     options.length <= 8 &&
     options.every((option) => option.label.length <= 10);
-  // A vocabulary with its own "auto" needs no second one for leaving it unset.
-  const offersAuto = (parameter.enum ?? []).some(
-    (option) => option.toLowerCase() === 'auto',
-  );
+  // Leaving a field unset only means something the listed values don't: not
+  // when it is required, when the vocabulary has its own "auto", or when the
+  // model declares a default, which the form already shows selected.
+  const offersUnset =
+    !parameter.required &&
+    (parameter.default === undefined || parameter.default === null) &&
+    !(parameter.enum ?? []).some((option) => option.toLowerCase() === 'auto');
   const freeNumber = isFreeNumber(
     parameter.name,
     parameter.minimum,
@@ -1164,10 +1167,9 @@ function ParameterTile({
     parameter.maximum > parameter.minimum;
 
   if (chips) {
-    const choices =
-      parameter.required || offersAuto
-        ? options
-        : [{ value: '', label: t('composer.auto') }, ...options];
+    const choices = offersUnset
+      ? [{ value: '', label: t('composer.auto') }, ...options]
+      : options;
     return (
       <div
         className={
@@ -1237,7 +1239,7 @@ function ParameterTile({
           onChange={(event) => onChange(event.target.value)}
           aria-label={label}
         >
-          {!parameter.required && !offersAuto && (
+          {offersUnset && (
             <option value="">{t('composer.providerDefault')}</option>
           )}
           {options.map((option) => (
