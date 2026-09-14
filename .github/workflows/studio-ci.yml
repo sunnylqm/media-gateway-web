@@ -2,7 +2,7 @@ name: studio-ui-ci
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, codex/guided-studio-ui-20260914]
 
 permissions:
   contents: read

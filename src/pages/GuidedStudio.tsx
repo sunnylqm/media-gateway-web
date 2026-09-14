@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Link, Navigate, Route, Routes } from 'react-router';
 import { api, gatewayURL } from '../api';
+import { useI18n } from '../i18n';
+import { createPlanningClient } from '../lib/studio/planningClient';
+import { planningCopy } from '../lib/studio/planningCopy';
+import { PlanningJournal } from '../lib/studio/planningJournal';
 import { LanguageToggle } from '../components/LanguageSwitch';
 import { StudioNotice } from '../components/studio/Notice';
 import { GuidedProject } from '../components/studio/ProjectView';
@@ -50,6 +54,7 @@ export default function GuidedStudio() {
               key={session.value.user.id}
               userID={session.value.user.id}
               controller={controller}
+              active={!blocked}
             />
           )}
         </div>
@@ -61,15 +66,28 @@ export default function GuidedStudio() {
 function StudioSession({
   userID,
   controller,
+  active,
 }: {
   userID: string;
   controller: StudioSessionController;
+  active: boolean;
 }) {
   const t = useStudioCopy();
   const client = useMemo(
     () => createStudioClient(controller.forUser(userID)),
     [controller, userID],
   );
+  const { locale } = useI18n();
+  const planningT = planningCopy(locale);
+  const planningClient = useMemo(
+    () => createPlanningClient(controller.forUser(userID)),
+    [controller, userID],
+  );
+  const planningJournal = useMemo(() => {
+    let storage: Storage | undefined;
+    try { storage = window.sessionStorage; } catch { /* Optional storage. */ }
+    return new PlanningJournal(gatewayURL, userID, storage);
+  }, [userID]);
   const journal = useMemo(() => {
     let storage: Storage | undefined;
     try {
@@ -83,7 +101,7 @@ function StudioSession({
     <>
       <div className="studio-boundary">
         <strong>{t('prototype')}</strong>
-        <p>{t('limitation')}</p>
+        <p>{planningT('studioBoundary')}</p>
         <small>{t('chinese')}</small>
       </div>
       <Routes>
@@ -93,7 +111,8 @@ function StudioSession({
         />
         <Route
           path="projects/:projectId"
-          element={<GuidedProject client={client} journal={journal} />}
+          element={<GuidedProject client={client} journal={journal}
+            planningClient={planningClient} planningJournal={planningJournal} active={active} />}
         />
         <Route path="*" element={<Navigate to="/app/create" replace />} />
       </Routes>

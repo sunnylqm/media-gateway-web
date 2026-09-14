@@ -9,12 +9,17 @@ import {
 } from '../../lib/studio/controller';
 import { useProject, useStudioCopy } from '../../lib/studio/hooks';
 import type { StudioRecord, Transformation } from '../../lib/studio/types';
+import type { PlanningClient } from '../../lib/studio/planningClient';
+import type { PlanningJournal } from '../../lib/studio/planningJournal';
+import { PlanningPanel, SavedPlan } from './PlanningPanel';
 import { CreativeBrief } from './CreativeBrief';
 import { StudioNotice } from './Notice';
 
 type Props = { client: StudioClient; journal: CommandJournal };
 
-export function GuidedProject(props: Props) {
+type PlanningProps = { planningClient: PlanningClient; planningJournal: PlanningJournal; active: boolean };
+
+export function GuidedProject(props: Props & PlanningProps) {
   const { projectId = '' } = useParams();
   const [query] = useSearchParams();
   const t = useStudioCopy();
@@ -44,7 +49,10 @@ function ProjectView({
   journal,
   id,
   revision,
-}: Props & {
+  planningClient,
+  planningJournal,
+  active,
+}: Props & PlanningProps & {
   id: string;
   revision?: number;
 }) {
@@ -185,6 +193,13 @@ function ProjectView({
               record={record}
             />
           </div>
+          <SavedPlan value={record.project.plan} />
+          {!readOnly && (
+            <PlanningPanel client={planningClient} journal={planningJournal}
+              project={record.project} guideComplete={complete === true}
+              blocked={busy || conflict || error !== null} active={active}
+              refreshProject={() => controller.load()} />
+          )}
           <History record={record} readOnly={readOnly} />
           <Fork
             key={`${id}:${record.project.version}`}
