@@ -246,7 +246,6 @@ test('subscribers observe transitions and disposed verification cannot notify th
   assert.equal(updates, 3);
 });
 
-
 test('late request errors cannot masquerade as current-account failures', async () => {
   const f = fixture();
   await verify(f);

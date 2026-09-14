@@ -31,8 +31,7 @@ function StudioRouteFailure() {
         }
       : {
           title: 'Inspiration Studio could not open',
-          hint:
-            'The page could not load or render. Reload it or return to the workspace.',
+          hint: 'The page could not load or render. Reload it or return to the workspace.',
           reload: 'Reload page',
           back: 'Back to workspace',
         };
