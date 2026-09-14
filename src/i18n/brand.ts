@@ -88,10 +88,12 @@ export const brandZh: Record<BrandMessageKey, string> = {
   'home.videoBody': '给故事找一个开场，进入短片工作台，把想法向前推进一步。',
   'home.videoAction': '开始短片创作',
   'home.imageTitle': '寻找第一帧',
-  'home.imageBody': '一个人物、一处场景、一种氛围。先在图像工作台找到故事的样子。',
+  'home.imageBody':
+    '一个人物、一处场景、一种氛围。先在图像工作台找到故事的样子。',
   'home.imageAction': '开始图像创作',
   'home.galleryTitle': '尝一口灵感',
-  'home.galleryBody': '到作品广场坐坐。看看不同的表达，也许下一个灵感就在这里。',
+  'home.galleryBody':
+    '到作品广场坐坐。看看不同的表达，也许下一个灵感就在这里。',
   'home.galleryAction': '前往作品广场',
   'home.closing': '好故事，值得更多人品尝。',
   'home.closingBody': '不用急着成为谁，先把你的故事讲出来。',

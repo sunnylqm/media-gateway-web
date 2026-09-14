@@ -8,8 +8,8 @@ import {
   useState,
 } from 'react';
 import { type Formatters, formatters } from '../format';
-import { brandEn, type BrandMessageKey, brandZh } from './brand';
-import { en, type MessageKey as CoreMessageKey } from './en';
+import { type BrandMessageKey, brandEn, brandZh } from './brand';
+import { type MessageKey as CoreMessageKey, en } from './en';
 import { zh } from './zh';
 
 export type Locale = 'en' | 'zh';
