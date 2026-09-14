@@ -2,7 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import type { StudioClient } from '../../lib/studio/client';
 import type { CommandJournal } from '../../lib/studio/commands';
-import { type Failure, failureOf, parseRevision } from '../../lib/studio/controller';
+import {
+  type Failure,
+  failureOf,
+  parseRevision,
+} from '../../lib/studio/controller';
 import { useProject, useStudioCopy } from '../../lib/studio/hooks';
 import type { StudioRecord, Transformation } from '../../lib/studio/types';
 import { CreativeBrief } from './CreativeBrief';
@@ -35,7 +39,12 @@ export function GuidedProject(props: Props) {
   );
 }
 
-function ProjectView({ client, journal, id, revision }: Props & {
+function ProjectView({
+  client,
+  journal,
+  id,
+  revision,
+}: Props & {
   id: string;
   revision?: number;
 }) {
@@ -77,11 +86,17 @@ function ProjectView({ client, journal, id, revision }: Props & {
         <>
           <div className="studio-project-meta" role="status">
             <span>{t('version', { version: record.project.version })}</span>
-            <span>{t(busy ? 'working' : 'saved', { count: record.project.choices.length })}</span>
+            <span>
+              {t(busy ? 'working' : 'saved', {
+                count: record.project.choices.length,
+              })}
+            </span>
           </div>
           <div className="studio-project-grid">
             <section className="studio-play" aria-busy={busy}>
-              <span className="eyebrow">{t(record.project.transformation)}</span>
+              <span className="eyebrow">
+                {t(record.project.transformation)}
+              </span>
               {record.project.pending && !readOnly ? (
                 <>
                   <h1 ref={heading} tabIndex={-1} lang="zh-CN">
@@ -94,7 +109,12 @@ function ProjectView({ client, journal, id, revision }: Props & {
                         className="studio-option"
                         key={option.id}
                         lang="zh-CN"
-                        disabled={busy || conflict || error === 'auth' || error === 'forbidden'}
+                        disabled={
+                          busy ||
+                          conflict ||
+                          error === 'auth' ||
+                          error === 'forbidden'
+                        }
                         onClick={() => void controller.choose(option.id)}
                       >
                         <strong>{option.label}</strong>
@@ -104,7 +124,9 @@ function ProjectView({ client, journal, id, revision }: Props & {
                 </>
               ) : complete ? (
                 <>
-                  <h1 ref={heading} tabIndex={-1}>{t('ready')}</h1>
+                  <h1 ref={heading} tabIndex={-1}>
+                    {t('ready')}
+                  </h1>
                   <p>{t('readyHint')}</p>
                   <div className="studio-actions">
                     <Link className="button secondary" to="/app/create">
@@ -123,7 +145,12 @@ function ProjectView({ client, journal, id, revision }: Props & {
                     <button
                       type="button"
                       className="button primary"
-                      disabled={busy || conflict || error === 'auth' || error === 'forbidden'}
+                      disabled={
+                        busy ||
+                        conflict ||
+                        error === 'auth' ||
+                        error === 'forbidden'
+                      }
                       onClick={() => void controller.next()}
                     >
                       {t(record.project.choices.length ? 'next' : 'first')}
@@ -144,13 +171,19 @@ function ProjectView({ client, journal, id, revision }: Props & {
               )}
               {record.project.parent && (
                 <p className="studio-note">
-                  <Link to={`/app/create/projects/${encodeURIComponent(record.project.parent.project_id)}?revision=${record.project.parent.version}`}>
-                    {t('parent')} · {t('version', { version: record.project.parent.version })}
+                  <Link
+                    to={`/app/create/projects/${encodeURIComponent(record.project.parent.project_id)}?revision=${record.project.parent.version}`}
+                  >
+                    {t('parent')} ·{' '}
+                    {t('version', { version: record.project.parent.version })}
                   </Link>
                 </p>
               )}
             </section>
-            <CreativeBrief key={`${id}:${record.project.version}`} record={record} />
+            <CreativeBrief
+              key={`${id}:${record.project.version}`}
+              record={record}
+            />
           </div>
           <History record={record} readOnly={readOnly} />
           <Fork
@@ -165,7 +198,13 @@ function ProjectView({ client, journal, id, revision }: Props & {
   );
 }
 
-function History({ record, readOnly }: { record: StudioRecord; readOnly: boolean }) {
+function History({
+  record,
+  readOnly,
+}: {
+  record: StudioRecord;
+  readOnly: boolean;
+}) {
   const t = useStudioCopy();
   const navigate = useNavigate();
   const [version, setVersion] = useState('');
@@ -179,12 +218,18 @@ function History({ record, readOnly }: { record: StudioRecord; readOnly: boolean
         onSubmit={(event) => {
           event.preventDefault();
           const target = parseRevision(version);
-          if (target === undefined || Number.isNaN(target) || (!readOnly && target > record.project.version)) {
+          if (
+            target === undefined ||
+            Number.isNaN(target) ||
+            (!readOnly && target > record.project.version)
+          ) {
             setInvalid(true);
             return;
           }
           setInvalid(false);
-          navigate(`/app/create/projects/${encodeURIComponent(record.project.id)}?revision=${target}`);
+          navigate(
+            `/app/create/projects/${encodeURIComponent(record.project.id)}?revision=${target}`,
+          );
         }}
       >
         <label className="field">
@@ -197,7 +242,9 @@ function History({ record, readOnly }: { record: StudioRecord; readOnly: boolean
             onChange={(event) => setVersion(event.target.value)}
           />
         </label>
-        <button type="submit" className="button secondary">{t('view')}</button>
+        <button type="submit" className="button secondary">
+          {t('view')}
+        </button>
       </form>
       {invalid && <p role="alert">{t('badRevision')}</p>}
     </details>
@@ -207,7 +254,9 @@ function History({ record, readOnly }: { record: StudioRecord; readOnly: boolean
 function Fork({ client, journal, record }: Props & { record: StudioRecord }) {
   const t = useStudioCopy();
   const navigate = useNavigate();
-  const [operation, setOperation] = useState<Transformation>(record.project.transformation);
+  const [operation, setOperation] = useState<Transformation>(
+    record.project.transformation,
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<Failure | null>(null);
   const lock = useRef(false);
@@ -227,9 +276,17 @@ function Fork({ client, journal, record }: Props & { record: StudioRecord }) {
     setError(null);
     abort.current = new AbortController();
     try {
-      const body = { source_version: record.project.version, transformation: operation };
+      const body = {
+        source_version: record.project.version,
+        transformation: operation,
+      };
       const ticket = journal.prepare(`fork:${record.project.id}`, body);
-      const result = await client.fork(record.project.id, body, ticket.key, abort.current.signal);
+      const result = await client.fork(
+        record.project.id,
+        body,
+        ticket.key,
+        abort.current.signal,
+      );
       if (!active.current) return;
       journal.acknowledge(ticket);
       navigate(`/app/create/projects/${encodeURIComponent(result.project.id)}`);
@@ -246,12 +303,27 @@ function Fork({ client, journal, record }: Props & { record: StudioRecord }) {
       <p>{t('forkHint')}</p>
       <label className="field">
         <span>{t('transform')}</span>
-        <select value={operation} disabled={busy} onChange={(event) => setOperation(event.target.value as Transformation)}>
-          {record.project.seed.transformations.map((value) => <option value={value} key={value}>{t(value)}</option>)}
+        <select
+          value={operation}
+          disabled={busy}
+          onChange={(event) =>
+            setOperation(event.target.value as Transformation)
+          }
+        >
+          {record.project.seed.transformations.map((value) => (
+            <option value={value} key={value}>
+              {t(value)}
+            </option>
+          ))}
         </select>
       </label>
       {error && <StudioNotice error={error} retry={() => void fork()} />}
-      <button type="button" className="button primary" disabled={busy} onClick={() => void fork()}>
+      <button
+        type="button"
+        className="button primary"
+        disabled={busy}
+        onClick={() => void fork()}
+      >
         {t(busy ? 'forkBusy' : 'forkAction')}
       </button>
     </details>

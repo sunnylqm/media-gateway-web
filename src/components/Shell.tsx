@@ -117,7 +117,9 @@ export function Shell({
   }, [location.pathname]);
 
   const links =
-    !admin && studioEnabled && !navigation.some((item) => item.to === '/app/create')
+    !admin &&
+    studioEnabled &&
+    !navigation.some((item) => item.to === '/app/create')
       ? [
           {
             label: studioMessage(locale, 'title'),

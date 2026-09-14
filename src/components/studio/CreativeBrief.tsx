@@ -6,7 +6,9 @@ import { creativeBrief } from '../../lib/studio/view';
 export function CreativeBrief({ record }: { record: StudioRecord }) {
   const t = useStudioCopy();
   const { project } = record;
-  const [copyState, setCopyState] = useState<'copied' | 'copyFailed' | null>(null);
+  const [copyState, setCopyState] = useState<'copied' | 'copyFailed' | null>(
+    null,
+  );
   async function copy() {
     try {
       await navigator.clipboard.writeText(creativeBrief(record, t));
@@ -18,7 +20,9 @@ export function CreativeBrief({ record }: { record: StudioRecord }) {
   return (
     <aside className="studio-brief" aria-labelledby="studio-brief-title">
       <span className="eyebrow">{t('brief')}</span>
-      <h2 id="studio-brief-title" lang="zh-CN">{project.seed.title}</h2>
+      <h2 id="studio-brief-title" lang="zh-CN">
+        {project.seed.title}
+      </h2>
       <p lang="zh-CN">{project.seed.hook}</p>
       <span className="studio-badge">{t(project.seed.origin)}</span>
       {project.seed.source && (
@@ -28,7 +32,9 @@ export function CreativeBrief({ record }: { record: StudioRecord }) {
       )}
       <h3>{t('anchors')}</h3>
       <ul lang="zh-CN">
-        {project.seed.locked_facts.map((fact) => <li key={fact.id}>{fact.text}</li>)}
+        {project.seed.locked_facts.map((fact) => (
+          <li key={fact.id}>{fact.text}</li>
+        ))}
       </ul>
       <h3>{t('choices')}</h3>
       {!project.choices.length && <p>{t('noChoices')}</p>}
@@ -42,7 +48,11 @@ export function CreativeBrief({ record }: { record: StudioRecord }) {
         ))}
       </div>
       <p className="studio-note">{t('briefFooter')}</p>
-      <button type="button" className="button secondary" onClick={() => void copy()}>
+      <button
+        type="button"
+        className="button secondary"
+        onClick={() => void copy()}
+      >
         {t('copy')}
       </button>
       {copyState && <p role="status">{t(copyState)}</p>}

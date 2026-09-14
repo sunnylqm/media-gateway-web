@@ -9,32 +9,66 @@ import { creativeBrief } from './view';
 function record(version = 2): StudioRecord {
   return {
     project: {
-      id: 'p', version, transformation: 'restage', choices: [],
+      id: 'p',
+      version,
+      transformation: 'restage',
+      choices: [],
       seed: {
-        id: 's', version: 1, origin: 'archetype', title: '一幕', hook: '一个起点',
-        characters: ['keeper'], location: 'inn', genres: ['wuxia'],
-        locked_facts: [{ id: 'f', text: '雨夜客栈' }], transformations: ['restage'],
+        id: 's',
+        version: 1,
+        origin: 'archetype',
+        title: '一幕',
+        hook: '一个起点',
+        characters: ['keeper'],
+        location: 'inn',
+        genres: ['wuxia'],
+        locked_facts: [{ id: 'f', text: '雨夜客栈' }],
+        transformations: ['restage'],
       },
-      pending: { id: 'turn-1', field: 'visual_style', question: '怎么拍？', options: [{ id: 'a', label: '真实', value: '写实材质' }, { id: 'b', label: '绘本', value: '纸张纹理' }] },
+      pending: {
+        id: 'turn-1',
+        field: 'visual_style',
+        question: '怎么拍？',
+        options: [
+          { id: 'a', label: '真实', value: '写实材质' },
+          { id: 'b', label: '绘本', value: '纸张纹理' },
+        ],
+      },
     },
-    created_at: '2026-09-14T00:00:00Z', updated_at: '2026-09-14T00:00:00Z',
+    created_at: '2026-09-14T00:00:00Z',
+    updated_at: '2026-09-14T00:00:00Z',
   };
 }
 function accepted(complete = false): StudioResult {
   const value = record(3);
   delete value.project.pending;
-  value.project.choices = [{ turn_id: 'turn-1', option_id: 'a', field: 'visual_style', value: '写实材质' }];
+  value.project.choices = [
+    {
+      turn_id: 'turn-1',
+      option_id: 'a',
+      field: 'visual_style',
+      value: '写实材质',
+    },
+  ];
   return { ...value, changed: true, guide_complete: complete };
 }
 function fixture(overrides: Partial<StudioClient> = {}) {
   const calls = { choose: 0, next: 0 };
   const client: StudioClient = {
     get: async () => record(),
-    next: async () => { calls.next += 1; return { ...record(4), changed: true, guide_complete: false }; },
-    choose: async () => { calls.choose += 1; return accepted(); },
+    next: async () => {
+      calls.next += 1;
+      return { ...record(4), changed: true, guide_complete: false };
+    },
+    choose: async () => {
+      calls.choose += 1;
+      return accepted();
+    },
     create: async () => accepted(),
     fork: async () => accepted(),
-    discovery: async () => { throw new Error('not used'); },
+    discovery: async () => {
+      throw new Error('not used');
+    },
     list: async () => ({ data: [] }),
     ...overrides,
   };
@@ -42,7 +76,9 @@ function fixture(overrides: Partial<StudioClient> = {}) {
 }
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((done) => { resolve = done; });
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
   return { promise, resolve };
 }
 
@@ -54,7 +90,12 @@ test('a GET never guesses guide completion from choice count', async () => {
 
 test('acceptance advances using the returned version, then retrieves the next turn', async () => {
   let expected = 0;
-  const { controller } = fixture({ next: async (_id, version) => { expected = version; return { ...record(4), changed: true, guide_complete: false }; } });
+  const { controller } = fixture({
+    next: async (_id, version) => {
+      expected = version;
+      return { ...record(4), changed: true, guide_complete: false };
+    },
+  });
   await controller.load();
   await controller.choose('a');
   assert.equal(expected, 3);
@@ -63,7 +104,11 @@ test('acceptance advances using the returned version, then retrieves the next tu
 });
 
 test('a failed next-turn keeps the successfully saved choice', async () => {
-  const { controller, calls } = fixture({ next: async () => { throw new Error('offline'); } });
+  const { controller, calls } = fixture({
+    next: async () => {
+      throw new Error('offline');
+    },
+  });
   await controller.load();
   await controller.choose('a');
   assert.equal(calls.choose, 1);
@@ -83,7 +128,12 @@ test('completion stops next-turn calls and uses the server flag', async () => {
 test('rapid double clicks submit one choice', async () => {
   const pending = deferred<StudioResult>();
   let count = 0;
-  const { controller } = fixture({ choose: () => { count += 1; return pending.promise; } });
+  const { controller } = fixture({
+    choose: () => {
+      count += 1;
+      return pending.promise;
+    },
+  });
   await controller.load();
   const first = controller.choose('a');
   await controller.choose('b');
@@ -110,7 +160,12 @@ test('history is read-only even when its snapshot contains a pending turn', asyn
 
 test('conflicts block subsequent edits until a successful refresh', async () => {
   let count = 0;
-  const { controller } = fixture({ choose: async () => { count += 1; throw { status: 409, code: 'studio_version_conflict' }; } });
+  const { controller } = fixture({
+    choose: async () => {
+      count += 1;
+      throw { status: 409, code: 'studio_version_conflict' };
+    },
+  });
   await controller.load();
   await controller.choose('a');
   await controller.choose('b');
@@ -124,7 +179,9 @@ test('conflicts block subsequent edits until a successful refresh', async () => 
 test('out-of-order reads cannot overwrite the newest view', async () => {
   const slow = deferred<StudioRecord>();
   let count = 0;
-  const { controller } = fixture({ get: () => ++count === 1 ? slow.promise : Promise.resolve(record(8)) });
+  const { controller } = fixture({
+    get: () => (++count === 1 ? slow.promise : Promise.resolve(record(8))),
+  });
   const first = controller.load();
   await controller.load();
   slow.resolve(record(2));
@@ -135,7 +192,10 @@ test('out-of-order reads cannot overwrite the newest view', async () => {
 test('an abandoned mutation cannot replace a newly loaded view', async () => {
   const pending = deferred<StudioResult>();
   let reads = 0;
-  const { controller } = fixture({ get: async () => record(++reads === 1 ? 2 : 10), choose: () => pending.promise });
+  const { controller } = fixture({
+    get: async () => record(++reads === 1 ? 2 : 10),
+    choose: () => pending.promise,
+  });
   await controller.load();
   const mutation = controller.choose('a');
   await controller.load();
@@ -159,7 +219,9 @@ test('dispose cancels updates and load can reactivate after a StrictMode cleanup
 test('listeners observe state transitions and can unsubscribe', async () => {
   const { controller } = fixture();
   let count = 0;
-  const off = controller.subscribe(() => { count += 1; });
+  const off = controller.subscribe(() => {
+    count += 1;
+  });
   await controller.load();
   assert.ok(count >= 2);
   off();
@@ -169,9 +231,23 @@ test('listeners observe state transitions and can unsubscribe', async () => {
 });
 
 test('classification distinguishes quota from a version conflict', () => {
-  assert.equal(failureOf({ status: 409, code: 'studio_project_limit' }), 'quota');
-  assert.equal(failureOf({ status: 409, code: 'studio_turn_consumed' }), 'conflict');
-  for (const [status, expected] of [[401, 'auth'], [403, 'forbidden'], [404, 'missing'], [429, 'rate'], [400, 'invalid'], [413, 'invalid'], [500, 'network']] as const) {
+  assert.equal(
+    failureOf({ status: 409, code: 'studio_project_limit' }),
+    'quota',
+  );
+  assert.equal(
+    failureOf({ status: 409, code: 'studio_turn_consumed' }),
+    'conflict',
+  );
+  for (const [status, expected] of [
+    [401, 'auth'],
+    [403, 'forbidden'],
+    [404, 'missing'],
+    [429, 'rate'],
+    [400, 'invalid'],
+    [413, 'invalid'],
+    [500, 'network'],
+  ] as const) {
     assert.equal(failureOf({ status }), expected);
   }
   assert.equal(failureOf(null), 'network');
@@ -179,7 +255,9 @@ test('classification distinguishes quota from a version conflict', () => {
 
 test('a copied brief is plain text with an explicit non-generation boundary', () => {
   const value = accepted();
-  const text = creativeBrief(value, (key, args) => studioMessage('zh', key, args));
+  const text = creativeBrief(value, (key, args) =>
+    studioMessage('zh', key, args),
+  );
   assert.ok(text.includes('雨夜客栈'));
   assert.ok(text.includes('写实材质'));
   assert.ok(text.includes('尚未生成剧本、分镜或视频'));

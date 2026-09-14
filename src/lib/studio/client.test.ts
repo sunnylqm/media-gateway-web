@@ -9,7 +9,10 @@ import { mergeSummaries, seedsForRoute } from './view';
 
 function transportFixture() {
   const calls: Array<{ path: string; init: RequestInit }> = [];
-  const request: StudioTransport = async <T>(path: string, init: RequestInit = {}) => {
+  const request: StudioTransport = async <T>(
+    path: string,
+    init: RequestInit = {},
+  ) => {
     calls.push({ path, init });
     return {} as T;
   };
@@ -21,14 +24,22 @@ function storageFixture() {
   return {
     data,
     getItem: (key: string) => data.get(key) ?? null,
-    setItem: (key: string, value: string) => { data.set(key, value); },
-    removeItem: (key: string) => { data.delete(key); },
+    setItem: (key: string, value: string) => {
+      data.set(key, value);
+    },
+    removeItem: (key: string) => {
+      data.delete(key);
+    },
   };
 }
 
 test('discovery repeats query keys and keeps the configured 70/30 mix', async () => {
   const { client, calls } = transportFixture();
-  await client.discovery({ genres: ['wuxia', 'fantasy'], exclude: ['a/b'], rotation: 'next & one' });
+  await client.discovery({
+    genres: ['wuxia', 'fantasy'],
+    exclude: ['a/b'],
+    rotation: 'next & one',
+  });
   const url = new URL(calls[0].path, 'https://example.test');
   assert.deepEqual(url.searchParams.getAll('genre'), ['wuxia', 'fantasy']);
   assert.equal(url.searchParams.get('exclude'), 'a/b');
@@ -39,18 +50,39 @@ test('discovery repeats query keys and keeps the configured 70/30 mix', async ()
 
 test('choice sends stored IDs and expected_version, not arbitrary prompt text', async () => {
   const { client, calls } = transportFixture();
-  await client.choose('p/1', { expected_version: 2, turn_id: 't', option_id: 'o' });
+  await client.choose('p/1', {
+    expected_version: 2,
+    turn_id: 't',
+    option_id: 'o',
+  });
   assert.equal(calls[0].path, '/v1/studio/projects/p%2F1/choices');
-  assert.deepEqual(JSON.parse(String(calls[0].init.body)), { expected_version: 2, turn_id: 't', option_id: 'o' });
+  assert.deepEqual(JSON.parse(String(calls[0].init.body)), {
+    expected_version: 2,
+    turn_id: 't',
+    option_id: 'o',
+  });
   assert.equal(calls[0].init.method, 'POST');
 });
 
 test('create and fork carry a retry key and pin the source revision', async () => {
   const { client, calls } = transportFixture();
-  await client.create({ seed_id: 's', seed_version: 1, transformation: 'restage' }, 'retry-1');
-  await client.fork('p', { source_version: 7, transformation: 'change_pov' }, 'retry-2');
-  assert.equal(new Headers(calls[0].init.headers).get('Idempotency-Key'), 'retry-1');
-  assert.equal(new Headers(calls[1].init.headers).get('Idempotency-Key'), 'retry-2');
+  await client.create(
+    { seed_id: 's', seed_version: 1, transformation: 'restage' },
+    'retry-1',
+  );
+  await client.fork(
+    'p',
+    { source_version: 7, transformation: 'change_pov' },
+    'retry-2',
+  );
+  assert.equal(
+    new Headers(calls[0].init.headers).get('Idempotency-Key'),
+    'retry-1',
+  );
+  assert.equal(
+    new Headers(calls[1].init.headers).get('Idempotency-Key'),
+    'retry-2',
+  );
   assert.equal(JSON.parse(String(calls[1].init.body)).source_version, 7);
 });
 
@@ -64,7 +96,10 @@ test('reads use the actual P1a paths and preserve opaque pagination cursors', as
   assert.equal(calls[0].path, '/v1/studio/projects/p/revisions/3');
   assert.equal(calls[0].init.signal, abort.signal);
   assert.equal(calls[1].path, '/v1/studio/projects/p');
-  assert.equal(new URL(calls[2].path, 'https://example.test').searchParams.get('after'), 'cursor+/=');
+  assert.equal(
+    new URL(calls[2].path, 'https://example.test').searchParams.get('after'),
+    'cursor+/=',
+  );
   assert.equal(calls[3].path, '/v1/studio/projects/p/next-turn');
   assert.equal(JSON.parse(String(calls[3].init.body)).expected_version, 4);
   assert.ok(calls.every(({ path }) => path.startsWith('/v1/studio/')));
@@ -78,7 +113,16 @@ test('malformed revisions fail before sending an HTTP request', async () => {
   assert.equal(calls.length, 0);
   assert.equal(parseRevision(null), undefined);
   assert.equal(parseRevision('12'), 12);
-  for (const value of ['', '0', '-1', '1.5', '1e2', ' 1', '01', '9999999999999999999']) {
+  for (const value of [
+    '',
+    '0',
+    '-1',
+    '1.5',
+    '1e2',
+    ' 1',
+    '01',
+    '9999999999999999999',
+  ]) {
     assert.ok(Number.isNaN(parseRevision(value)));
   }
 });
@@ -86,9 +130,19 @@ test('malformed revisions fail before sending an HTTP request', async () => {
 test('an uncertain create reuses its key across page reloads', () => {
   const storage = storageFixture();
   const body = { seed_id: 's', transformation: 'restage' };
-  const first = new CommandJournal('https://api.test', 'u1', storage, () => 'key-1');
+  const first = new CommandJournal(
+    'https://api.test',
+    'u1',
+    storage,
+    () => 'key-1',
+  );
   const ticket = first.prepare('create', body);
-  const reloaded = new CommandJournal('https://api.test', 'u1', storage, () => 'key-2');
+  const reloaded = new CommandJournal(
+    'https://api.test',
+    'u1',
+    storage,
+    () => 'key-2',
+  );
   assert.deepEqual(reloaded.prepare('create', body), ticket);
   reloaded.acknowledge(ticket);
   assert.equal(storage.data.size, 0);
@@ -101,10 +155,26 @@ test('retry keys are separated by account, origin, source version and operation'
   const next = () => `key-${++count}`;
   const first = new CommandJournal('one', 'a', storage, next);
   const ticket = first.prepare('fork:p', { source_version: 2 });
-  assert.notEqual(new CommandJournal('one', 'b', storage, next).prepare('fork:p', { source_version: 2 }).key, ticket.key);
-  assert.notEqual(new CommandJournal('two', 'a', storage, next).prepare('fork:p', { source_version: 2 }).key, ticket.key);
-  assert.notEqual(first.prepare('fork:p', { source_version: 3 }).key, ticket.key);
-  assert.notEqual(first.prepare('create', { source_version: 2 }).key, ticket.key);
+  assert.notEqual(
+    new CommandJournal('one', 'b', storage, next).prepare('fork:p', {
+      source_version: 2,
+    }).key,
+    ticket.key,
+  );
+  assert.notEqual(
+    new CommandJournal('two', 'a', storage, next).prepare('fork:p', {
+      source_version: 2,
+    }).key,
+    ticket.key,
+  );
+  assert.notEqual(
+    first.prepare('fork:p', { source_version: 3 }).key,
+    ticket.key,
+  );
+  assert.notEqual(
+    first.prepare('create', { source_version: 2 }).key,
+    ticket.key,
+  );
 });
 
 test('a late acknowledgement cannot clear a newer pending intent', () => {
@@ -118,8 +188,15 @@ test('a late acknowledgement cannot clear a newer pending intent', () => {
 });
 
 test('blocked storage still has in-memory retry protection', () => {
-  const denied = () => { throw new Error('blocked'); };
-  const journal = new CommandJournal('api', 'u', { getItem: denied, setItem: denied, removeItem: denied }, () => 'valid-key');
+  const denied = () => {
+    throw new Error('blocked');
+  };
+  const journal = new CommandJournal(
+    'api',
+    'u',
+    { getItem: denied, setItem: denied, removeItem: denied },
+    () => 'valid-key',
+  );
   const ticket = journal.prepare('create', { seed_id: 'a' });
   assert.deepEqual(journal.prepare('create', { seed_id: 'a' }), ticket);
   assert.doesNotThrow(() => journal.acknowledge(ticket));
@@ -135,25 +212,62 @@ test('corrupt storage and a non-printable retry key are ignored', () => {
 });
 
 test('discovery route labels never relabel archetypes as verified work scenes', () => {
-  const seeds = ['archetype', 'work_scene', 'original_seed'].map((origin, index) => ({ id: String(index), origin })) as Parameters<typeof seedsForRoute>[0];
+  const seeds = ['archetype', 'work_scene', 'original_seed'].map(
+    (origin, index) => ({ id: String(index), origin }),
+  ) as Parameters<typeof seedsForRoute>[0];
   assert.equal(seedsForRoute(seeds, 'mixed').length, 3);
-  assert.deepEqual(seedsForRoute(seeds, 'original').map((seed) => seed.origin), ['original_seed']);
-  assert.deepEqual(seedsForRoute(seeds, 'familiar').map((seed) => seed.origin), ['archetype', 'work_scene']);
+  assert.deepEqual(
+    seedsForRoute(seeds, 'original').map((seed) => seed.origin),
+    ['original_seed'],
+  );
+  assert.deepEqual(
+    seedsForRoute(seeds, 'familiar').map((seed) => seed.origin),
+    ['archetype', 'work_scene'],
+  );
 });
 
 test('pagination de-duplicates repeated rows without losing order', () => {
-  const first = [{ id: 'a', version: 1 }, { id: 'b', version: 1 }] as Summary[];
-  const next = [{ id: 'b', version: 2 }, { id: 'c', version: 1 }] as Summary[];
-  assert.deepEqual(mergeSummaries(first, next).map(({ id, version }) => [id, version]), [['a', 1], ['b', 2], ['c', 1]]);
+  const first = [
+    { id: 'a', version: 1 },
+    { id: 'b', version: 1 },
+  ] as Summary[];
+  const next = [
+    { id: 'b', version: 2 },
+    { id: 'c', version: 1 },
+  ] as Summary[];
+  assert.deepEqual(
+    mergeSummaries(first, next).map(({ id, version }) => [id, version]),
+    [
+      ['a', 1],
+      ['b', 2],
+      ['c', 1],
+    ],
+  );
 });
 
 test('UI translations cover every transformation and prompt field', () => {
   for (const locale of ['en', 'zh'] as const) {
-    for (const key of ['restage', 'change_pov', 'change_decision', 'fill_gap', 'change_rule', 'transpose'] as const) {
+    for (const key of [
+      'restage',
+      'change_pov',
+      'change_decision',
+      'fill_gap',
+      'change_rule',
+      'transpose',
+    ] as const) {
       assert.ok(studioMessage(locale, key));
       assert.ok(studioMessage(locale, `${key}Hint`));
     }
-    for (const key of ['viewpoint', 'decision', 'ending', 'visual_style', 'camera', 'time_window', 'world_rule', 'setting'] as const) {
+    for (const key of [
+      'viewpoint',
+      'decision',
+      'ending',
+      'visual_style',
+      'camera',
+      'time_window',
+      'world_rule',
+      'setting',
+    ] as const) {
       assert.ok(studioMessage(locale, `lesson_${key}`));
     }
   }

@@ -33,7 +33,10 @@ export function createStudioClient(request: StudioTransport) {
   }
   return {
     discovery(input: DiscoveryInput = {}, signal?: AbortSignal) {
-      const query = new URLSearchParams({ limit: '10', familiar_percent: '70' });
+      const query = new URLSearchParams({
+        limit: '10',
+        familiar_percent: '70',
+      });
       for (const genre of input.genres ?? []) query.append('genre', genre);
       for (const id of input.exclude ?? []) query.append('exclude', id);
       if (input.rotation) query.set('rotation', input.rotation);
@@ -83,12 +86,7 @@ export function createStudioClient(request: StudioTransport) {
       );
     },
     fork(id: string, input: ForkInput, key: string, signal?: AbortSignal) {
-      return post<StudioResult>(
-        `${projectPath(id)}/forks`,
-        input,
-        key,
-        signal,
-      );
+      return post<StudioResult>(`${projectPath(id)}/forks`, input, key, signal);
     },
   };
 }

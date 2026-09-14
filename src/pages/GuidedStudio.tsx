@@ -18,7 +18,8 @@ type SessionIdentity = { user: { id: string } };
 export default function GuidedStudio() {
   const t = useStudioCopy();
   const loadIdentity = useCallback(
-    (signal: AbortSignal) => api<SessionIdentity>('/v1/auth/me', { signal, cache: 'no-store' }),
+    (signal: AbortSignal) =>
+      api<SessionIdentity>('/v1/auth/me', { signal, cache: 'no-store' }),
     [],
   );
   const session = useStudioResource(loadIdentity);
@@ -33,14 +34,23 @@ export default function GuidedStudio() {
   return (
     <div className="studio-page">
       <header className="studio-topbar">
-        <Link to="/app" className="studio-text-button">← {t('back')}</Link>
+        <Link to="/app" className="studio-text-button">
+          ← {t('back')}
+        </Link>
         <strong>{t('title')}</strong>
         <LanguageToggle />
       </header>
       <main className="studio-main">
         {session.busy && <p role="status">{t('loading')}</p>}
-        {session.error && <StudioNotice error={session.error} retry={session.retry} />}
-        {session.value?.user.id && <StudioSession key={session.value.user.id} userID={session.value.user.id} />}
+        {session.error && (
+          <StudioNotice error={session.error} retry={session.retry} />
+        )}
+        {session.value?.user.id && (
+          <StudioSession
+            key={session.value.user.id}
+            userID={session.value.user.id}
+          />
+        )}
       </main>
     </div>
   );
@@ -65,8 +75,14 @@ function StudioSession({ userID }: { userID: string }) {
         <small>{t('chinese')}</small>
       </div>
       <Routes>
-        <Route index element={<SeedBrowser client={client} journal={journal} />} />
-        <Route path="projects/:projectId" element={<GuidedProject client={client} journal={journal} />} />
+        <Route
+          index
+          element={<SeedBrowser client={client} journal={journal} />}
+        />
+        <Route
+          path="projects/:projectId"
+          element={<GuidedProject client={client} journal={journal} />}
+        />
         <Route path="*" element={<Navigate to="/app/create" replace />} />
       </Routes>
       <footer className="studio-footer">{t('privacy')}</footer>

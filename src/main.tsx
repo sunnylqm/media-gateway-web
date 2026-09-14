@@ -15,7 +15,11 @@ const GuidedStudio = lazy(() => import('./pages/GuidedStudio'));
 
 function StudioLoading() {
   const { locale } = useI18n();
-  return <div className="content" role="status">{studioMessage(locale, 'loading')}</div>;
+  return (
+    <div className="content" role="status">
+      {studioMessage(locale, 'loading')}
+    </div>
+  );
 }
 
 function App() {

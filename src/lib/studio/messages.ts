@@ -5,8 +5,10 @@ const en = {
   welcome: 'A familiar moment. Your unexpected version.',
   intro: 'Pick a world, find a scene, then change one thing that matters.',
   prototype: 'Draft playground · no generation charges',
-  limitation: 'This release saves your creative choices. It does not yet plan shots, call an LLM, generate video or publish anything.',
-  chinese: 'The current story cards and questions are in Chinese. Interface controls follow your language setting.',
+  limitation:
+    'This release saves your creative choices. It does not yet plan shots, call an LLM, generate video or publish anything.',
+  chinese:
+    'The current story cards and questions are in Chinese. Interface controls follow your language setting.',
   worlds: 'Which world would you like to visit today?',
   all: 'Surprise me',
   wuxia: 'Wuxia',
@@ -19,15 +21,18 @@ const en = {
   mixed: 'A little of both',
   familiar: 'Familiar story patterns',
   original: 'New story seeds',
-  recommendation: 'Recommendations start at 70% familiar / 30% new and adapt to available cards. A genre is a preference, not a strict filter.',
-  sources: 'No verified work scenes in this catalogue yet; familiar cards are general story patterns, not scenes from a named film, book or game.',
+  recommendation:
+    'Recommendations start at 70% familiar / 30% new and adapt to available cards. A genre is a preference, not a strict filter.',
+  sources:
+    'No verified work scenes in this catalogue yet; familiar cards are general story patterns, not scenes from a named film, book or game.',
   work_scene: 'Reviewed work scene',
   archetype: 'General story pattern',
   original_seed: 'New story proposal',
   shuffle: 'Another angle',
   hide: 'Not this one',
   reset: 'Bring all cards back',
-  empty: 'No cards in this view. Try the other route or bring hidden cards back.',
+  empty:
+    'No cards in this view. Try the other route or bring hidden cards back.',
   chooseSeed: 'Start with this scene',
   selected: 'Your starting point',
   transform: 'What would you like to do with it?',
@@ -40,7 +45,8 @@ const en = {
   fill_gap: 'Fill in a missing moment',
   fill_gapHint: 'Explore what happened just before or just after.',
   change_rule: 'Change one rule',
-  change_ruleHint: 'Introduce one exchange or constraint; keep the anchor facts.',
+  change_ruleHint:
+    'Introduce one exchange or constraint; keep the anchor facts.',
   transpose: 'Redress this setting',
   transposeHint: 'Rearrange the scene without replacing its locked setting.',
   create: 'Make this my version',
@@ -54,24 +60,33 @@ const en = {
   saving: 'Saving your choice…',
   working: 'Syncing your draft…',
   ready: 'Your creative brief is ready',
-  readyHint: 'These are your saved intentions, not a validated script or a generated film.',
+  readyHint:
+    'These are your saved intentions, not a validated script or a generated film.',
   next: 'Continue the guide',
   first: 'Let’s make the first choice',
-  nextHint: 'The next question comes from your saved draft. Nothing is submitted to a media model.',
+  nextHint:
+    'The next question comes from your saved draft. Nothing is submitted to a media model.',
   choices: 'Decisions you have made',
   noChoices: 'The story is still open. Your first choice will appear here.',
   brief: 'Your creative brief',
   anchors: 'What stays',
   intentions: 'What you changed',
   lesson: 'How this becomes prompt language',
-  lessonHint: 'This is the saved wording of your intention, not a tested model prompt.',
-  lesson_viewpoint: 'A viewpoint tells the model whose information and reactions to show.',
-  lesson_decision: 'Describe a visible action so that the decision can be seen.',
+  lessonHint:
+    'This is the saved wording of your intention, not a tested model prompt.',
+  lesson_viewpoint:
+    'A viewpoint tells the model whose information and reactions to show.',
+  lesson_decision:
+    'Describe a visible action so that the decision can be seen.',
   lesson_ending: 'Connect the final image to a decision that happened earlier.',
-  lesson_visual_style: 'Describe materials, light and texture instead of only saying “beautiful”.',
-  lesson_camera: 'Describe what the camera reveals, not just the name of a camera move.',
-  lesson_time_window: 'State whether the scene happens before or after the central event.',
-  lesson_world_rule: 'Introduce one clear rule and give it an observable consequence.',
+  lesson_visual_style:
+    'Describe materials, light and texture instead of only saying “beautiful”.',
+  lesson_camera:
+    'Describe what the camera reveals, not just the name of a camera move.',
+  lesson_time_window:
+    'State whether the scene happens before or after the central event.',
+  lesson_world_rule:
+    'Introduce one clear rule and give it an observable consequence.',
   lesson_setting: 'Explain what changes in the environment and what must stay.',
   viewpoint: 'Viewpoint',
   decision: 'Decision',
@@ -82,14 +97,17 @@ const en = {
   world_rule: 'World rule',
   setting: 'Setting',
   history: 'Visit an earlier version',
-  historyHint: 'History is read-only. Opening it never rolls back your current draft.',
+  historyHint:
+    'History is read-only. Opening it never rolls back your current draft.',
   historyInput: 'Version number',
   view: 'View version',
   current: 'Return to current draft',
   historical: 'Reading an earlier version — no changes will be written here.',
-  badRevision: 'Enter a positive whole-number version that exists in this draft.',
+  badRevision:
+    'Enter a positive whole-number version that exists in this draft.',
   fork: 'Start another version from here',
-  forkHint: 'This keeps the source and a link to this exact version. It starts a fresh set of choices; it does not copy an existing film or prior choices.',
+  forkHint:
+    'This keeps the source and a link to this exact version. It starts a fresh set of choices; it does not copy an existing film or prior choices.',
   forkAction: 'Create a new branch',
   forkBusy: 'Saving the branch…',
   parent: 'Based on an earlier draft',
@@ -98,23 +116,33 @@ const en = {
   auth: 'Your session has expired. Sign in again, then reopen this draft.',
   signIn: 'Sign in',
   forbidden: 'This session cannot access the draft. Refresh or sign in again.',
-  missing: 'This draft or version is unavailable to this account. Return to your drafts.',
-  unavailable: 'The draft API is not available on this gateway. It may need deployment and GATEWAY_STUDIO_ENABLED=true. Freeform creation is unchanged.',
-  conflict: 'This draft changed in another view. Load the current version before making another choice; nothing will be overwritten automatically.',
-  quota: 'This workspace has reached its draft limit. Continue an existing draft or contact the operator.',
+  missing:
+    'This draft or version is unavailable to this account. Return to your drafts.',
+  unavailable:
+    'The draft API is not available on this gateway. It may need deployment and GATEWAY_STUDIO_ENABLED=true. Freeform creation is unchanged.',
+  conflict:
+    'This draft changed in another view. Load the current version before making another choice; nothing will be overwritten automatically.',
+  quota:
+    'This workspace has reached its draft limit. Continue an existing draft or contact the operator.',
   rate: 'Too many requests. Pause briefly, then retry.',
-  invalid: 'The request no longer matches the available options. Refresh and choose again.',
-  network: 'The result could not be confirmed. A choice may already be saved. Retry or reopen the draft; identical retries do not create a second choice.',
+  invalid:
+    'The request no longer matches the available options. Refresh and choose again.',
+  network:
+    'The result could not be confirmed. A choice may already be saved. Retry or reopen the draft; identical retries do not create a second choice.',
   refreshError: 'Could not refresh this view.',
   copy: 'Copy the creative brief',
   copied: 'Brief copied',
   copyFailed: 'Copy failed. You can select the visible text instead.',
-  briefFooter: 'Creative intentions only. No script, storyboard or video has been generated.',
+  briefFooter:
+    'Creative intentions only. No script, storyboard or video has been generated.',
   another: 'Find a different story',
   freeform: 'Open freeform video studio',
-  privacy: 'Draft choices stay private. Leaving this page does not publish them.',
-  requestPending: 'A save may have reached the server. Retrying the same start in this tab reuses its request key.',
-  readOnlyPending: 'This version includes an unanswered question. Return to the current draft or start a branch to continue.',
+  privacy:
+    'Draft choices stay private. Leaving this page does not publish them.',
+  requestPending:
+    'A save may have reached the server. Retrying the same start in this tab reuses its request key.',
+  readOnlyPending:
+    'This version includes an unanswered question. Return to the current draft or start a branch to continue.',
 } as const;
 
 type Key = keyof typeof en;
@@ -125,7 +153,8 @@ const zh: Record<Key, string> = {
   welcome: '熟悉的一幕，换你来决定。',
   intro: '选一个想进入的世界，找到有感觉的一幕，再改变一件重要的事。',
   prototype: '草稿体验 · 不产生生成费用',
-  limitation: '当前版本保存你的创作选择，尚不编排分镜、调用 LLM、生成视频或发布作品。',
+  limitation:
+    '当前版本保存你的创作选择，尚不编排分镜、调用 LLM、生成视频或发布作品。',
   chinese: '当前故事卡片和问题使用中文；操作界面跟随你的语言设置。',
   worlds: '今天，你想钻进哪一种故事？',
   all: '带我随便逛逛',
@@ -139,8 +168,10 @@ const zh: Record<Key, string> = {
   mixed: '都看看',
   familiar: '从熟悉桥段开始',
   original: '一起想个新故事',
-  recommendation: '推荐初始按熟悉桥段七成、新故事三成混合，随可用内容调整。题材影响排序，不是严格筛选。',
-  sources: '本批内容暂不含已核实的具体作品场景；熟悉路线提供通用桥段，不冒充某部电影、书籍或游戏的名场面。',
+  recommendation:
+    '推荐初始按熟悉桥段七成、新故事三成混合，随可用内容调整。题材影响排序，不是严格筛选。',
+  sources:
+    '本批内容暂不含已核实的具体作品场景；熟悉路线提供通用桥段，不冒充某部电影、书籍或游戏的名场面。',
   work_scene: '已审核作品场景',
   archetype: '通用桥段',
   original_seed: '新故事提案',
@@ -209,7 +240,8 @@ const zh: Record<Key, string> = {
   historical: '你正在回看历史版本，这里不会写入修改。',
   badRevision: '请输入这份草稿中存在的正整数版本号。',
   fork: '从这里，再试一个版本',
-  forkHint: '保留起点和这个版本的来源链接，重新开始做选择；不复制旧选择，也不代表继承了一部已生成的影片。',
+  forkHint:
+    '保留起点和这个版本的来源链接，重新开始做选择；不复制旧选择，也不代表继承了一部已生成的影片。',
   forkAction: '新开一条故事分支',
   forkBusy: '正在保存新分支…',
   parent: '来自之前的一份草稿',
@@ -219,12 +251,15 @@ const zh: Record<Key, string> = {
   signIn: '重新登录',
   forbidden: '当前会话无法访问草稿，请刷新或重新登录。',
   missing: '当前账号无法访问这份草稿或版本，请返回草稿列表。',
-  unavailable: '这个网关尚未提供草稿接口，可能需要部署并开启 GATEWAY_STUDIO_ENABLED=true。原有自由创作不受影响。',
-  conflict: '草稿已在其他页面发生变化。请先加载当前版本，再做选择；系统不会自动覆盖任何决定。',
+  unavailable:
+    '这个网关尚未提供草稿接口，可能需要部署并开启 GATEWAY_STUDIO_ENABLED=true。原有自由创作不受影响。',
+  conflict:
+    '草稿已在其他页面发生变化。请先加载当前版本，再做选择；系统不会自动覆盖任何决定。',
   quota: '工作区已达到草稿数量上限。可以继续已有草稿，或联系管理员处理。',
   rate: '请求有些频繁，稍后再试。',
   invalid: '请求与当前可用选项不一致，请刷新后重新选择。',
-  network: '暂时没能确认结果，选择可能已经保存。重试或重新打开草稿即可，相同请求不会重复记录选择。',
+  network:
+    '暂时没能确认结果，选择可能已经保存。重试或重新打开草稿即可，相同请求不会重复记录选择。',
   refreshError: '这次没能刷新页面。',
   copy: '复制创意简报',
   copied: '简报已复制',
@@ -233,12 +268,17 @@ const zh: Record<Key, string> = {
   another: '去找另一个故事',
   freeform: '打开自由视频工作台',
   privacy: '草稿选择保持私密，离开页面不会发布它们。',
-  requestPending: '保存请求可能已送达服务器。在这个标签页重试相同起点，会沿用原请求标识。',
-  readOnlyPending: '这个历史版本还有一道未回答的问题。回到当前草稿或新建分支后可以继续。',
+  requestPending:
+    '保存请求可能已送达服务器。在这个标签页重试相同起点，会沿用原请求标识。',
+  readOnlyPending:
+    '这个历史版本还有一道未回答的问题。回到当前草稿或新建分支后可以继续。',
 };
 
 export type StudioMessageKey = Key;
-export type StudioCopy = (key: Key, values?: Record<string, string | number>) => string;
+export type StudioCopy = (
+  key: Key,
+  values?: Record<string, string | number>,
+) => string;
 export function studioMessage(
   locale: 'en' | 'zh',
   key: Key,

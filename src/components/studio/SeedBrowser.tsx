@@ -78,7 +78,11 @@ export function SeedBrowser({
         transformation: operation,
       };
       const ticket = journal.prepare('create', body);
-      const result = await client.create(body, ticket.key, abort.current.signal);
+      const result = await client.create(
+        body,
+        ticket.key,
+        abort.current.signal,
+      );
       if (!active.current) return;
       journal.acknowledge(ticket);
       navigate(`/app/create/projects/${encodeURIComponent(result.project.id)}`);
@@ -138,30 +142,37 @@ export function SeedBrowser({
             {t('shuffle')}
           </button>
         </div>
-        <div className="studio-chips" aria-label={t('startingPoints')}>
-          {routes.map((value) => (
-            <button
-              type="button"
-              className="studio-chip"
-              aria-pressed={route === value}
-              disabled={creating}
-              key={value}
-              onClick={() => {
-                setRoute(value);
-                clearSelection();
-              }}
-            >
-              {t(value)}
-            </button>
-          ))}
-        </div>
+        <fieldset className="studio-fieldset" disabled={creating}>
+          <legend className="sr-only">{t('startingPoints')}</legend>
+          <div className="studio-chips">
+            {routes.map((value) => (
+              <button
+                type="button"
+                className="studio-chip"
+                aria-pressed={route === value}
+                disabled={creating}
+                key={value}
+                onClick={() => {
+                  setRoute(value);
+                  clearSelection();
+                }}
+              >
+                {t(value)}
+              </button>
+            ))}
+          </div>
+        </fieldset>
         <p className="studio-note">{t('recommendation')}</p>
         {discovery.value?.discovery.work_scene_count === 0 && (
           <p className="studio-note">{t('sources')}</p>
         )}
         {discovery.busy && <p role="status">{t('loading')}</p>}
         {discovery.error && (
-          <StudioNotice error={discovery.error} discovery retry={discovery.retry} />
+          <StudioNotice
+            error={discovery.error}
+            discovery
+            retry={discovery.retry}
+          />
         )}
         <div className="studio-seeds" aria-busy={discovery.busy}>
           {cards.map((card) => (
@@ -222,7 +233,9 @@ export function SeedBrowser({
           aria-labelledby="studio-customise-title"
         >
           <span className="eyebrow">{t('selected')}</span>
-          <h2 id="studio-customise-title" lang="zh-CN">{seed.title}</h2>
+          <h2 id="studio-customise-title" lang="zh-CN">
+            {seed.title}
+          </h2>
           <p lang="zh-CN">{seed.hook}</p>
           <fieldset className="studio-fieldset" disabled={creating}>
             <legend>{t('transform')}</legend>

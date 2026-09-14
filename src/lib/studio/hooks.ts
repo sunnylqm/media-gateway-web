@@ -39,11 +39,14 @@ export function useProject(
 }
 
 // load must have stable identity. Obsolete responses never update the view.
-export function useStudioResource<T>(load: (signal: AbortSignal) => Promise<T>) {
+export function useStudioResource<T>(
+  load: (signal: AbortSignal) => Promise<T>,
+) {
   const [value, setValue] = useState<T | null>(null);
   const [error, setError] = useState<Failure | null>(null);
   const [busy, setBusy] = useState(true);
   const [attempt, setAttempt] = useState(0);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: attempt is an explicit refetch token for retries and session revalidation.
   useEffect(() => {
     const abort = new AbortController();
     let active = true;
