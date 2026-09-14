@@ -6,6 +6,7 @@ import {
   LogOut,
   Menu,
   Settings,
+  Sparkles,
   X,
 } from 'lucide-react';
 import { Dialog } from 'radix-ui';
@@ -17,6 +18,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { useI18n } from '@/i18n';
+import { studioEnabled } from '../lib/studio/config';
+import { studioMessage } from '../lib/studio/messages';
 import { Brand } from './Brand';
 import { Footer } from './Footer';
 import { LanguageMenuGroup } from './LanguageSwitch';
@@ -101,7 +104,7 @@ export function Shell({
   onLogout: () => void;
   children: ReactNode;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const initials = identity.slice(0, 2).toUpperCase();
@@ -112,6 +115,21 @@ export function Shell({
       setMobileOpen(false);
     }
   }, [location.pathname]);
+
+  const links =
+    !admin &&
+    studioEnabled &&
+    !navigation.some((item) => item.to === '/app/create')
+      ? [
+          {
+            label: studioMessage(locale, 'title'),
+            to: '/app/create',
+            icon: <Sparkles size={17} />,
+            nested: true,
+          },
+          ...navigation,
+        ]
+      : navigation;
 
   const workspaceTitle = admin
     ? t('shell.systemControl')
@@ -168,7 +186,7 @@ export function Shell({
               className="sidebar-nav drawer-nav"
               aria-label={t('shell.navigationAria')}
             >
-              {navigation.map((item) => (
+              {links.map((item) => (
                 <NavLink
                   key={item.to}
                   to={item.to}
@@ -197,7 +215,7 @@ export function Shell({
         <Brand />
         <div className="workspace-label">{workspaceTitle}</div>
         <nav className="sidebar-nav" aria-label={t('shell.navigationAria')}>
-          {navigation.map((item) => (
+          {links.map((item) => (
             <Tooltip key={item.to}>
               <TooltipTrigger asChild>
                 <NavLink to={item.to} end={!item.nested} className="nav-item">
