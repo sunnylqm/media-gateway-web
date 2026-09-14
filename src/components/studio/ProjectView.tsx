@@ -8,13 +8,22 @@ import {
   parseRevision,
 } from '../../lib/studio/controller';
 import { useProject, useStudioCopy } from '../../lib/studio/hooks';
+import type { PlanningClient } from '../../lib/studio/planningClient';
+import type { PlanningJournal } from '../../lib/studio/planningJournal';
 import type { StudioRecord, Transformation } from '../../lib/studio/types';
 import { CreativeBrief } from './CreativeBrief';
 import { StudioNotice } from './Notice';
+import { PlanningPanel, SavedPlan } from './PlanningPanel';
 
 type Props = { client: StudioClient; journal: CommandJournal };
 
-export function GuidedProject(props: Props) {
+type PlanningProps = {
+  planningClient: PlanningClient;
+  planningJournal: PlanningJournal;
+  active: boolean;
+};
+
+export function GuidedProject(props: Props & PlanningProps) {
   const { projectId = '' } = useParams();
   const [query] = useSearchParams();
   const t = useStudioCopy();
@@ -44,10 +53,14 @@ function ProjectView({
   journal,
   id,
   revision,
-}: Props & {
-  id: string;
-  revision?: number;
-}) {
+  planningClient,
+  planningJournal,
+  active,
+}: Props &
+  PlanningProps & {
+    id: string;
+    revision?: number;
+  }) {
   const t = useStudioCopy();
   const { state, controller } = useProject(client, id, revision);
   const heading = useRef<HTMLHeadingElement | null>(null);
@@ -185,6 +198,18 @@ function ProjectView({
               record={record}
             />
           </div>
+          <SavedPlan value={record.project.plan} />
+          {!readOnly && (
+            <PlanningPanel
+              client={planningClient}
+              journal={planningJournal}
+              project={record.project}
+              guideComplete={complete === true}
+              blocked={busy || conflict || error !== null}
+              active={active}
+              refreshProject={() => controller.load()}
+            />
+          )}
           <History record={record} readOnly={readOnly} />
           <Fork
             key={`${id}:${record.project.version}`}
