@@ -8,9 +8,11 @@ import { studioEnabled } from './lib/studio/config';
 import { studioMessage } from './lib/studio/messages';
 import { AdminConsole } from './pages/AdminConsole';
 import { AdminLogin } from './pages/AdminLogin';
+import { Home } from './pages/Home';
 import { TenantConsole } from './pages/TenantConsole';
 import { TenantLogin } from './pages/TenantLogin';
 import './styles.css';
+import './styles/brand.css';
 
 const GuidedStudio = lazy(() => import('./pages/GuidedStudio'));
 
@@ -29,7 +31,7 @@ function App() {
       <TooltipProvider delayDuration={300}>
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Navigate to="/app" replace />} />
+            <Route path="/" element={<Home />} />
             <Route path="/app/login" element={<TenantLogin />} />
             <Route
               path="/app/register"

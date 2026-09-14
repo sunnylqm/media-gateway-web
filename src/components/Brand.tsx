@@ -1,14 +1,35 @@
-import { Aperture } from 'lucide-react';
 import { useI18n } from '@/i18n';
 
-export function Brand({ compact = false }: { compact?: boolean }) {
+export function Brand({
+  compact = false,
+  tagline = true,
+}: {
+  compact?: boolean;
+  tagline?: boolean;
+}) {
   const { t } = useI18n();
   return (
-    <div className="brand" role="banner" aria-label={t('brand.name')}>
-      <span className="brand-mark">
-        <Aperture size={19} strokeWidth={2.2} />
-      </span>
-      {!compact && <span className="brand-name">{t('brand.name')}</span>}
-    </div>
+    <span className="brand">
+      <img
+        className="brand-mark"
+        src="/brand/mypub-mark.svg"
+        alt=""
+        width={52}
+        height={52}
+        aria-hidden="true"
+      />
+      {compact ? (
+        <span className="sr-only">{t('brand.name')}</span>
+      ) : (
+        <span className="brand-copy">
+          <span className="brand-name">
+            mypub<span className="brand-domain">.ai</span>
+          </span>
+          {tagline && (
+            <span className="brand-tagline">{t('brand.tagline')}</span>
+          )}
+        </span>
+      )}
+    </span>
   );
 }
