@@ -23,7 +23,9 @@ export function PlanPreview({ plan }: { plan: StoryPlan }) {
       <details className="studio-lesson">
         <summary>{t('beats')}</summary>
         <ol>
-          {plan.beats.map((beat) => <li key={beat.id}>{beat.action}</li>)}
+          {plan.beats.map((beat) => (
+            <li key={beat.id}>{beat.action}</li>
+          ))}
         </ol>
       </details>
       <h4>{t('shots')}</h4>
@@ -37,7 +39,11 @@ export function PlanPreview({ plan }: { plan: StoryPlan }) {
   );
 }
 
-function ShotPreview({ shot, index, plan }: {
+function ShotPreview({
+  shot,
+  index,
+  plan,
+}: {
   shot: StoryPlan['shots'][number];
   index: number;
   plan: StoryPlan;
@@ -56,12 +62,16 @@ function ShotPreview({ shot, index, plan }: {
   return (
     <article className="studio-plan-shot">
       <h5>{t('shot', { index: index + 1 })}</h5>
-      <small>{t('durations', {
-        edit: shot.edit_duration_ms / 1000,
-        generation: shot.generation_duration_ms / 1000,
-      })}</small>
+      <small>
+        {t('durations', {
+          edit: shot.edit_duration_ms / 1000,
+          generation: shot.generation_duration_ms / 1000,
+        })}
+      </small>
       <p>{shot.action}</p>
-      <p><b>{t('camera')}</b> · {shot.camera}</p>
+      <p>
+        <b>{t('camera')}</b> · {shot.camera}
+      </p>
       <details className="studio-lesson">
         <summary>{t('prompts')}</summary>
         <p className="studio-note">{t('provenance')}</p>
@@ -70,12 +80,15 @@ function ShotPreview({ shot, index, plan }: {
             <blockquote>{segment.text}</blockquote>
             {(segment.choice_turn_ids ?? []).map((id) => (
               <p key={`choice:${id}`} className="studio-note">
-                <b>{t('choice')}</b> · {plan.applied_choices.find((c) => c.turn_id === id)?.value ?? id}
+                <b>{t('choice')}</b> ·{' '}
+                {plan.applied_choices.find((c) => c.turn_id === id)?.value ??
+                  id}
               </p>
             ))}
             {(segment.fact_ids ?? []).map((id) => (
               <p key={`fact:${id}`} className="studio-note">
-                <b>{t('fact')}</b> · {plan.locked_facts.find((f) => f.id === id)?.text ?? id}
+                <b>{t('fact')}</b> ·{' '}
+                {plan.locked_facts.find((f) => f.id === id)?.text ?? id}
               </p>
             ))}
             {!segment.choice_turn_ids?.length && !segment.fact_ids?.length && (
@@ -83,7 +96,11 @@ function ShotPreview({ shot, index, plan }: {
             )}
           </section>
         ))}
-        <button type="button" className="button secondary" onClick={() => void copy()}>
+        <button
+          type="button"
+          className="button secondary"
+          onClick={() => void copy()}
+        >
           {t('copy')}
         </button>
         {copied && <p role="status">{t(copied)}</p>}

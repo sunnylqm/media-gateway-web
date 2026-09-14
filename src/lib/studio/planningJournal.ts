@@ -79,7 +79,10 @@ export class PlanningJournal {
   }
 }
 
-function validTicket(value: unknown, projectID: string): value is PlanningTicket {
+function validTicket(
+  value: unknown,
+  projectID: string,
+): value is PlanningTicket {
   const ticket = value as Partial<PlanningTicket> | null;
   const body = ticket?.body;
   return !!(

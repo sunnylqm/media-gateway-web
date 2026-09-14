@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Link, Navigate, Route, Routes } from 'react-router';
 import { api, gatewayURL } from '../api';
-import { useI18n } from '../i18n';
-import { createPlanningClient } from '../lib/studio/planningClient';
-import { planningCopy } from '../lib/studio/planningCopy';
-import { PlanningJournal } from '../lib/studio/planningJournal';
 import { LanguageToggle } from '../components/LanguageSwitch';
 import { StudioNotice } from '../components/studio/Notice';
 import { GuidedProject } from '../components/studio/ProjectView';
 import { SeedBrowser } from '../components/studio/SeedBrowser';
+import { useI18n } from '../i18n';
 import { createStudioClient } from '../lib/studio/client';
 import { CommandJournal } from '../lib/studio/commands';
 import { useStudioCopy } from '../lib/studio/hooks';
+import { createPlanningClient } from '../lib/studio/planningClient';
+import { planningCopy } from '../lib/studio/planningCopy';
+import { PlanningJournal } from '../lib/studio/planningJournal';
 import { StudioSessionController } from '../lib/studio/session';
 import '../styles/studio.css';
 
@@ -85,7 +85,11 @@ function StudioSession({
   );
   const planningJournal = useMemo(() => {
     let storage: Storage | undefined;
-    try { storage = window.sessionStorage; } catch { /* Optional storage. */ }
+    try {
+      storage = window.sessionStorage;
+    } catch {
+      /* Optional storage. */
+    }
     return new PlanningJournal(gatewayURL, userID, storage);
   }, [userID]);
   const journal = useMemo(() => {
@@ -111,8 +115,15 @@ function StudioSession({
         />
         <Route
           path="projects/:projectId"
-          element={<GuidedProject client={client} journal={journal}
-            planningClient={planningClient} planningJournal={planningJournal} active={active} />}
+          element={
+            <GuidedProject
+              client={client}
+              journal={journal}
+              planningClient={planningClient}
+              planningJournal={planningJournal}
+              active={active}
+            />
+          }
         />
         <Route path="*" element={<Navigate to="/app/create" replace />} />
       </Routes>

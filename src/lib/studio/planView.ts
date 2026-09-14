@@ -5,7 +5,8 @@ const object = (v: unknown): v is Record<string, unknown> =>
 const textFields = (v: Record<string, unknown>, fields: string[]) =>
   fields.every((key) => typeof v[key] === 'string');
 const strings = (v: unknown) =>
-  v == null || (Array.isArray(v) && v.every((item) => typeof item === 'string'));
+  v == null ||
+  (Array.isArray(v) && v.every((item) => typeof item === 'string'));
 
 /** Rendering guard only. The server owns structural and authorization checks. */
 export function readStoryPlan(value: unknown): StoryPlan | null {
@@ -22,9 +23,12 @@ export function readStoryPlan(value: unknown): StoryPlan | null {
     return null;
   }
   if (
-    !value.locked_facts.every((f) => object(f) && textFields(f, ['id', 'text'])) ||
+    !value.locked_facts.every(
+      (f) => object(f) && textFields(f, ['id', 'text']),
+    ) ||
     !value.applied_choices.every(
-      (c) => object(c) && textFields(c, ['turn_id', 'option_id', 'field', 'value']),
+      (c) =>
+        object(c) && textFields(c, ['turn_id', 'option_id', 'field', 'value']),
     ) ||
     !value.beats.every(
       (b) => object(b) && textFields(b, ['id', 'kind', 'action']),

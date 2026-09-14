@@ -1,6 +1,5 @@
-import { readStoryPlan } from './planView';
 import type { PlanningClient } from './planningClient';
-import { type PlanningJournal, type PlanningTicket } from './planningJournal';
+import type { PlanningJournal, PlanningTicket } from './planningJournal';
 import {
   activePlanningTask,
   canAcceptPlan,
@@ -8,6 +7,7 @@ import {
   type PlanningTask,
   supportedPlanning,
 } from './planningTypes';
+import { readStoryPlan } from './planView';
 
 export type PlanningFailure =
   | 'auth'
@@ -133,7 +133,10 @@ export class PlanningController {
       if (this.current(epoch)) this.update({ error: planningFailure(reason) });
     } finally {
       if (this.current(epoch)) {
-        this.update({ busy: false, pending: this.journal.peek(this.projectID) });
+        this.update({
+          busy: false,
+          pending: this.journal.peek(this.projectID),
+        });
       }
     }
   }
@@ -224,7 +227,12 @@ export class PlanningController {
 
   async accept(id: string, version: number, confirmed: boolean) {
     const task = this.state.tasks.find((item) => item.id === id);
-    if (!confirmed || !this.mayWrite() || !task || !canAcceptPlan(task, version)) {
+    if (
+      !confirmed ||
+      !this.mayWrite() ||
+      !task ||
+      !canAcceptPlan(task, version)
+    ) {
       return null;
     }
     const { epoch, signal } = this.begin();
@@ -285,7 +293,8 @@ export class PlanningController {
       !this.state.busy &&
       !this.state.mutation &&
       supportedPlanning(this.state.info) &&
-      (!this.state.error || (recovery && ['network', 'rate'].includes(this.state.error)))
+      (!this.state.error ||
+        (recovery && ['network', 'rate'].includes(this.state.error)))
     );
   }
   private projectTasks(tasks: PlanningTask[]) {
@@ -301,9 +310,20 @@ export class PlanningController {
         ids.has(task.id) ||
         !Number.isSafeInteger(task.input_version) ||
         task.input_version < 1 ||
-        !['queued', 'running', 'ready', 'failed', 'interrupted', 'canceled', 'stale', 'accepted'].includes(task.state) ||
-        !task.usage || typeof task.usage.known !== 'boolean' ||
-        !task.profile || typeof task.profile.model !== 'string' ||
+        ![
+          'queued',
+          'running',
+          'ready',
+          'failed',
+          'interrupted',
+          'canceled',
+          'stale',
+          'accepted',
+        ].includes(task.state) ||
+        !task.usage ||
+        typeof task.usage.known !== 'boolean' ||
+        !task.profile ||
+        typeof task.profile.model !== 'string' ||
         (task.plan != null && !readStoryPlan(task.plan)) ||
         (['ready', 'accepted'].includes(task.state) && !task.plan)
       ) {
