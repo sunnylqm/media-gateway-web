@@ -32,6 +32,12 @@ jobs:
         run: bun run build
         env:
           VITE_STUDIO_ENABLED: 'true'
+      - name: Save build for browser regression checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: studio-ui-build
+          path: dist
+          retention-days: 3
       - name: Formatting diagnostics
         if: failure()
         run: |

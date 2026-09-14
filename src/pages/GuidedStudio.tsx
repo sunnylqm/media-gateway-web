@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { Link, Navigate, Route, Routes } from 'react-router';
 import { api, gatewayURL } from '../api';
 import { LanguageToggle } from '../components/LanguageSwitch';
@@ -7,30 +7,29 @@ import { GuidedProject } from '../components/studio/ProjectView';
 import { SeedBrowser } from '../components/studio/SeedBrowser';
 import { createStudioClient } from '../lib/studio/client';
 import { CommandJournal } from '../lib/studio/commands';
-import { useStudioCopy, useStudioResource } from '../lib/studio/hooks';
+import { useStudioCopy } from '../lib/studio/hooks';
+import { StudioSessionController } from '../lib/studio/session';
 import '../styles/studio.css';
 
-const client = createStudioClient(api);
-type SessionIdentity = { user: { id: string } };
-
-// Immersive route, independent of the media-history polling screen. The only
-// identity source is the same authenticated /me endpoint used by that screen.
+// Identity checks have a separate lifecycle from replace-on-load resources
+// such as discovery. Same-account focus must not reset local creative choices.
 export default function GuidedStudio() {
   const t = useStudioCopy();
-  const loadIdentity = useCallback(
-    (signal: AbortSignal) =>
-      api<SessionIdentity>('/v1/auth/me', { signal, cache: 'no-store' }),
-    [],
+  const controller = useMemo(() => new StudioSessionController(api), []);
+  const session = useSyncExternalStore(
+    controller.subscribe,
+    controller.getSnapshot,
   );
-  const session = useStudioResource(loadIdentity);
-  const refreshSession = session.retry;
   useEffect(() => {
-    // Another tab may have switched accounts. Drop the old account's view
-    // while validating the current session before restoring the project.
-    window.addEventListener('focus', refreshSession);
-    return () => window.removeEventListener('focus', refreshSession);
-  }, [refreshSession]);
+    void controller.refresh();
+    window.addEventListener('focus', controller.refresh);
+    return () => {
+      window.removeEventListener('focus', controller.refresh);
+      controller.dispose();
+    };
+  }, [controller]);
   if (session.error === 'auth') return <Navigate to="/app/login" replace />;
+  const blocked = session.busy || session.error !== null;
   return (
     <div className="studio-page">
       <header className="studio-topbar">
@@ -43,21 +42,34 @@ export default function GuidedStudio() {
       <main className="studio-main">
         {session.busy && <p role="status">{t('loading')}</p>}
         {session.error && (
-          <StudioNotice error={session.error} retry={session.retry} />
+          <StudioNotice error={session.error} retry={controller.refresh} />
         )}
-        {session.value?.user.id && (
-          <StudioSession
-            key={session.value.user.id}
-            userID={session.value.user.id}
-          />
-        )}
+        <div hidden={blocked} inert={blocked}>
+          {session.value?.user.id && (
+            <StudioSession
+              key={session.value.user.id}
+              userID={session.value.user.id}
+              controller={controller}
+            />
+          )}
+        </div>
       </main>
     </div>
   );
 }
 
-function StudioSession({ userID }: { userID: string }) {
+function StudioSession({
+  userID,
+  controller,
+}: {
+  userID: string;
+  controller: StudioSessionController;
+}) {
   const t = useStudioCopy();
+  const client = useMemo(
+    () => createStudioClient(controller.forUser(userID)),
+    [controller, userID],
+  );
   const journal = useMemo(() => {
     let storage: Storage | undefined;
     try {

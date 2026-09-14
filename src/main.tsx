@@ -2,6 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { StudioRouteBoundary } from './components/studio/RouteBoundary';
 import { LocaleProvider, useI18n } from './i18n';
 import { studioEnabled } from './lib/studio/config';
 import { studioMessage } from './lib/studio/messages';
@@ -38,9 +39,11 @@ function App() {
               <Route
                 path="/app/create/*"
                 element={
-                  <Suspense fallback={<StudioLoading />}>
-                    <GuidedStudio />
-                  </Suspense>
+                  <StudioRouteBoundary>
+                    <Suspense fallback={<StudioLoading />}>
+                      <GuidedStudio />
+                    </Suspense>
+                  </StudioRouteBoundary>
                 }
               />
             )}
