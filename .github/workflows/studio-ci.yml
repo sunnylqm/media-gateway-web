@@ -28,10 +28,24 @@ jobs:
         run: bun run build
         env:
           VITE_STUDIO_ENABLED: 'false'
+      - name: Validate Worker deployment with Studio hidden
+        run: |
+          test -s dist/index.html
+          npx --yes wrangler@4 deploy --dry-run
+          npx --yes wrangler@4 versions upload --dry-run
+        env:
+          WRANGLER_SEND_METRICS: 'false'
       - name: Build with Studio enabled
         run: bun run build
         env:
           VITE_STUDIO_ENABLED: 'true'
+      - name: Validate Worker deployment with Studio enabled
+        run: |
+          test -s dist/index.html
+          npx --yes wrangler@4 deploy --dry-run
+          npx --yes wrangler@4 versions upload --dry-run
+        env:
+          WRANGLER_SEND_METRICS: 'false'
       - name: Save build for browser regression checks
         uses: actions/upload-artifact@v4
         with:
