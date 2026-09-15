@@ -9,6 +9,7 @@ import { creationPath } from '../lib/brand';
 import { studioEnabled } from '../lib/studio/config';
 import { useAmbientMotion } from '../lib/useAmbientMotion';
 import '../styles/immersive-home.css';
+import '../styles/realistic-sky.css';
 
 const videoSrc = mediaURL(import.meta.env.VITE_HOME_VIDEO_URL);
 const posterSrc = mediaURL(import.meta.env.VITE_HOME_POSTER_URL);
@@ -71,7 +72,6 @@ export function Home() {
 
       <footer className="home-footer">
         <div className="home-footer-copy">
-          <p>{t('home.note')}</p>
           <small>&copy; {new Date().getFullYear()} CHARMLOT PTE. LTD.</small>
         </div>
         <div className="home-utilities">

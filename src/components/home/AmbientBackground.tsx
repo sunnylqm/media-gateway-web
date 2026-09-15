@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { starLayers } from '../../lib/ambient';
+import { PhotographicSky } from './PhotographicSky';
 
 type AmbientBackgroundProps = {
   moving: boolean;
@@ -9,7 +9,7 @@ type AmbientBackgroundProps = {
 };
 
 // Keep foreground layout independent of the eventual film. Until video is
-// actually playing, the same quiet sky remains visible (also on playback error).
+// actually playing, the GPU sky remains visible (also on playback error).
 export function AmbientBackground({
   moving,
   reducedMotion,
@@ -44,16 +44,7 @@ export function AmbientBackground({
 
   return (
     <div className="home-backdrop" aria-hidden="true">
-      <div className="home-sky" data-moving={moving && !(ready && showVideo)}>
-        <div className="home-nebula" />
-        {starLayers.map((backgroundImage, index) => (
-          <div
-            key={backgroundImage}
-            className={`home-stars home-stars-${index}`}
-            style={{ backgroundImage }}
-          />
-        ))}
-      </div>
+      <PhotographicSky moving={moving && !(ready && showVideo)} />
       {reducedMotion && posterSrc && !posterFailed && (
         <img
           className="home-poster"
