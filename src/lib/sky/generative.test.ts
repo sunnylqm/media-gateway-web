@@ -50,9 +50,7 @@ describe('constrained generative skies', () => {
         expect(finite).not.toContain('null');
         expect(recipe.thickness).toBeGreaterThanOrEqual(0.86);
         expect(recipe.thickness).toBeLessThanOrEqual(1.14);
-        expect(recipe.density * recipe.thickness).toBeGreaterThanOrEqual(
-          0.975,
-        );
+        expect(recipe.density * recipe.thickness).toBeGreaterThanOrEqual(0.975);
         expect(recipe.density * recipe.thickness).toBeLessThanOrEqual(1.025);
         expect(Math.abs(recipe.roll)).toBeLessThanOrEqual(0.075);
         expect(Math.abs(recipe.offset[0])).toBeLessThanOrEqual(1.25);
