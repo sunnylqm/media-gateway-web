@@ -187,7 +187,10 @@ export function buildGalaxyFragment(
 }
 
 // Compile just one generated world; keep its recipe across context recovery.
-export const galaxyFragment = buildGalaxyFragment(getSkyPreset(), getSkyRecipe());
+export const galaxyFragment = buildGalaxyFragment(
+  getSkyPreset(),
+  getSkyRecipe(),
+);
 
 export const compositeFragment = `#version 300 es
 precision highp float;
