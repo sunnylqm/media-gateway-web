@@ -52,35 +52,61 @@ jobs:
           name: studio-ui-build
           path: dist
           retention-days: 3
-      - name: Check immersive home in Chromium
+      - name: Formatting diagnostics
+        if: failure()
+        run: |
+          bunx biome check --write src/lib/sky/g2 src/components/home/PhotographicSky.tsx || true
+          git diff --binary > g2-format.patch
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: format-diagnostics
+          path: |
+            g2-format.patch
+            src/lib/sky/g2
+            src/components/home/PhotographicSky.tsx
+          retention-days: 3
+          if-no-files-found: ignore
+
+  browser:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [home, flight, presets, generative, g2]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: studio-ui-build
+          path: dist
+      - name: Install isolated browser tooling
         run: |
           npm install --prefix "$RUNNER_TEMP/home-browser" --no-package-lock --no-audit --no-fund playwright@1.56.1
           node "$RUNNER_TEMP/home-browser/node_modules/playwright/cli.js" install --with-deps chromium
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk
-          PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-home.mjs
-      - name: Verify substantive nebula flight and save frame sequence
-        run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-nebula-flight.mjs
-      - name: Verify all four random sky scenes
-        run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-sky-presets.mjs
-      - name: Verify constrained generative skies
-        run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-generative-sky.mjs
-      - name: Save home browser screenshots
+      - name: Check compiled sky engine
+        env:
+          SUITE: ${{ matrix.suite }}
+          PLAYWRIGHT_MODULE: ${{ runner.temp }}/home-browser/node_modules/playwright
+        run: |
+          case "$SUITE" in
+            home) node scripts/run-legacy-sky.mjs verify-home.mjs ;;
+            flight) node scripts/run-legacy-sky.mjs verify-nebula-flight.mjs ;;
+            presets) node scripts/run-legacy-sky.mjs verify-sky-presets.mjs ;;
+            generative) node scripts/run-legacy-sky.mjs verify-generative-sky.mjs ;;
+            g2) node scripts/verify-g2.mjs ;;
+            *) exit 1 ;;
+          esac
+      - name: Save browser screenshots and reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: immersive-home-browser
+          name: sky-browser-${{ matrix.suite }}
           path: home-browser-results
-          retention-days: 3
-          if-no-files-found: ignore
-      - name: Formatting diagnostics
-        if: failure()
-        run: |
-          bunx biome check --write src/lib/studio src/components/studio src/pages/GuidedStudio.tsx src/main.tsx src/components/Shell.tsx || true
-          git diff --binary > studio-format.patch
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: studio-format-diagnostics
-          path: studio-format.patch
           retention-days: 3
           if-no-files-found: ignore
