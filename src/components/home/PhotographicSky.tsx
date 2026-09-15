@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { starLayers } from '../../lib/ambient';
+import { getSkyPreset } from '../../lib/sky/presets';
 import type { SkyRenderer } from '../../lib/sky/renderer';
 
 // Dynamically load the GPU code; the primary action never waits for a context.
@@ -21,6 +22,7 @@ export function PhotographicSky({ moving }: { moving: boolean }) {
     import('../../lib/sky/renderer')
       .then(({ createSkyRenderer }) => {
         if (!active || !canvas.current) return;
+        canvas.current.dataset.scene = getSkyPreset().id;
         const instance = createSkyRenderer(canvas.current, (ready) => {
           if (active) setStatus(ready ? 'webgl2' : 'fallback');
         });

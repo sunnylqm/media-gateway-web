@@ -60,6 +60,8 @@ jobs:
           PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-home.mjs
       - name: Verify substantive nebula flight and save frame sequence
         run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-nebula-flight.mjs
+      - name: Verify all four random sky scenes
+        run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-sky-presets.mjs
       - name: Save home browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

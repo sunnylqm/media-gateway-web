@@ -1,3 +1,5 @@
+import { getSkyPreset, type SkyPreset } from './presets';
+
 export const STAR_STRIDE = 8;
 export const STAR_COUNT = 24000;
 export const FLIGHT_PERIOD = 64;
@@ -51,20 +53,28 @@ export function createNoiseVolume(): Uint8Array {
   return noise;
 }
 
-// Closed, differentiable camera path: an orbital dolly, never a hard reset.
-// This is a cinematic scale, not an astronomical distance or physical speed.
-export function cameraPosition(time: number): Float32Array {
-  const phase = ((time % FLIGHT_PERIOD) / FLIGHT_PERIOD) * Math.PI * 2;
+// All routes are closed and differentiable; different travel directions and
+// periods change the viewpoint, never the density field's time coordinate.
+export function cameraPosition(
+  time: number,
+  preset: SkyPreset = getSkyPreset(),
+): Float32Array {
+  const phase = ((time % preset.period) / preset.period) * Math.PI * 2;
+  const [x, y, z] = preset.travel;
   return new Float32Array([
-    4.8 * Math.sin(phase),
-    0.9 * Math.sin(phase * 2),
-    -11 + 6.5 * Math.sin(phase) + 1.8 * (Math.cos(phase) - 1),
+    x * Math.sin(phase),
+    y * Math.sin(phase * 2),
+    -11 + z * Math.sin(phase) + 1.8 * (Math.cos(phase) - 1),
   ]);
 }
 
-export function cameraMatrix(time: number): Float32Array {
-  const phase = ((time % FLIGHT_PERIOD) / FLIGHT_PERIOD) * Math.PI * 2;
-  const yaw = Math.sin(phase) * 0.055;
+export function cameraMatrix(
+  time: number,
+  preset: SkyPreset = getSkyPreset(),
+): Float32Array {
+  const phase = ((time % preset.period) / preset.period) * Math.PI * 2;
+  const direction = Math.sign(preset.travel[0]);
+  const yaw = Math.sin(phase) * 0.055 * direction;
   const pitch = Math.sin(phase * 2) * 0.018;
   const cy = Math.cos(yaw);
   const sy = Math.sin(yaw);
