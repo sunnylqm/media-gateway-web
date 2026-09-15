@@ -18,6 +18,11 @@ export const brandEn = {
   'home.navigation': 'Site navigation',
   'home.eyebrow': 'AI image & video studio',
   'home.title': 'Make something of what moves you.',
+  'home.titleLead': 'Make something',
+  'home.titleEnd': 'of what moves you.',
+  'home.pauseMotion': 'Pause background',
+  'home.resumeMotion': 'Play background',
+  'home.staticMotion': 'Still background',
   'home.description':
     'A glimpse of light. A memory. A story that stays with you. Start there.',
   'home.create': 'Start creating',
@@ -67,6 +72,11 @@ export const brandZh: Record<BrandMessageKey, string> = {
   'home.navigation': '网站导航',
   'home.eyebrow': 'AI 影像创作',
   'home.title': '把心动，留在画面里。',
+  'home.titleLead': '把心动，',
+  'home.titleEnd': '留在画面里。',
+  'home.pauseMotion': '暂停背景',
+  'home.resumeMotion': '播放背景',
+  'home.staticMotion': '静态背景',
   'home.description':
     '一束光，一段回忆，一个念念不忘的故事。从打动你的地方开始。',
   'home.create': '开始创作',

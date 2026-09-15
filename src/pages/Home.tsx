@@ -1,156 +1,100 @@
-import { ArrowRight, ArrowUpRight, Film, Image, Lightbulb } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Image, Pause, Play } from 'lucide-react';
 import { Link } from 'react-router';
 import { Brand } from '../components/Brand';
+import { AmbientBackground } from '../components/home/AmbientBackground';
 import { LanguageToggle } from '../components/LanguageSwitch';
 import { useI18n } from '../i18n';
+import { mediaURL } from '../lib/ambient';
 import { creationPath } from '../lib/brand';
 import { studioEnabled } from '../lib/studio/config';
+import { useAmbientMotion } from '../lib/useAmbientMotion';
+import '../styles/immersive-home.css';
 
-// Public introduction only. Existing authenticated routes own creation,
-// generation, billing, and session handling; this page makes no API calls.
+const videoSrc = mediaURL(import.meta.env.VITE_HOME_VIDEO_URL);
+const posterSrc = mediaURL(import.meta.env.VITE_HOME_POSTER_URL);
+
+// This public doorway owns no session, billing, or generation requests.
+// Only its decorative background is viewport-sized; content can reflow at zoom.
 export function Home() {
   const { t } = useI18n();
-  const createTo = creationPath(studioEnabled);
-  const tools = [
-    {
-      key: 'video',
-      icon: Film,
-      title: t('home.videoTitle'),
-      body: t('home.videoBody'),
-      action: t('home.videoAction'),
-      to: createTo,
-    },
-    {
-      key: 'image',
-      icon: Image,
-      title: t('home.imageTitle'),
-      body: t('home.imageBody'),
-      action: t('home.imageAction'),
-      to: '/app/image',
-    },
-    {
-      key: 'gallery',
-      icon: Lightbulb,
-      title: t('home.galleryTitle'),
-      body: t('home.galleryBody'),
-      action: t('home.galleryAction'),
-      to: '/app/plaza',
-    },
-  ];
+  const { paused, reducedMotion, moving, toggle } = useAmbientMotion();
+  const motionLabel = reducedMotion
+    ? t('home.staticMotion')
+    : paused
+      ? t('home.resumeMotion')
+      : t('home.pauseMotion');
 
   return (
-    <div className="pub-home">
-      <a className="pub-skip" href="#home-content">
+    <div className="home-stage">
+      <AmbientBackground
+        key={`${videoSrc ?? 'stars'}-${reducedMotion}`}
+        moving={moving}
+        reducedMotion={reducedMotion}
+        videoSrc={videoSrc}
+        posterSrc={posterSrc}
+      />
+      <a className="home-skip" href="#home-content">
         {t('home.skip')}
       </a>
-      <header className="pub-header">
+      <header className="home-header">
         <Link to="/" className="brand-home" aria-label={t('brand.home')}>
           <Brand />
         </Link>
-        <nav className="pub-header-actions" aria-label={t('home.navigation')}>
+        <nav className="home-header-actions" aria-label={t('home.navigation')}>
           <LanguageToggle />
-          <Link to="/app" className="button secondary">
+          <Link to="/app" className="home-workspace">
             {t('home.workspace')}
-            <ArrowUpRight size={16} aria-hidden="true" />
+            <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
         </nav>
       </header>
 
-      <main id="home-content" tabIndex={-1}>
-        <section className="pub-hero" aria-labelledby="home-title">
-          <div className="pub-hero-copy">
-            <span className="pub-eyebrow">
-              <span className="pub-dot" aria-hidden="true" />
-              {t('home.eyebrow')}
-            </span>
-            <h1 id="home-title">{t('home.title')}</h1>
-            <p className="pub-intro">{t('home.description')}</p>
-            <div className="pub-hero-actions">
-              <Link to={createTo} className="button primary">
-                {t('home.create')}
-                <ArrowUpRight size={19} aria-hidden="true" />
-              </Link>
-              <Link to="/app/plaza" className="pub-text-link">
-                {t('home.explore')}
-                <ArrowRight size={16} aria-hidden="true" />
-              </Link>
-            </div>
-            <p className="pub-small-note">{t('home.note')}</p>
+      <main id="home-content" className="home-main" tabIndex={-1}>
+        <div className="home-copy">
+          <span className="home-kicker">{t('home.eyebrow')}</span>
+          <h1>
+            <span>{t('home.titleLead')}</span>{' '}
+            <span>{t('home.titleEnd')}</span>
+          </h1>
+          <p className="home-intro">{t('home.description')}</p>
+          <div className="home-actions">
+            <Link className="home-create" to={creationPath(studioEnabled)}>
+              {t('home.create')}
+              <ArrowUpRight size={19} aria-hidden="true" />
+            </Link>
+            <Link className="home-explore" to="/app/plaza">
+              {t('home.explore')}
+              <ArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
-
-          <div className="pub-art" aria-hidden="true">
-            <span className="pub-bubble pub-bubble-one" />
-            <span className="pub-bubble pub-bubble-two" />
-            <span className="pub-bubble pub-bubble-three" />
-            <div className="pub-coaster">
-              <span className="pub-coaster-label">{t('home.coaster')}</span>
-              <img
-                src="/brand/mypub-mark.svg"
-                alt=""
-                width={220}
-                height={220}
-              />
-              <strong>{t('home.illustration')}</strong>
-              <span className="pub-coaster-rule" />
-              <span className="pub-coaster-signature">mypub.ai</span>
-            </div>
-            <div className="pub-story-ticket">
-              <Film size={20} />
-              <span>{t('home.story')}</span>
-            </div>
-          </div>
-        </section>
-
-        <ol className="pub-process" aria-label={t('home.stepsAria')}>
-          <li>
-            <span>01</span>
-            {t('home.stepIdea')}
-          </li>
-          <li>
-            <span>02</span>
-            {t('home.stepFrame')}
-          </li>
-          <li>
-            <span>03</span>
-            {t('home.stepStory')}
-          </li>
-        </ol>
-
-        <section className="pub-tools" aria-labelledby="home-tools-title">
-          <div className="pub-section-heading">
-            <span className="eyebrow">{t('home.toolsEyebrow')}</span>
-            <h2 id="home-tools-title">{t('home.toolsTitle')}</h2>
-          </div>
-          <div className="pub-tool-grid">
-            {tools.map(({ key, icon: Icon, title, body, action, to }) => (
-              <Link to={to} className="pub-tool" key={key}>
-                <span className="pub-tool-icon">
-                  <Icon size={23} aria-hidden="true" />
-                </span>
-                <h3>{title}</h3>
-                <p>{body}</p>
-                <span className="pub-tool-action">
-                  {action}
-                  <ArrowUpRight size={17} aria-hidden="true" />
-                </span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
-        <section className="pub-closing" aria-labelledby="home-closing-title">
-          <h2 id="home-closing-title">{t('home.closing')}</h2>
-          <p>{t('home.closingBody')}</p>
-          <Link to={createTo} className="button primary">
-            {t('home.create')}
-            <ArrowUpRight size={18} aria-hidden="true" />
-          </Link>
-        </section>
+        </div>
       </main>
 
-      <footer className="pub-footer">
-        <Brand />
-        <span>&copy; {new Date().getFullYear()} CHARMLOT PTE. LTD.</span>
+      <footer className="home-footer">
+        <div className="home-footer-copy">
+          <p>{t('home.note')}</p>
+          <small>&copy; {new Date().getFullYear()} CHARMLOT PTE. LTD.</small>
+        </div>
+        <div className="home-utilities">
+          <Link className="home-image-link" to="/app/image">
+            <Image size={16} aria-hidden="true" />
+            {t('home.imageAction')}
+          </Link>
+          <button
+            type="button"
+            className="home-motion"
+            onClick={toggle}
+            disabled={reducedMotion}
+            aria-label={motionLabel}
+          >
+            {paused && !reducedMotion ? (
+              <Play size={14} aria-hidden="true" />
+            ) : (
+              <Pause size={14} aria-hidden="true" />
+            )}
+            <span>{motionLabel}</span>
+          </button>
+        </div>
       </footer>
     </div>
   );
