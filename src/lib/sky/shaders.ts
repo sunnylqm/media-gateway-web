@@ -151,7 +151,10 @@ void main() {
 }`;
 
 export function buildGalaxyFragment(preset: SkyPreset) {
-  return nebulaSource.replace('#define SCENE 0', `#define SCENE ${preset.shader}`);
+  return nebulaSource.replace(
+    '#define SCENE 0',
+    `#define SCENE ${preset.shader}`,
+  );
 }
 
 // Loaded only with the renderer. Compile one scene, not four parallel effects.
