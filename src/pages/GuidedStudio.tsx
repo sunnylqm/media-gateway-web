@@ -10,8 +10,9 @@ import { createStudioClient } from '../lib/studio/client';
 import { CommandJournal } from '../lib/studio/commands';
 import { useStudioCopy } from '../lib/studio/hooks';
 import { createPlanningClient } from '../lib/studio/planningClient';
-import { planningCopy } from '../lib/studio/planningCopy';
 import { PlanningJournal } from '../lib/studio/planningJournal';
+import { createProductionClient } from '../lib/studio/productionClient';
+import { productionCopy } from '../lib/studio/productionCopy';
 import { StudioSessionController } from '../lib/studio/session';
 import '../styles/studio.css';
 
@@ -78,7 +79,11 @@ function StudioSession({
     [controller, userID],
   );
   const { locale } = useI18n();
-  const planningT = planningCopy(locale);
+  const productionT = productionCopy(locale);
+  const productionClient = useMemo(
+    () => createProductionClient(controller.forUser(userID)),
+    [controller, userID],
+  );
   const planningClient = useMemo(
     () => createPlanningClient(controller.forUser(userID)),
     [controller, userID],
@@ -105,7 +110,7 @@ function StudioSession({
     <>
       <div className="studio-boundary">
         <strong>{t('prototype')}</strong>
-        <p>{planningT('studioBoundary')}</p>
+        <p>{productionT('boundary')}</p>
         <small>{t('chinese')}</small>
       </div>
       <Routes>
@@ -121,13 +126,15 @@ function StudioSession({
               journal={journal}
               planningClient={planningClient}
               planningJournal={planningJournal}
+              productionClient={productionClient}
+              userID={userID}
               active={active}
             />
           }
         />
         <Route path="*" element={<Navigate to="/app/create" replace />} />
       </Routes>
-      <footer className="studio-footer">{t('privacy')}</footer>
+      <footer className="studio-footer">{productionT('privacy')}</footer>
     </>
   );
 }
