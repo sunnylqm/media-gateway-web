@@ -1,5 +1,5 @@
-// Original procedural sky, not a star catalogue or an astronomical simulation.
-// Diffuse starlight is rendered at a lower resolution; stars stay pixel-sharp.
+// Visual references: Webb's Cosmic Cliffs and NASA's 3D exploration of them.
+// Original art, not NASA pixels, a measured volume, or physical nebula motion.
 export const fullscreenVertex = `#version 300 es
 precision highp float;
 out vec2 v_uv;
@@ -11,70 +11,84 @@ void main() {
 
 export const galaxyFragment = `#version 300 es
 precision highp float;
+precision highp sampler3D;
 in vec2 v_uv;
 out vec4 outColor;
 uniform mat3 u_camera;
+uniform vec3 u_origin;
 uniform float u_aspect;
 uniform float u_fov;
+uniform sampler3D u_noise;
 
-float hash(vec3 p) {
-  p = fract(p * 0.1031);
-  p += dot(p, p.yzx + 33.33);
-  return fract((p.x + p.y) * p.z);
-}
-float noise(vec3 p) {
-  vec3 i = floor(p), f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x),
-                 mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),
-             mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x),
-                 mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);
-}
+float noise(vec3 p) { return texture(u_noise, (p + 0.5) / 64.0).r; }
 float fbm(vec3 p) {
-  float sum = 0.0, weight = 0.53;
-  for (int i = 0; i < 6; i++) {
-    sum += weight * noise(p);
-    p = p * 2.03 + vec3(5.2, 9.1, 2.8);
-    weight *= 0.49;
+  float value = 0.0;
+  float weight = 0.533;
+  for (int i = 0; i < 4; i++) {
+    value += weight * noise(p);
+    p = p * 2.06 + vec3(11.7, 3.4, 7.1);
+    weight *= 0.48;
   }
-  return sum;
+  return value;
 }
+
+// Dust ridges form an open landscape, not a cylindrical particle tunnel.
+// All samples use world coordinates. Camera motion changes overlap and scale,
+// not the noise's time coordinate: clouds do not visibly boil like smoke.
+vec2 field(vec3 p) {
+  vec3 q = p * vec3(0.19, 0.26, 0.16);
+  vec3 warp = texture(u_noise, (q * 0.8 + 14.5) / 64.0).rgb - 0.5;
+  float turbulence = fbm(q * 2.1 + warp * 2.4);
+  float ridge = p.y - p.x * 0.43 + 3.2
+    - pow(abs(sin(p.x * 0.32 + p.z * 0.10)), 6.0) * 6.5
+    + (turbulence - 0.5) * 17.0;
+  float wall = 1.0 - smoothstep(-0.7, 1.1, ridge);
+  float mass = smoothstep(0.39, 0.65, turbulence);
+  float sheet = exp(-pow((p.z - 26.0) / 5.0, 2.0));
+  // A nearer, dark dust veil creates much faster parallax than the back wall.
+  float veil = exp(-pow((p.z - 9.0) / 3.0, 2.0));
+  float foreground = (1.0 - smoothstep(-4.0, -0.7, ridge)) * veil;
+  float density = wall * mass * mass * sheet * 0.70 + foreground * mass * mass * 0.28;
+  float edge = exp(-abs(ridge + 0.1) * 0.95);
+  return vec2(density, edge);
+}
+
 void main() {
   vec2 p = v_uv * 2.0 - 1.0;
   vec3 ray = u_camera * normalize(vec3(p.x * u_aspect * u_fov, p.y * u_fov, 1.0));
-  vec3 normal = normalize(vec3(-0.58, 0.81, -0.03));
-  vec3 tangent = normalize(vec3(0.81, 0.58, 0.0));
-  vec3 forward = cross(tangent, normal);
-  float latitude = asin(clamp(dot(ray, normal), -1.0, 1.0));
-  float longitude = atan(dot(ray, tangent), dot(ray, forward));
-  vec3 q = ray * 7.0;
-  vec3 warp = vec3(fbm(q + 9.0), fbm(q - 6.0), fbm(q + 24.0));
-  float filaments = fbm(q * 2.8 + warp * 2.4);
-  float grain = noise(q * 170.0);
-  float haze = exp(-pow(latitude / 0.21, 2.0));
-  float spine = exp(-pow(latitude / 0.083, 2.0));
-  float core = exp(-pow((longitude - 0.61) / 0.38, 2.0));
-  float cloud = pow(max(filaments, 0.0), 2.0) * 2.8;
-  float riftCenter = 0.018 + (fbm(q * 1.2 + 46.0) - 0.5) * 0.065;
-  float rift = exp(-pow((latitude - riftCenter) / 0.034, 2.0));
-  float knots = smoothstep(0.38, 0.72, fbm(q * 5.1 + warp * 3.0));
-  float extinction = exp(-rift * (1.0 + 3.2 * knots) - haze * knots * 1.4);
-  vec3 cold = vec3(0.30, 0.41, 0.59);
-  vec3 warm = vec3(0.88, 0.68, 0.44);
-  vec3 light = mix(cold, warm, core * 0.84);
-  float density = haze * (0.028 + cloud * 0.28) + spine * cloud * (0.13 + core * 0.27);
-  vec3 color = vec3(0.004, 0.007, 0.015);
-  color += light * density * extinction;
-  color += vec3(0.19, 0.23, 0.36) * haze * cloud * 0.035;
-  // Restrained emission pockets, not animated rainbow clouds.
-  float emission = pow(max(fbm(q * 3.3 + 61.0) - 0.48, 0.0), 2.0);
-  color += vec3(0.56, 0.15, 0.21) * emission * spine * 1.7;
-  color += light * max(grain - 0.62, 0.0) * spine * cloud * 0.17;
-  // Exposure and a film-like shoulder; dither avoids bands in the dark sky.
-  color = vec3(1.0) - exp(-color * 1.9);
+  vec3 color = vec3(0.0);
+  float transmission = 1.0;
+  // Midpoint integration in a bounded volume. Stable samples avoid temporal
+  // sparkle; the coarse nebula pass is upsampled separately from sharp stars.
+  const int STEPS = 36;
+  float stepZ = 40.0 / float(STEPS);
+  float stepLength = stepZ / max(ray.z, 0.1);
+  for (int i = 0; i < STEPS; i++) {
+    float z = 3.0 + (float(i) + 0.5) * stepZ;
+    float t = (z - u_origin.z) / max(ray.z, 0.1);
+    vec3 world = u_origin + ray * t;
+    vec2 cloud = field(world);
+    float alpha = 1.0 - exp(-cloud.x * stepLength);
+    float warm = smoothstep(-4.0, 12.0, world.x);
+    vec3 dust = mix(vec3(0.038, 0.11, 0.18), vec3(0.35, 0.09, 0.016), warm);
+    vec3 rim = mix(vec3(0.18, 0.57, 0.84), vec3(1.15, 0.55, 0.12), warm);
+    float shadow = exp(-field(world + vec3(-1.4, 2.6, -1.1)).x * 8.0);
+    vec3 light = dust * (0.10 + shadow * 1.4) + rim * cloud.y * 2.6;
+    color += transmission * alpha * light;
+    transmission *= 1.0 - alpha;
+    if (transmission < 0.012) break;
+  }
+  // A quiet, distant blue cavity gives the glowing dust rims their contrast.
+  float glow = exp(-length(p - vec2(0.38, 0.48)) * 1.3);
+  vec3 background = vec3(0.002, 0.006, 0.016)
+    + vec3(0.007, 0.028, 0.072) * glow;
+  color += transmission * background;
+  color = vec3(1.0) - exp(-color * 1.75);
   color = pow(max(color, vec3(0.0)), vec3(0.4545));
-  color += (hash(vec3(gl_FragCoord.xy, 17.0)) - 0.5) / 255.0;
-  outColor = vec4(color, 1.0);
+  float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453);
+  color += (dither - 0.5) / 255.0;
+  // Alpha stores dust transmission for depth-aware extinction of distant stars.
+  outColor = vec4(color, transmission);
 }`;
 
 export const compositeFragment = `#version 300 es
@@ -82,7 +96,7 @@ precision highp float;
 in vec2 v_uv;
 uniform sampler2D u_sky;
 out vec4 outColor;
-void main() { outColor = texture(u_sky, v_uv); }`;
+void main() { outColor = vec4(texture(u_sky, v_uv).rgb, 1.0); }`;
 
 export const starVertex = `#version 300 es
 precision highp float;
@@ -90,6 +104,7 @@ layout(location=0) in vec3 a_position;
 layout(location=1) in vec3 a_color;
 layout(location=2) in vec2 a_light;
 uniform mat3 u_camera;
+uniform vec3 u_origin;
 uniform float u_aspect;
 uniform float u_fov;
 uniform float u_time;
@@ -97,31 +112,40 @@ uniform float u_pixelRatio;
 uniform float u_pointMax;
 out vec3 v_color;
 out float v_bright;
+out float v_depth;
 void main() {
-  vec3 pos = transpose(u_camera) * a_position;
-  float phase = dot(a_position, vec3(71.3, 27.1, 43.7));
-  float twinkle = 1.0 + 0.12 * sin(u_time * 1.35 + phase)
-                          * sin(u_time * 0.61 + phase * 2.3);
+  vec3 pos = transpose(u_camera) * (a_position - u_origin);
+  float phase = dot(a_position, vec3(0.713, 0.271, 0.437));
+  float twinkle = 1.0 + 0.055 * sin(u_time * 0.8 + phase);
   v_color = a_color * a_light.x * twinkle;
-  v_bright = smoothstep(0.65, 1.0, a_light.x);
-  gl_Position = pos.z > 0.02
+  v_bright = smoothstep(0.72, 1.0, a_light.x);
+  v_depth = a_position.z;
+  gl_Position = pos.z > 0.1
     ? vec4(pos.x / (u_aspect * u_fov), pos.y / u_fov, 0.0, pos.z)
     : vec4(2.0, 2.0, 2.0, 1.0);
-  gl_PointSize = clamp(a_light.y * u_pixelRatio, 1.0, u_pointMax);
+  float perspective = clamp((a_position.z + 11.0) / max(pos.z, 0.1), 0.6, 1.8);
+  gl_PointSize = clamp(a_light.y * u_pixelRatio * perspective, 1.0, u_pointMax);
 }`;
 
 export const starFragment = `#version 300 es
 precision highp float;
 in vec3 v_color;
 in float v_bright;
+in float v_depth;
+uniform sampler2D u_sky;
+uniform vec2 u_resolution;
 out vec4 outColor;
 void main() {
   vec2 p = gl_PointCoord * 2.0 - 1.0;
   float r = dot(p, p);
   if (r > 1.0) discard;
-  float core = exp(-r * 65.0);
-  float halo = exp(-r * 8.0) * 0.065;
-  float spike = (exp(-abs(p.x) * 110.0) + exp(-abs(p.y) * 110.0))
-             * exp(-length(p) * 7.0) * v_bright * 0.14;
-  outColor = vec4(v_color * (core + halo + spike), 1.0);
+  float core = exp(-r * 85.0);
+  float halo = exp(-r * 8.0) * 0.055;
+  float spoke = exp(-abs(p.x) * 110.0)
+    + exp(-abs(p.x * 0.5 + p.y * 0.866) * 110.0)
+    + exp(-abs(p.x * 0.5 - p.y * 0.866) * 110.0);
+  float spikes = spoke * exp(-length(p) * 5.0) * v_bright * 0.20;
+  float dust = texture(u_sky, gl_FragCoord.xy / u_resolution).a;
+  float extinction = mix(1.0, max(0.02, dust), smoothstep(6.0, 43.0, v_depth));
+  outColor = vec4(v_color * (core + halo + spikes) * extinction, 1.0);
 }`;

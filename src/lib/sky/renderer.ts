@@ -1,6 +1,9 @@
 import {
   cameraMatrix,
+  cameraPosition,
+  createNoiseVolume,
   createStars,
+  NOISE_SIZE,
   renderSize,
   STAR_COUNT,
   STAR_STRIDE,
@@ -18,8 +21,8 @@ export type SkyRenderer = {
   dispose: () => void;
 };
 
-// Two resolutions, three draws: diffuse galaxy -> composite -> additive stars.
-// No textures downloaded, no framework, and no JavaScript per-star animation.
+// Volume integration -> upscale -> depth-aware stars. Only the camera moves;
+// no network textures or CPU per-star animation. All GPU resources are owned here.
 export function createSkyRenderer(
   canvas: HTMLCanvasElement,
   onState: (ready: boolean) => void,
@@ -55,10 +58,12 @@ export function createSkyRenderer(
   const pointMax = pointRange[1];
   const textureMax = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
   const stars = createStars();
+  const noiseData = createNoiseVolume();
   const programs: WebGLProgram[] = [];
   const buffers: WebGLBuffer[] = [];
   const vaos: WebGLVertexArrayObject[] = [];
   let texture: WebGLTexture | null = null;
+  let noiseTexture: WebGLTexture | null = null;
   let target: WebGLFramebuffer | null = null;
   type Pass = {
     program: WebGLProgram;
@@ -114,35 +119,49 @@ export function createSkyRenderer(
     for (const buffer of buffers) gl!.deleteBuffer(buffer);
     for (const vao of vaos) gl!.deleteVertexArray(vao);
     if (texture) gl!.deleteTexture(texture);
+    if (noiseTexture) gl!.deleteTexture(noiseTexture);
     if (target) gl!.deleteFramebuffer(target);
     programs.length = buffers.length = vaos.length = 0;
-    texture = target = null;
+    texture = noiseTexture = target = null;
   }
 
   function setup() {
     galaxy = pass(fullscreenVertex, galaxyFragment, [
       'u_camera',
+      'u_origin',
       'u_aspect',
       'u_fov',
+      'u_noise',
     ]);
     composite = pass(fullscreenVertex, compositeFragment, ['u_sky']);
     points = pass(starVertex, starFragment, [
       'u_camera',
+      'u_origin',
       'u_aspect',
       'u_fov',
       'u_time',
       'u_pixelRatio',
       'u_pointMax',
+      'u_sky',
+      'u_resolution',
     ]);
     quadVAO = gl!.createVertexArray();
     starVAO = gl!.createVertexArray();
     const buffer = gl!.createBuffer();
     texture = gl!.createTexture();
+    noiseTexture = gl!.createTexture();
     target = gl!.createFramebuffer();
     if (quadVAO) vaos.push(quadVAO);
     if (starVAO) vaos.push(starVAO);
     if (buffer) buffers.push(buffer);
-    if (!quadVAO || !starVAO || !buffer || !texture || !target) {
+    if (
+      !quadVAO ||
+      !starVAO ||
+      !buffer ||
+      !texture ||
+      !noiseTexture ||
+      !target
+    ) {
       throw new Error('Cannot allocate sky resources');
     }
     gl!.bindVertexArray(starVAO);
@@ -163,11 +182,36 @@ export function createSkyRenderer(
         offset * 4,
       );
     }
+    gl!.activeTexture(gl!.TEXTURE0);
     gl!.bindTexture(gl!.TEXTURE_2D, texture);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_S, gl!.CLAMP_TO_EDGE);
     gl!.texParameteri(gl!.TEXTURE_2D, gl!.TEXTURE_WRAP_T, gl!.CLAMP_TO_EDGE);
+    gl!.activeTexture(gl!.TEXTURE1);
+    gl!.bindTexture(gl!.TEXTURE_3D, noiseTexture);
+    gl!.texParameteri(gl!.TEXTURE_3D, gl!.TEXTURE_MIN_FILTER, gl!.LINEAR);
+    gl!.texParameteri(gl!.TEXTURE_3D, gl!.TEXTURE_MAG_FILTER, gl!.LINEAR);
+    for (const axis of [
+      gl!.TEXTURE_WRAP_S,
+      gl!.TEXTURE_WRAP_T,
+      gl!.TEXTURE_WRAP_R,
+    ]) {
+      gl!.texParameteri(gl!.TEXTURE_3D, axis, gl!.REPEAT);
+    }
+    gl!.texImage3D(
+      gl!.TEXTURE_3D,
+      0,
+      gl!.RGBA8,
+      NOISE_SIZE,
+      NOISE_SIZE,
+      NOISE_SIZE,
+      0,
+      gl!.RGBA,
+      gl!.UNSIGNED_BYTE,
+      noiseData,
+    );
+    gl!.activeTexture(gl!.TEXTURE0);
     gl!.disable(gl!.DEPTH_TEST);
     gl!.disable(gl!.CULL_FACE);
     resizePending = true;
@@ -187,10 +231,11 @@ export function createSkyRenderer(
     pixelRatio = size.ratio * limit;
     canvas.width = width;
     canvas.height = height;
-    // Clouds need no Retina sampling; the optical star cores do.
-    const cloudScale = Math.min(0.65, Math.sqrt(620000 / (width * height)));
+    // Volume ray marching has a stricter budget than point-like stars.
+    const cloudScale = Math.min(0.55, Math.sqrt(240000 / (width * height)));
     cloudWidth = Math.max(1, Math.floor(width * cloudScale));
     cloudHeight = Math.max(1, Math.floor(height * cloudScale));
+    gl!.activeTexture(gl!.TEXTURE0);
     gl!.bindTexture(gl!.TEXTURE_2D, texture);
     gl!.texImage2D(
       gl!.TEXTURE_2D,
@@ -224,10 +269,12 @@ export function createSkyRenderer(
     const aspect = width / height;
     const fov = aspect < 1 ? 0.95 : 0.64;
     const camera = cameraMatrix(elapsed);
+    const origin = cameraPosition(elapsed);
     const applyCamera = (p: Pass) => {
       // biome-ignore lint/correctness/useHookAtTopLevel: WebGL API, not a React hook.
       gl!.useProgram(p.program);
       gl!.uniformMatrix3fv(p.uniforms.u_camera, false, camera);
+      gl!.uniform3fv(p.uniforms.u_origin, origin);
       gl!.uniform1f(p.uniforms.u_aspect, aspect);
       gl!.uniform1f(p.uniforms.u_fov, fov);
     };
@@ -236,6 +283,9 @@ export function createSkyRenderer(
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, target);
     gl!.viewport(0, 0, cloudWidth, cloudHeight);
     applyCamera(galaxy);
+    gl!.activeTexture(gl!.TEXTURE1);
+    gl!.bindTexture(gl!.TEXTURE_3D, noiseTexture);
+    gl!.uniform1i(galaxy.uniforms.u_noise, 1);
     gl!.drawArrays(gl!.TRIANGLES, 0, 3);
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
     gl!.viewport(0, 0, width, height);
@@ -249,6 +299,8 @@ export function createSkyRenderer(
     gl!.uniform1f(points.uniforms.u_time, elapsed);
     gl!.uniform1f(points.uniforms.u_pixelRatio, pixelRatio);
     gl!.uniform1f(points.uniforms.u_pointMax, pointMax);
+    gl!.uniform1i(points.uniforms.u_sky, 0);
+    gl!.uniform2f(points.uniforms.u_resolution, width, height);
     gl!.bindVertexArray(starVAO);
     gl!.enable(gl!.BLEND);
     gl!.blendFunc(gl!.ONE, gl!.ONE);
@@ -268,28 +320,25 @@ export function createSkyRenderer(
     frame = 0;
     previous = 0;
   }
-
   function fail() {
     stop();
     lost = true;
     onState(false);
     release();
   }
-
   function tick(now: number) {
     frame = 0;
     if (!moving || disposed || lost) return;
     const delta = previous ? now - previous : 0;
-    // Cap to 30fps rather than running a full-screen background at 120Hz.
     if (previous && delta < 32) {
       frame = requestAnimationFrame(tick);
       return;
     }
     if (delta > 0) {
-      elapsed += Math.min(delta, 100) / 1000;
+      elapsed += Math.min(delta, 250) / 1000;
       frameAverage = frameAverage * 0.96 + delta * 0.04;
       samples++;
-      if (samples > 60 && frameAverage > 48 && quality > 0.55) {
+      if (samples > 45 && frameAverage > 48 && quality > 0.55) {
         quality = Math.max(0.55, quality * 0.8);
         resizePending = true;
         samples = 0;
@@ -305,7 +354,6 @@ export function createSkyRenderer(
     }
     frame = requestAnimationFrame(tick);
   }
-
   function requestResize() {
     resizePending = true;
     if (!moving && !lost && !disposed) {
@@ -326,7 +374,7 @@ export function createSkyRenderer(
   function contextRestored() {
     if (disposed) return;
     programs.length = buffers.length = vaos.length = 0;
-    texture = target = null;
+    texture = noiseTexture = target = null;
     try {
       lost = false;
       setup();
