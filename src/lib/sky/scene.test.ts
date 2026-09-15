@@ -63,10 +63,7 @@ describe('nebula flight', () => {
     const b = cameraPosition(FLIGHT_PERIOD);
     const c = cameraPosition(FLIGHT_PERIOD + epsilon);
     for (let i = 0; i < 3; i++) {
-      expect((b[i] - a[i]) / epsilon).toBeCloseTo(
-        (c[i] - b[i]) / epsilon,
-        2,
-      );
+      expect((b[i] - a[i]) / epsilon).toBeCloseTo((c[i] - b[i]) / epsilon, 2);
     }
     for (const t of [0, 8, 16, 32, 48, 64, 600]) {
       expect(cameraPosition(t)[2]).toBeLessThan(-5);

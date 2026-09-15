@@ -36,7 +36,7 @@ export function createStars(count = STAR_COUNT): Float32Array {
     stars[offset + 5] =
       temperature < 0.35 ? 1 : 0.82 - (temperature - 0.35) * 0.48;
     const magnitude = random() ** 6;
-    stars[offset + 6] = 0.10 + magnitude * 0.96;
+    stars[offset + 6] = 0.1 + magnitude * 0.96;
     stars[offset + 7] = 2.8 + magnitude * 16;
   }
   return stars;
