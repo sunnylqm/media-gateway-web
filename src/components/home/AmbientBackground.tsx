@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { PhotographicSky } from './PhotographicSky';
 
 type AmbientBackgroundProps = {
@@ -21,6 +21,15 @@ export function AmbientBackground({
   const [failed, setFailed] = useState(false);
   const [posterFailed, setPosterFailed] = useState(false);
   const showVideo = Boolean(videoSrc) && !reducedMotion && !failed;
+
+  // Changing motion preference must freeze the current sky, not recreate its
+  // GPU context. Only reset the optional video so it fades in after playing.
+  useLayoutEffect(() => {
+    if (reducedMotion) {
+      setReady(false);
+      setFailed(false);
+    }
+  }, [reducedMotion]);
 
   useEffect(() => {
     const element = video.current;

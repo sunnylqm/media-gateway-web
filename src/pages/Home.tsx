@@ -28,7 +28,7 @@ export function Home() {
   return (
     <div className="home-stage">
       <AmbientBackground
-        key={`${videoSrc ?? 'stars'}-${reducedMotion}`}
+        key={`${videoSrc ?? 'stars'}-${posterSrc ?? ''}`}
         moving={moving}
         reducedMotion={reducedMotion}
         videoSrc={videoSrc}

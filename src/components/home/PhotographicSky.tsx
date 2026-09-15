@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { starLayers } from '../../lib/ambient';
 import type { SkyRenderer } from '../../lib/sky/renderer';
 
@@ -9,7 +9,9 @@ export function PhotographicSky({ moving }: { moving: boolean }) {
   const motion = useRef(moving);
   const [status, setStatus] = useState('pending');
 
-  useEffect(() => {
+  // Stop the imperative loop in the same commit as the visible motion state,
+  // before another browser animation frame can be submitted.
+  useLayoutEffect(() => {
     motion.current = moving;
     renderer.current?.setMoving(moving);
   }, [moving]);
