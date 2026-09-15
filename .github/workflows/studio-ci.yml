@@ -62,6 +62,8 @@ jobs:
         run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-nebula-flight.mjs
       - name: Verify all four random sky scenes
         run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-sky-presets.mjs
+      - name: Verify constrained generative skies
+        run: PLAYWRIGHT_MODULE="$RUNNER_TEMP/home-browser/node_modules/playwright" node scripts/verify-generative-sky.mjs
       - name: Save home browser screenshots
         if: always()
         uses: actions/upload-artifact@v4

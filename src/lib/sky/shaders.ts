@@ -1,4 +1,10 @@
-import { getSkyPreset, type SkyPreset } from './presets';
+import {
+  canonicalSky,
+  getSkyPreset,
+  getSkyRecipe,
+  type SkyPreset,
+  type SkyRecipe,
+} from './presets';
 
 // Original procedural art. NASA/Webb images guide composition, not textures.
 export const fullscreenVertex = `#version 300 es
@@ -14,6 +20,7 @@ const nebulaSource = `#version 300 es
 #define SCENE 0
 precision highp float;
 precision highp sampler3D;
+/* SKY_RECIPE */
 in vec2 v_uv;
 out vec4 outColor;
 uniform mat3 u_camera;
@@ -34,19 +41,23 @@ float fbm(vec3 p) {
   return value;
 }
 
-// Only the selected density function survives preprocessing. Every scene
-// occupies real world-space depth; there is no animated texture scrolling.
+// Randomness shapes one fixed world, never per-frame boiling or flicker.
+// Keep the subject near the approved right-side focal region and retain depth.
 vec2 field(vec3 p) {
-  vec3 q = p * vec3(0.19, 0.26, 0.16);
+  vec3 center = p - vec3(11.0, 2.0, 23.0) - OFFSET;
+  p = vec3(ROLL_C * center.x - ROLL_S * center.y,
+    ROLL_S * center.x + ROLL_C * center.y, center.z) * SCALE
+    + vec3(11.0, 2.0, 23.0);
+  vec3 q = p * vec3(0.19, 0.26, 0.16) + DETAIL;
   vec3 warp = texture(u_noise, (q * 0.8 + 14.5) / 64.0).rgb - 0.5;
   float turbulence = fbm(q * 2.1 + warp * 2.4);
 #if SCENE == 0
   float ridge = p.y - p.x * 0.43 + 3.2
-    - pow(abs(sin(p.x * 0.32 + p.z * 0.10)), 6.0) * 6.5
-    + (turbulence - 0.5) * 17.0;
-  float wall = 1.0 - smoothstep(-0.7, 1.1, ridge);
+    - pow(abs(sin(p.x * 0.32 * CURL + p.z * 0.10)), 6.0) * 6.5
+    + (turbulence - 0.5) * 17.0 * ROUGHNESS;
+  float wall = 1.0 - smoothstep(-0.7 * THICKNESS, 1.1 * THICKNESS, ridge);
   float mass = smoothstep(0.39, 0.65, turbulence);
-  float sheet = exp(-pow((p.z - 26.0) / 5.0, 2.0));
+  float sheet = exp(-pow((p.z - 26.0) / (5.0 * THICKNESS), 2.0));
   float veil = exp(-pow((p.z - 9.0) / 3.0, 2.0));
   float foreground = (1.0 - smoothstep(-4.0, -0.7, ridge)) * veil;
   float density = wall * mass * mass * sheet * 0.70 + foreground * mass * mass * 0.28;
@@ -54,29 +65,29 @@ vec2 field(vec3 p) {
   return vec2(density, edge);
 #elif SCENE == 1
   // An inclined, broken ellipsoidal shell with an open blue cavity.
-  vec3 center = p - vec3(11.0, 2.0, 23.0);
-  vec3 shell = vec3(center.x * 0.82 + center.z * 0.26,
-    center.y, center.z * 0.85 - center.x * 0.32);
+  vec3 shellCenter = p - vec3(11.0, 2.0, 23.0);
+  vec3 shell = vec3(shellCenter.x * 0.82 + shellCenter.z * 0.26,
+    shellCenter.y, shellCenter.z * 0.85 - shellCenter.x * 0.32);
   float radius = length(shell * vec3(0.82, 1.0, 1.15));
-  float ring = radius - 10.5 + (turbulence - 0.5) * 6.5;
-  float envelope = exp(-pow(ring / 1.85, 2.0));
+  float ring = radius - 10.5 + (turbulence - 0.5) * 6.5 * ROUGHNESS;
+  float envelope = exp(-pow(ring / (1.85 * THICKNESS), 2.0));
   float lace = smoothstep(0.28, 0.67, turbulence);
   float outer = exp(-pow((ring - 2.8) / 1.2, 2.0)) * 0.20;
   return vec2((envelope + outer) * lace * 0.24,
     exp(-abs(ring + 0.8) * 0.80));
 #elif SCENE == 2
-  // Three irregular dust pillars staggered in depth, not recolored cliffs.
+  // Bounded spacing and thickness keep three distinct silhouettes.
   float material = 0.0;
   float edge = 0.0;
   for (int j = 0; j < 3; j++) {
     float k = float(j);
     float top = 1.0 + k * 4.2;
-    float bend = 2.2 * sin(p.y * 0.14 + k * 1.6);
+    float bend = 2.2 * sin(p.y * 0.14 * CURL + k * 1.6);
     vec2 axis = vec2(1.0 + k * 9.0 + bend, 13.0 + k * 8.0);
-    float radius = 2.0 + clamp((top - p.y) * 0.095, 0.0, 3.0);
+    float radius = (2.0 + clamp((top - p.y) * 0.095, 0.0, 3.0)) * THICKNESS;
     float side = length((p.xz - axis) * vec2(1.0, 0.68)) - radius;
     float tip = p.y - top;
-    float boundary = max(side, tip) + (turbulence - 0.5) * 8.0;
+    float boundary = max(side, tip) + (turbulence - 0.5) * 8.0 * ROUGHNESS;
     float bulk = 1.0 - smoothstep(-1.0, 0.8, boundary);
     float mass = smoothstep(0.25, 0.66, turbulence);
     material += bulk * mass * 0.44;
@@ -86,12 +97,12 @@ vec2 field(vec3 p) {
     * exp(-pow((p.y + 9.0) / 8.0, 2.0)) * 0.045;
   return vec2(material + mist, edge);
 #else
-  // A broad diagonal veil with separated, curling filaments and dark seams.
+  // Two separated, curling ribbons: variation cannot collapse the dark seam.
   float lane = p.y + p.x * 0.38 - 3.0
-    - 3.1 * sin(p.x * 0.16 + p.z * 0.13)
-    + (turbulence - 0.5) * 13.0;
-  float ribbon = exp(-pow(lane / 2.6, 2.0));
-  float second = exp(-pow((lane + 7.0) / 1.7, 2.0));
+    - 3.1 * sin(p.x * 0.16 * CURL + p.z * 0.13)
+    + (turbulence - 0.5) * 13.0 * ROUGHNESS;
+  float ribbon = exp(-pow(lane / (2.6 * THICKNESS), 2.0));
+  float second = exp(-pow((lane + 7.0) / (1.7 * THICKNESS), 2.0));
   float sheet = exp(-pow((p.z - 27.0) / 6.0, 2.0));
   float nearSheet = exp(-pow((p.z - 10.0) / 2.8, 2.0));
   float mass = smoothstep(0.25, 0.68, turbulence);
@@ -115,26 +126,20 @@ void main() {
     float t = (z - u_origin.z) / max(ray.z, 0.1);
     vec3 world = u_origin + ray * t;
     vec2 cloud = field(world);
-    float alpha = 1.0 - exp(-cloud.x * stepLength);
+    float alpha = 1.0 - exp(-cloud.x * DENSITY * stepLength);
 #if SCENE == 0
     float warm = smoothstep(-4.0, 12.0, world.x);
-    vec3 dust = mix(vec3(0.038, 0.11, 0.18), vec3(0.35, 0.09, 0.016), warm);
-    vec3 rim = mix(vec3(0.18, 0.57, 0.84), vec3(1.15, 0.55, 0.12), warm);
 #elif SCENE == 1
     float warm = smoothstep(-1.0, 11.0, world.y);
-    vec3 dust = mix(vec3(0.008, 0.13, 0.24), vec3(0.20, 0.04, 0.13), warm);
-    vec3 rim = mix(vec3(0.10, 0.72, 1.10), vec3(0.80, 0.38, 0.62), warm);
 #elif SCENE == 2
     float warm = smoothstep(-5.0, 12.0, world.y);
-    vec3 dust = mix(vec3(0.16, 0.024, 0.055), vec3(0.075, 0.02, 0.18), warm);
-    vec3 rim = mix(vec3(1.0, 0.30, 0.16), vec3(0.65, 0.39, 1.1), warm);
 #else
     float warm = smoothstep(-8.0, 18.0, world.x);
-    vec3 dust = mix(vec3(0.015, 0.08, 0.19), vec3(0.09, 0.18, 0.23), warm);
-    vec3 rim = mix(vec3(0.22, 0.42, 1.0), vec3(0.42, 0.95, 0.98), warm);
 #endif
-    float shadow = exp(-field(world + vec3(-1.4, 2.6, -1.1)).x * 8.0);
-    vec3 light = dust * (0.10 + shadow * 1.4) + rim * cloud.y * 2.6;
+    vec3 dust = mix(DUST_A, DUST_B, warm);
+    vec3 rim = mix(RIM_A, RIM_B, warm);
+    float shadow = exp(-field(world + vec3(-1.4, 2.6, -1.1)).x * DENSITY * 8.0);
+    vec3 light = dust * (0.10 + shadow * 1.4) + rim * cloud.y * RIM_GAIN;
     color += transmission * alpha * light;
     transmission *= 1.0 - alpha;
     if (transmission < 0.012) break;
@@ -143,22 +148,46 @@ void main() {
   vec3 background = vec3(0.002, 0.006, 0.016)
     + vec3(0.007, 0.028, 0.072) * glow;
   color += transmission * background;
-  color = vec3(1.0) - exp(-color * 1.75);
+  color = vec3(1.0) - exp(-color * EXPOSURE);
   color = pow(max(color, vec3(0.0)), vec3(0.4545));
   float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898,78.233))) * 43758.5453);
   color += (dither - 0.5) / 255.0;
   outColor = vec4(color, transmission);
 }`;
 
-export function buildGalaxyFragment(preset: SkyPreset) {
-  return nebulaSource.replace(
-    '#define SCENE 0',
-    `#define SCENE ${preset.shader}`,
-  );
+export function buildGalaxyFragment(
+  preset: SkyPreset,
+  recipe: SkyRecipe = canonicalSky(preset),
+) {
+  const scalar = (name: string, value: number) =>
+    `const float ${name} = ${value.toFixed(6)};`;
+  const vector = (name: string, value: readonly number[]) =>
+    `const vec3 ${name} = vec3(${value.map((n) => n.toFixed(6)).join(', ')});`;
+  // Only internally generated numeric constants reach GLSL. The raw seed does not.
+  const constants = [
+    vector('OFFSET', recipe.offset),
+    vector('SCALE', recipe.scale),
+    vector('DETAIL', recipe.detail),
+    scalar('ROLL_C', Math.cos(recipe.roll)),
+    scalar('ROLL_S', Math.sin(recipe.roll)),
+    scalar('ROUGHNESS', recipe.roughness),
+    scalar('THICKNESS', recipe.thickness),
+    scalar('DENSITY', recipe.density),
+    scalar('CURL', recipe.curl),
+    scalar('EXPOSURE', recipe.exposure),
+    scalar('RIM_GAIN', recipe.rimGain),
+    vector('DUST_A', recipe.dustA),
+    vector('DUST_B', recipe.dustB),
+    vector('RIM_A', recipe.rimA),
+    vector('RIM_B', recipe.rimB),
+  ].join('\n');
+  return nebulaSource
+    .replace('#define SCENE 0', `#define SCENE ${preset.shader}`)
+    .replace('/* SKY_RECIPE */', constants);
 }
 
-// Loaded only with the renderer. Compile one scene, not four parallel effects.
-export const galaxyFragment = buildGalaxyFragment(getSkyPreset());
+// Compile just one generated world; keep its recipe across context recovery.
+export const galaxyFragment = buildGalaxyFragment(getSkyPreset(), getSkyRecipe());
 
 export const compositeFragment = `#version 300 es
 precision highp float;

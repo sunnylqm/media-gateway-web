@@ -1,4 +1,4 @@
-import { getSkyPreset, type SkyPreset } from './presets';
+import { getSkyPreset, getSkyRecipe, type SkyPreset } from './presets';
 
 export const STAR_STRIDE = 8;
 export const STAR_COUNT = 24000;
@@ -12,11 +12,13 @@ function seededRandom(seed: number) {
   };
 }
 
-// Finite 3D positions, not directions on an infinitely distant sky sphere.
-// Most stars are distant; sparse nearby stars reveal translation parallax.
-export function createStars(count = STAR_COUNT): Float32Array {
+// A generated seed changes star placement, not the bounded depth distribution.
+export function createStars(
+  count = STAR_COUNT,
+  seed = getSkyRecipe().starSeed,
+): Float32Array {
   const stars = new Float32Array(count * STAR_STRIDE);
-  const random = seededRandom(20260915);
+  const random = seededRandom(seed);
   for (let i = 0; i < count; i++) {
     const group = random();
     const depth =
