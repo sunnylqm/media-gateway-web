@@ -1,17 +1,16 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { starLayers } from '../../lib/ambient';
-import { getSkyRecipe, skySeedToken } from '../../lib/sky/presets';
+import { seedToken } from '../../lib/sky/g2/recipe';
+import { getChoice } from '../../lib/sky/g2/selection';
 import type { SkyRenderer } from '../../lib/sky/renderer';
 
-// Dynamically load the GPU code; the primary action never waits for a context.
+// Pick one engine, then lazily load it. Legacy links never load the G2 renderer.
 export function PhotographicSky({ moving }: { moving: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const renderer = useRef<SkyRenderer | null>(null);
   const motion = useRef(moving);
   const [status, setStatus] = useState('pending');
 
-  // Stop the imperative loop in the same commit as the visible motion state,
-  // before another browser animation frame can be submitted.
   useLayoutEffect(() => {
     motion.current = moving;
     renderer.current?.setMoving(moving);
@@ -19,22 +18,39 @@ export function PhotographicSky({ moving }: { moving: boolean }) {
 
   useEffect(() => {
     let active = true;
-    import('../../lib/sky/renderer')
-      .then(({ createSkyRenderer }) => {
+    const state = (ready: boolean) => {
+      if (active) setStatus(ready ? 'webgl2' : 'fallback');
+    };
+    async function load() {
+      const choice = getChoice();
+      let instance: SkyRenderer;
+      if (choice.version === 'g2') {
+        const { createRenderer } = await import('../../lib/sky/g2/renderer');
+        if (!active || !canvas.current) return;
+        canvas.current.dataset.engine = 'g2';
+        canvas.current.dataset.scene = choice.recipe.family;
+        canvas.current.dataset.seed = seedToken(choice.recipe.seed);
+        canvas.current.dataset.palette = choice.recipe.paletteName;
+        instance = createRenderer(canvas.current, choice.recipe, state);
+      } else {
+        const { createSkyRenderer } = await import('../../lib/sky/renderer');
+        const { getSkyRecipe, skySeedToken } = await import(
+          '../../lib/sky/presets'
+        );
         if (!active || !canvas.current) return;
         const recipe = getSkyRecipe();
+        canvas.current.dataset.engine = 'g1';
         canvas.current.dataset.scene = recipe.preset.id;
         canvas.current.dataset.seed =
           recipe.seed === null ? 'canonical' : skySeedToken(recipe.seed);
-        const instance = createSkyRenderer(canvas.current, (ready) => {
-          if (active) setStatus(ready ? 'webgl2' : 'fallback');
-        });
-        renderer.current = instance;
-        instance.setMoving(motion.current);
-      })
-      .catch(() => {
-        if (active) setStatus('fallback');
-      });
+        instance = createSkyRenderer(canvas.current, state);
+      }
+      renderer.current = instance;
+      instance.setMoving(motion.current);
+    }
+    load().catch(() => {
+      if (active) setStatus('fallback');
+    });
     return () => {
       active = false;
       renderer.current?.dispose();
