@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import { brandEn, brandZh } from '../i18n/brand';
 import { creationPath } from './brand';
 
