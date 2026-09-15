@@ -76,7 +76,7 @@ export function GenerationsTable({
                   <GenerationThumbnail generation={item} />
                 </td>
               )}
-              <td>
+              <td className="job-cell">
                 <div style={{ display: 'grid', gap: '2px' }}>
                   <code>{item.id.slice(0, 18)}…</code>
                   {item.prompt && (
@@ -96,7 +96,7 @@ export function GenerationsTable({
                   )}
                 </div>
               </td>
-              <td>
+              <td className="modality-cell">
                 <span className="type-cell">
                   {item.modality === 'image' ? (
                     <Image size={15} />
@@ -106,14 +106,14 @@ export function GenerationsTable({
                   {t(`modality.${item.modality}`)}
                 </span>
               </td>
-              <td>{item.model}</td>
-              <td>
+              <td className="model-name-cell">{item.model}</td>
+              <td className="status-cell">
                 <GenerationStatusCell
                   generation={item}
                   diagnostics={diagnostics}
                 />
               </td>
-              <td>{format.date(item.created_at)}</td>
+              <td className="created-cell">{format.date(item.created_at)}</td>
             </tr>
           ))}
         </tbody>

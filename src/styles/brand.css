@@ -182,9 +182,16 @@
   .pub-process li { flex-direction: column; gap: 8px; padding-inline: 8px; font-size: 12px; text-align: center; line-height: 1.6; }
   .pub-footer { flex-direction: column; align-items: flex-start; margin-top: 36px; }
   .pub-closing { padding: 34px 24px; }
-  .creation-entry { align-items: flex-start; }
+  .creation-entry { align-items: flex-start; gap: 18px; }
   .auth-story-copy { padding-block: 44px 32px; }
   .auth-tasting-note { margin-top: 8px; }
+}
+@media (max-width: 560px) {
+  .creation-entry { gap: 16px; margin-bottom: 18px; padding: 20px 18px; border-radius: 14px; }
+  .creation-entry .eyebrow { margin-bottom: 9px; }
+  .creation-entry h2 { margin-bottom: 8px; font-size: 22px; line-height: 1.35; }
+  .creation-entry p { font-size: 12.5px; line-height: 1.6; }
+  .creation-entry .button { width: 100%; justify-content: center; }
 }
 @media (max-width: 420px) {
   .pub-header, .pub-hero, .pub-process, .pub-tools, .pub-closing, .pub-footer { width: calc(100% - 36px); }

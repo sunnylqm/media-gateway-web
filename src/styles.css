@@ -158,6 +158,7 @@ h1, h2, h3, .brand-name { font-family: Inter, ui-sans-serif, system-ui, -apple-s
 /* Overview: the balance card and the recent-task panel share one row, so the
    task counts no longer need a row of their own. */
 .overview-grid { display: grid; grid-template-columns: minmax(230px, 280px) minmax(0, 1fr); align-items: start; gap: 13px; }
+.overview-grid > * { min-width: 0; }
 .overview-grid .metric { min-height: 0; display: flex; flex-direction: column; }
 .overview-grid .metric::before { margin-bottom: 15px; }
 .overview-grid .metric .metric-action { margin-top: auto; padding-top: 14px; }
@@ -797,8 +798,8 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   .auth-story { padding: 36px; }
   .auth-story-copy h1 { font-size: 48px; }
   .metric-grid { grid-template-columns: repeat(2, 1fr); }
-  .overview-grid { grid-template-columns: 1fr; }
-  .admin-grid { grid-template-columns: 1fr; }
+  .overview-grid { grid-template-columns: minmax(0, 1fr); }
+  .admin-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 780px) {
@@ -835,9 +836,47 @@ td code { color: #55605b; font-family: ui-monospace, SFMono-Regular, Menlo, mono
   .page-header { display: grid; }
   .page-actions, .page-actions .button { width: 100%; }
   .metric { min-height: 126px; }
-  .overview-grid .metric { min-height: 0; }
-  .overview-tasks .panel-heading { align-items: flex-start; flex-direction: column; }
+  .overview-grid .metric { min-height: 0; padding: 16px 16px 18px; }
+  /* The balance card spends most of a phone screen on whitespace, so the rule
+     above the label shrinks and the amount sits closer to it. */
+  .overview-grid .metric::before { width: 20px; margin-bottom: 12px; }
+  .overview-grid .metric strong { margin: 5px 0 6px; font-size: 27px; }
+  .overview-tasks .panel-heading { align-items: flex-start; flex-direction: column; gap: 10px; padding: 15px 16px; }
   .panel-heading-side { width: 100%; justify-content: flex-start; }
+  /* Four counts fit a phone row only as a grid: the chips would otherwise wrap
+     into a ragged two-line block. */
+  .task-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); width: 100%; gap: 6px; }
+  .task-summary-item { justify-content: center; gap: 4px; padding: 5px 4px; }
+  .task-summary-item > span { font-size: 10px; }
+
+  /* A six-column task table cannot be read on a phone even with a horizontal
+     scroller, so each row becomes a card: thumbnail on the left, job above a
+     two-line meta block. Cells are placed by name, which keeps the layout the
+     same whether or not the list renders thumbnails. */
+  .compact-table { overflow-x: visible; }
+  .compact-table thead { display: none; }
+  .compact-table table, .compact-table tbody, .compact-table tr, .compact-table td { display: block; }
+  .compact-table tr {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    /* No column gap: the admin lists render the same card without a
+       thumbnail, and a gap would leave them indented by an empty track. */
+    column-gap: 0;
+    row-gap: 5px;
+    padding: 13px 16px;
+    border-bottom: 1px solid #edf0ee;
+  }
+  .compact-table tbody tr:last-child { border-bottom: 0; }
+  .compact-table td { height: auto; padding: 0; border-bottom: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .compact-table td.thumb-column { grid-area: 1 / 1 / 4 / 2; width: auto; margin-right: 11px; align-self: start; }
+  .compact-table td.job-cell { grid-area: 1 / 2 / 2 / 4; }
+  .compact-table td.job-cell small { max-width: none !important; }
+  .compact-table td.modality-cell { grid-area: 2 / 2 / 3 / 3; }
+  .compact-table td.status-cell { grid-area: 2 / 3 / 3 / 4; justify-self: end; padding-left: 10px; }
+  .compact-table td.model-name-cell { grid-area: 3 / 2 / 4 / 3; color: var(--muted); font-size: 11px; }
+  .compact-table td.created-cell { grid-area: 3 / 3 / 4 / 4; justify-self: end; padding-left: 10px; color: var(--muted); font-size: 11px; }
+  .compact-table .row-thumb { width: 46px; height: 46px; }
   .dialog-actions { display: grid; grid-template-columns: 1fr 1fr; }
   .dialog-actions .reset-button { grid-column: 1 / -1; margin-right: 0; }
   .transaction-error { align-items: stretch; flex-direction: column; margin: 12px; }
