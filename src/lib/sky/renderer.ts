@@ -40,6 +40,7 @@ export function createSkyRenderer(
   let lost = false;
   let moving = false;
   let frame = 0;
+  let pendingFrame: WebGLSync | null = null;
   let previous = 0;
   let elapsed = 0;
   let quality = 1;
@@ -115,6 +116,8 @@ export function createSkyRenderer(
   }
 
   function release() {
+    if (pendingFrame) gl!.deleteSync(pendingFrame);
+    pendingFrame = null;
     for (const program of programs) gl!.deleteProgram(program);
     for (const buffer of buffers) gl!.deleteBuffer(buffer);
     for (const vao of vaos) gl!.deleteVertexArray(vao);
@@ -306,6 +309,12 @@ export function createSkyRenderer(
     gl!.blendFunc(gl!.ONE, gl!.ONE);
     gl!.drawArrays(gl!.POINTS, 0, STAR_COUNT);
     gl!.disable(gl!.BLEND);
+    // Keep at most one animation frame in flight. A slow GPU must not collect
+    // a long command queue that delays navigation, resizing, or the pause UI.
+    if (pendingFrame) gl!.deleteSync(pendingFrame);
+    pendingFrame = gl!.fenceSync(gl!.SYNC_GPU_COMMANDS_COMPLETE, 0);
+    if (!pendingFrame) throw new Error('Cannot synchronize sky frame');
+    gl!.flush();
     if (!announced) {
       if (gl!.getError() !== gl!.NO_ERROR) {
         throw new Error('Sky rendering failed');
@@ -329,6 +338,19 @@ export function createSkyRenderer(
   function tick(now: number) {
     frame = 0;
     if (!moving || disposed || lost) return;
+    if (pendingFrame) {
+      const state = gl!.clientWaitSync(pendingFrame, 0, 0);
+      if (state === gl!.TIMEOUT_EXPIRED) {
+        frame = requestAnimationFrame(tick);
+        return;
+      }
+      if (state === gl!.WAIT_FAILED) {
+        fail();
+        return;
+      }
+      gl!.deleteSync(pendingFrame);
+      pendingFrame = null;
+    }
     const delta = previous ? now - previous : 0;
     if (previous && delta < 32) {
       frame = requestAnimationFrame(tick);
@@ -374,6 +396,7 @@ export function createSkyRenderer(
   function contextRestored() {
     if (disposed) return;
     programs.length = buffers.length = vaos.length = 0;
+    pendingFrame = null;
     texture = noiseTexture = target = null;
     try {
       lost = false;

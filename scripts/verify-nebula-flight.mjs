@@ -44,11 +44,14 @@ try {
       }
     };
     const original = WebGL2RenderingContext.prototype.drawArrays;
+    window.__flightDraws = 0;
     window.__flightCapture = true;
     window.__flightBlocks = null;
     WebGL2RenderingContext.prototype.drawArrays = function (...args) {
       original.apply(this, args);
-      if (!window.__flightCapture || args[0] !== this.POINTS) return;
+      if (args[0] !== this.POINTS) return;
+      window.__flightDraws++;
+      if (!window.__flightCapture) return;
       window.__flightCapture = false;
       const w = this.drawingBufferWidth, h = this.drawingBufferHeight;
       const pixels = new Uint8Array(w * h * 4);
@@ -77,17 +80,25 @@ try {
   await page.goto(`http://127.0.0.1:${server.address().port}`);
   await page.waitForFunction(() => document.querySelector('.home-galaxy')?.dataset.renderer === 'webgl2', null, { polling: 100, timeout: 30000 });
   await page.evaluate(() => document.fonts.ready);
-  await page.waitForTimeout(1400); // Let the CSS opacity reveal finish.
+  await page.waitForTimeout(1400);
   await page.evaluate(() => window.__advanceFlight(0));
   const first = await page.evaluate(() => window.__flightBlocks);
   assert.ok(first?.length === 576, 'Initial real GPU frame captured');
   await page.screenshot({ path: path.join(out, 'frame-000.png') });
   let fourth;
   for (let i = 1; i <= 80; i++) {
+    const before = await page.evaluate(() => window.__flightDraws);
     await page.evaluate((capture) => {
       if (capture) window.__flightCapture = true;
       window.__advanceFlight(100);
     }, i === 40);
+    // Wait for the real GPU fence without advancing the animation clock again.
+    const deadline = Date.now() + 30000;
+    while ((await page.evaluate(() => window.__flightDraws)) === before) {
+      assert.ok(Date.now() < deadline, 'GPU completes a frame');
+      await page.waitForTimeout(10);
+      await page.evaluate(() => window.__advanceFlight(0));
+    }
     if (i === 40) fourth = await page.evaluate(() => window.__flightBlocks);
     if (i % 4 === 0) await page.screenshot({ path: path.join(out, `frame-${String(i).padStart(3, '0')}.png`) });
   }
