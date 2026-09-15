@@ -10,16 +10,20 @@ import {
 import { useProject, useStudioCopy } from '../../lib/studio/hooks';
 import type { PlanningClient } from '../../lib/studio/planningClient';
 import type { PlanningJournal } from '../../lib/studio/planningJournal';
+import type { ProductionClient } from '../../lib/studio/productionClient';
 import type { StudioRecord, Transformation } from '../../lib/studio/types';
 import { CreativeBrief } from './CreativeBrief';
 import { StudioNotice } from './Notice';
 import { PlanningPanel, SavedPlan } from './PlanningPanel';
+import { ProductionPanel } from './ProductionPanel';
 
 type Props = { client: StudioClient; journal: CommandJournal };
 
 type PlanningProps = {
   planningClient: PlanningClient;
   planningJournal: PlanningJournal;
+  productionClient: ProductionClient;
+  userID: string;
   active: boolean;
 };
 
@@ -55,6 +59,8 @@ function ProjectView({
   revision,
   planningClient,
   planningJournal,
+  productionClient,
+  userID,
   active,
 }: Props &
   PlanningProps & {
@@ -208,6 +214,15 @@ function ProjectView({
               blocked={busy || conflict || error !== null}
               active={active}
               refreshProject={() => controller.load()}
+            />
+          )}
+          {!readOnly && (
+            <ProductionPanel
+              client={productionClient}
+              userID={userID}
+              project={record.project}
+              blocked={busy || conflict || error !== null}
+              active={active}
             />
           )}
           <History record={record} readOnly={readOnly} />

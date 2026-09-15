@@ -1,0 +1,195 @@
+const copy = {
+  boundary: [
+    '先选择故事，再规划分镜。文字规划与视频制作分别确认；获取报价不会开拍，确认开拍会使用钱包余额。',
+    'Choose a story, then plan its shots. Text planning and video production require separate consent. A quote does not start production; confirming a batch uses your wallet.',
+  ],
+  title: ['把这一版拍出来', 'Produce this version'],
+  intro: [
+    '先查看模型设置和正式报价，再决定是否开拍。当前生成的是独立镜头，尚不自动合成为影片。',
+    'Review settings and a saved quote before starting. This produces separate clips, not an assembled film.',
+  ],
+  refresh: ['刷新报价与批次', 'Refresh quote and batches'],
+  loading: ['正在读取制作记录…', 'Reading production records…'],
+  disabled: [
+    '此网关尚未开启视频制作。草稿与文字提案仍可正常使用。',
+    'Video production is disabled on this gateway. Drafts and text proposals remain available.',
+  ],
+  adopt: [
+    '先采用一个故事与分镜提案，才能为这一版获取报价。',
+    'Adopt a story and shot plan before requesting a quote for this version.',
+  ],
+  settings: ['选择拍摄模型', 'Choose a generation model'],
+  choose: ['选择一个模型', 'Choose a model'],
+  modelHint: [
+    '这里只初步筛选文生视频模型，最终支持情况以服务端报价校验为准。不会自动切换模型或静默缩短镜头。',
+    'These are text-video candidates; the server validates actual support. Models are never silently switched and shots are not shortened.',
+  ],
+  noModels: [
+    '没有可用于当前文生视频试点的模型。',
+    'No model matches this text-video pilot.',
+  ],
+  parameters: ['调整画面参数', 'Adjust visual settings'],
+  quote: ['获取报价，不开拍', 'Get quote — no generation'],
+  recoverQuote: ['恢复上次报价请求', 'Recover quote request'],
+  pendingQuote: [
+    '上次报价请求尚未收到有效回执。恢复时会使用同一请求；不会开启视频生成。',
+    'The previous quote has no verified receipt. Recovery reuses that request and cannot generate video.',
+  ],
+  pendingConfirm: [
+    '开拍提交结果尚未确认。请先刷新查询；重试只恢复原报价、原金额和同一请求，不重新购买。',
+    'The confirmation outcome is unknown. Refresh first; a retry only recovers the original quote, amount and request, not a new purchase.',
+  ],
+  recoverConfirm: [
+    '确认并恢复原开拍请求',
+    'Confirm recovery of original request',
+  ],
+  recoverConsent: [
+    '我已核对上方原报价，确认只恢复这次提交。',
+    'I have reviewed the original quote above and authorize recovery of this submission only.',
+  ],
+  offer: ['本次最高收费', 'Maximum charge for this batch'],
+  version: ['项目版本', 'Project version'],
+  expires: ['报价到期', 'Quote expires'],
+  expired: [
+    '此报价已过期或不是当前项目版本，不能用于新的开拍。请刷新后重新获取报价。',
+    'This quote is expired or belongs to another project version. Refresh and request a new quote before a new confirmation.',
+  ],
+  used: [
+    '这份报价已用于一个批次，不会再次开拍。',
+    'This quote already belongs to a batch and cannot start another one.',
+  ],
+  settingsChanged: [
+    '参数已调整，请重新获取报价后再确认开拍。下方仍为上一份报价。',
+    'Settings changed. Request a new quote before confirming. The offer below still uses the previous settings.',
+  ],
+  terms: [
+    '确认后将为本批所有镜头预留余额，并由视频模型生成。文本试点的免费边界不适用于此步骤；收费上限不保证画面质量、角色一致性或成片可用性。',
+    'Confirming reserves funds for all clips and submits them to the video model. Operator-funded text planning does not cover this step. A charge cap does not guarantee quality, character consistency or a usable film.',
+  ],
+  consent: [
+    '我确认按上述币种与最高金额生成这一版本的全部镜头。',
+    'I authorize all clips of this version in the currency and up to the maximum shown above.',
+  ],
+  confirm: ['确认费用，开始生成', 'Confirm charge and generate'],
+  submitting: [
+    '正在提交，请勿重复操作…',
+    'Submitting; do not submit another batch…',
+  ],
+  shots: ['逐镜头报价', 'Per-shot quote'],
+  edit: ['剪辑使用', 'Planned edit'],
+  generation: ['模型生成', 'Model output'],
+  prompt: ['查看实际镜头提示词', 'View compiled shot prompt'],
+  runs: ['最近20次执行', 'Latest 20 batches'],
+  noRuns: ['还没有执行批次。', 'No batches yet.'],
+  runHint: [
+    '这里是生成回执，不是完整影片；上游结果未知不等于可以安全重拍。',
+    'These are generation receipts, not finished films. An unknown submission is not safe to repeat.',
+  ],
+  blocked: [
+    '本项目存在未结束或结果未知的批次，暂不开始另一批。',
+    'This project has active or unresolved work. Another batch is blocked.',
+  ],
+  max: ['最高', 'Maximum'],
+  final: ['已结算', 'Settled'],
+  unknown: ['待结算／金额未知', 'Unsettled / amount unknown'],
+  footage: ['读取此镜头结果', 'Load this clip'],
+  mediaError: [
+    '结果暂不可读取，可再次点击查询；这不会重拍。',
+    'The artifact is unavailable. Query again; this will not regenerate it.',
+  ],
+  noMedia: [
+    '还没有可播放的视频文件，或文件已不可用。',
+    'No playable video file is available yet, or the file is no longer available.',
+  ],
+  openMedia: ['打开原始镜头', 'Open original clip'],
+  privacy: [
+    '本批镜头默认不发布到广场，也不公开提示词。媒体链接沿用网关现有访问策略，不应作为私密加密存储使用。',
+    'This batch is not published to the plaza and its prompts are not shared. Media links follow the gateway’s existing access policy; this is not encrypted private storage.',
+  ],
+  error_auth: [
+    '登录已失效，请重新登录。',
+    'Your session expired. Sign in again.',
+  ],
+  error_forbidden: [
+    '当前账号没有视频制作权限。',
+    'This account cannot produce video.',
+  ],
+  error_missing: [
+    '制作接口或记录不可用，请核对服务端版本并刷新。',
+    'The production API or record is unavailable. Check the gateway version and refresh.',
+  ],
+  error_changed: [
+    '报价、项目或模型配置已变化。刷新查询后，再获取新报价。',
+    'The quote, project or model settings changed. Refresh before requesting a new quote.',
+  ],
+  error_expired: [
+    '报价已过期。请刷新后获取新报价。',
+    'The quote expired. Refresh and request a new one.',
+  ],
+  error_funds: [
+    '余额不足，本次新批次未入队。充值后刷新报价再确认。',
+    'Insufficient funds; this new batch was not admitted. Top up, refresh and confirm again.',
+  ],
+  error_pending: [
+    '已有未完成或结果未知的制作任务，请先查看批次。',
+    'Active or unresolved work already exists. Review its batch first.',
+  ],
+  error_quota: [
+    '已达到请求或制作限额，请稍后刷新；不会自动重发。',
+    'A request or production limit was reached. Refresh later; no request is automatically resubmitted.',
+  ],
+  error_unsupported: [
+    '这些模型设置无法执行当前分镜，请调整后获取新报价。',
+    'These settings cannot execute this plan. Adjust them and request another quote.',
+  ],
+  error_disabled: [
+    '服务端未开启制作，不能开始新批次。',
+    'Server-side production is disabled. New batches cannot start.',
+  ],
+  error_network: [
+    '未能确认服务器结果。请刷新读取记录，切勿当作任务已经失败。',
+    'The server outcome could not be confirmed. Refresh records; do not assume the task failed.',
+  ],
+  error_protocol: [
+    '服务器返回的金额、版本或记录不符合预期，已暂停操作。请刷新或联系管理员。',
+    'The returned amount, version or receipt is inconsistent. Operations are paused; refresh or contact an administrator.',
+  ],
+  error_storage: [
+    '无法安全保存恢复记录，已暂停新的制作操作。请允许此站点的会话存储；不要在提交结果未知时清除记录。',
+    'Recovery records cannot be saved safely. New production is paused. Allow session storage; do not clear records while a submission is unresolved.',
+  ],
+  error_settings: [
+    '请检查模型参数；不会自动猜测或替换无效值。',
+    'Check the model parameters. Invalid values are not guessed or replaced.',
+  ],
+} as const;
+export type ProductionCopyKey = keyof typeof copy;
+export const productionCopy = (locale: string) => (key: ProductionCopyKey) =>
+  copy[key][locale === 'zh' ? 0 : 1];
+const statuses: Record<string, [string, string]> = {
+  offered: ['可确认', 'Offered'],
+  expired: ['已过期', 'Expired'],
+  used: ['已使用', 'Used'],
+  running: ['生成中', 'Running'],
+  completed: ['已完成', 'Completed'],
+  partial: ['部分完成', 'Partially completed'],
+  failed: ['失败', 'Failed'],
+  cancelled: ['已取消', 'Cancelled'],
+  blocked_unknown: ['提交结果待核查', 'Submission needs reconciliation'],
+  invalid: ['状态待核查', 'Invalid state; review required'],
+  queued: ['排队中', 'Queued'],
+  submitting: ['提交中', 'Submitting'],
+  submitted: ['上游已接收', 'Accepted upstream'],
+  in_progress: ['生成中', 'In progress'],
+  cancel_requested: ['正在申请取消', 'Cancellation requested'],
+  submission_unknown: ['提交结果未知', 'Submission unknown'],
+  quoted: ['已报价', 'Quoted'],
+  held: ['已预留', 'Reserved'],
+  captured: ['已结算', 'Captured'],
+  released: ['预留已释放', 'Reservation released'],
+  refunded: ['已退款', 'Refunded'],
+  disputed: ['待核查', 'Disputed'],
+  unquoted: ['未报价', 'Unquoted'],
+};
+export const productionStatus = (value: string, locale: string) =>
+  statuses[value]?.[locale === 'zh' ? 0 : 1] ?? value;
