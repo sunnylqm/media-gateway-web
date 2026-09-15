@@ -8,15 +8,19 @@ import {
   useState,
 } from 'react';
 import { type Formatters, formatters } from '../format';
-import { en, type MessageKey } from './en';
+import { type BrandMessageKey, brandEn, brandZh } from './brand';
+import { type MessageKey as CoreMessageKey, en } from './en';
 import { zh } from './zh';
 
 export type Locale = 'en' | 'zh';
-export type { MessageKey };
+export type MessageKey = CoreMessageKey | BrandMessageKey;
 
 export const locales: Locale[] = ['en', 'zh'];
 
-const dictionaries: Record<Locale, Record<MessageKey, string>> = { en, zh };
+const dictionaries: Record<Locale, Record<MessageKey, string>> = {
+  en: { ...en, ...brandEn },
+  zh: { ...zh, ...brandZh },
+};
 const storageKey = 'media_gateway_locale';
 
 function isLocale(value: string | null): value is Locale {
@@ -59,7 +63,7 @@ export function getLocale(): Locale {
 type Values = Record<string, string | number>;
 
 function message(locale: Locale, key: MessageKey, values?: Values): string {
-  const text = dictionaries[locale][key] ?? en[key] ?? key;
+  const text = dictionaries[locale][key] ?? dictionaries.en[key] ?? key;
   if (!values) return text;
   return Object.entries(values).reduce(
     (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
@@ -76,6 +80,14 @@ function apply(locale: Locale) {
   active = locale;
   document.documentElement.lang = locale === 'zh' ? 'zh-CN' : 'en';
   document.title = translate('app.title');
+  const metadata = {
+    'meta[name="description"]': translate('app.description'),
+    'meta[property="og:title"]': translate('app.title'),
+    'meta[property="og:description"]': translate('app.description'),
+  };
+  for (const [selector, content] of Object.entries(metadata)) {
+    document.querySelector(selector)?.setAttribute('content', content);
+  }
 }
 
 type LocaleContextValue = {

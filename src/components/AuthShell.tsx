@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useI18n } from '@/i18n';
 import { Brand } from './Brand';
 import { LanguageToggle } from './LanguageSwitch';
@@ -18,25 +19,21 @@ export function AuthShell({
   return (
     <main className="auth-page">
       <section className="auth-story" aria-label={t('auth.storyAria')}>
-        <Brand />
+        <Link to="/" className="brand-home" aria-label={t('brand.home')}>
+          <Brand />
+        </Link>
         <div className="auth-story-copy">
           <span className="eyebrow">{t('auth.storyEyebrow')}</span>
           <h1>{t('auth.storyTitle')}</h1>
           <p>{t('auth.storyBody')}</p>
         </div>
-        <div className="signal-card" aria-hidden="true">
-          <div className="signal-row">
-            <span>{t('auth.signalGateway')}</span>
-            <b>{t('auth.signalOperational')}</b>
-          </div>
-          <div className="signal-track">
-            <i />
-          </div>
-          <div className="signal-meta">
-            <span>{t('auth.signalImage')}</span>
-            <span>{t('auth.signalVideo')}</span>
-            <span>{t('auth.signalAudit')}</span>
-          </div>
+        <div className="auth-tasting-note">
+          <span className="brew-note">{t('auth.brewNote')}</span>
+          <ol className="brew-steps" aria-label={t('home.stepsAria')}>
+            <li>{t('home.stepIdea')}</li>
+            <li>{t('home.stepFrame')}</li>
+            <li>{t('home.stepStory')}</li>
+          </ol>
         </div>
       </section>
       <section className="auth-panel">
@@ -44,6 +41,13 @@ export function AuthShell({
           <LanguageToggle />
         </div>
         <div className="auth-card">
+          <Link
+            to="/"
+            className="brand-home auth-mobile-brand"
+            aria-label={t('brand.home')}
+          >
+            <Brand />
+          </Link>
           <span className="eyebrow">{eyebrow}</span>
           <h2>{title}</h2>
           <p className="muted auth-description">{description}</p>

@@ -21,6 +21,7 @@ import { useI18n } from '@/i18n';
 import { studioEnabled } from '../lib/studio/config';
 import { studioMessage } from '../lib/studio/messages';
 import { Brand } from './Brand';
+import { CreationEntry } from './CreationEntry';
 import { Footer } from './Footer';
 import { LanguageMenuGroup } from './LanguageSwitch';
 
@@ -244,6 +245,10 @@ export function Shell({
           </div>
           {actions && <div className="page-actions">{actions}</div>}
         </header>
+        {!admin &&
+          (location.pathname === '/app' || location.pathname === '/app/') && (
+            <CreationEntry />
+          )}
         {children}
         <Footer />
       </main>

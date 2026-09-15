@@ -1,6 +1,9 @@
 # Deployment
 
-- Production is the Cloudflare Pages project `media-gateway-web`, connected to this GitHub repository through Git integration.
-- Pushing `main` triggers the production build and deployment automatically. Do not publish this repository through OpenAI Sites, GitHub Pages, or a manual Wrangler upload unless the user explicitly changes the deployment target.
-- Before pushing, run `bun run ci` and `bun run build`. After pushing, verify the GitHub check named `Workers Builds: media-gateway-web` completes successfully.
+- Production is the Cloudflare Worker `media-gateway-web`, connected to this GitHub repository through Workers Builds Git integration. This is a Vite static-assets deployment, not a Cloudflare Pages project.
+- Pushing `main` triggers the production build and deployment automatically. Non-production branches use `wrangler versions upload` for preview versions, not production promotion. Do not publish this repository through OpenAI Sites, GitHub Pages, or a manual Wrangler upload unless the user explicitly changes the deployment target.
+- `wrangler.jsonc` declares `assets.directory = ./dist` and SPA fallback. Build with `bun run build` before uploading. Do not add a `main` pointing at browser React code or invent a Worker script for this static frontend.
+- Before pushing, run `bun run ci` and `bun run build`; validate both `npx --yes wrangler@4 deploy --dry-run` and `npx --yes wrangler@4 versions upload --dry-run`. The PR workflow repeats these deployment preflights with Studio disabled and enabled. These checks need no Cloudflare deployment credentials and must not publish.
+- After pushing, verify the GitHub check named `Workers Builds: media-gateway-web` completes successfully. Passing application CI alone does not prove a Cloudflare upload succeeded; preview upload success does not mean production was deployed.
+- Preserve existing Cloudflare build variables, custom domains, and old hostnames. Do not add or clear `route`/`routes` or change `workers_dev`/`preview_urls` as part of frontend-only fixes. `keep_vars` retains dashboard-managed runtime variables; it does not set Vite build variables.
 - `.openai/hosting.json` is build metadata used by the existing Vite plugin; it is not the production deployment configuration and must not contain an OpenAI Sites `project_id`.

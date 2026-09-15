@@ -19,13 +19,57 @@ VITE_GATEWAY_PROXY=false
 
 ## Deployment
 
-Production is hosted by the Cloudflare Pages project `media-gateway-web`. Its
-Git integration builds and deploys every push to `main`; no separate publish
-command is required. A release is complete when the GitHub check
-`Workers Builds: media-gateway-web` succeeds for the pushed commit.
+Production is hosted by the Cloudflare Worker `media-gateway-web`, using
+**Workers Builds Git integration**, not Cloudflare Pages. The browser app is a
+static Vite build; `wrangler.jsonc` points Workers Static Assets to `./dist` and
+sets `not_found_handling` to `single-page-application` so navigation to nested
+routes such as `/app/video` serves the React application.
 
-OpenAI Sites, GitHub Pages, and direct Wrangler uploads are not part of this
-repository's production release path.
+In the existing Worker's **Settings > Build**, use:
+
+| Setting | Value |
+| --- | --- |
+| Root directory | Repository root (the directory containing `package.json` and `wrangler.jsonc`) |
+| Build command | `bun run build` |
+| Production deploy command | `npx wrangler deploy` |
+| Non-production branch deploy command | `npx wrangler versions upload` |
+
+Workers Builds installs dependencies before running the build. Keep the existing
+build-time environment variables, especially `VITE_GATEWAY_URL` and
+`VITE_STUDIO_ENABLED`; the Wrangler configuration does not replace those values.
+There is no Worker `main` script: `src/main.tsx` is browser code, not a Worker
+entry point. The compiled `dist/index.html` must exist before either upload
+command runs. `.openai/hosting.json` is not Wrangler deployment configuration.
+
+A push to `main` builds and deploys production. Non-production branch builds
+upload preview versions without promoting them to production. Check both the
+application CI and `Workers Builds: media-gateway-web` for the exact commit;
+a passing build alone is not proof of a successful Cloudflare upload.
+
+The PR workflow builds with Studio disabled and enabled, checks that
+`dist/index.html` exists, and runs both deployment paths without publishing:
+
+```bash
+bun run ci
+bun run build
+npx --yes wrangler@4 deploy --dry-run
+npx --yes wrangler@4 versions upload --dry-run
+```
+
+These dry runs do not require Cloudflare deployment credentials and do not test
+account permissions, live domain routing, or backend connectivity. The actual
+Workers Builds result and preview smoke test remain required. Do not replace a
+preview command with `wrangler deploy`, which would promote code to production.
+
+Custom domains and existing hostnames remain managed on the existing Worker;
+this configuration does not declare or clear routes or change the domain
+bindings. `keep_vars: true` retains dashboard-managed runtime variables. No
+redirect to `mypub.ai` is added, and this configuration does not itself bind the
+new domain. OpenAI Sites, GitHub Pages, and manual Wrangler uploads are not part
+of this repository's production release path.
+
+References: [Workers Builds configuration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/),
+[SPA static assets](https://developers.cloudflare.com/workers/static-assets/routing/single-page-application/).
 
 ## Features
 
