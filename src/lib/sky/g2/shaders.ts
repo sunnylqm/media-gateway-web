@@ -118,18 +118,30 @@ void main(){
 
 export function volumeSource(recipe: Recipe) {
   const scalar = (n: string, v: number) => `const float ${n}=${v.toFixed(6)};`;
-  const vec = (n: string, v: readonly number[]) => `const vec${v.length} ${n}=vec${v.length}(${v.map((x) => x.toFixed(6)).join(',')});`;
+  const vec = (n: string, v: readonly number[]) =>
+    `const vec${v.length} ${n}=vec${v.length}(${v.map((x) => x.toFixed(6)).join(',')});`;
   // Recipe values are internally constructed finite numbers; never URL text.
   const [body, rim, filament, accent] = recipe.palette;
-  return volume.replace('/* RECIPE */', [
-    `#define MODE ${recipe.mode}`,
-    vec('CENTER', recipe.center), vec('SCALE', recipe.scale),
-    vec('DETAIL', recipe.detail), vec('ROLL', [Math.cos(recipe.roll), Math.sin(recipe.roll)]),
-    scalar('THICK', recipe.thickness), scalar('DENSITY', recipe.density),
-    scalar('CURL', recipe.curl), scalar('ROUGH', recipe.roughness),
-    vec('SECOND', recipe.secondary), vec('LIGHT', recipe.light),
-    vec('BODY', body), vec('RIM', rim), vec('FILAMENT', filament), vec('ACCENT', accent),
-  ].join('\n'));
+  return volume.replace(
+    '/* RECIPE */',
+    [
+      `#define MODE ${recipe.mode}`,
+      vec('CENTER', recipe.center),
+      vec('SCALE', recipe.scale),
+      vec('DETAIL', recipe.detail),
+      vec('ROLL', [Math.cos(recipe.roll), Math.sin(recipe.roll)]),
+      scalar('THICK', recipe.thickness),
+      scalar('DENSITY', recipe.density),
+      scalar('CURL', recipe.curl),
+      scalar('ROUGH', recipe.roughness),
+      vec('SECOND', recipe.secondary),
+      vec('LIGHT', recipe.light),
+      vec('BODY', body),
+      vec('RIM', rim),
+      vec('FILAMENT', filament),
+      vec('ACCENT', accent),
+    ].join('\n'),
+  );
 }
 
 export const copy = `#version 300 es
@@ -204,7 +216,7 @@ void main(){
   vec3 c=texture(u_scene,uv).rgb/u_range;
   c+=(texture(u_near,uv).rgb*.7+texture(u_far,uv).rgb*.3)*u_bloom;
   c*=u_exposure;
-  // Max-channel luminance-preserving shoulder retains jewel hues at highlights.
+  // A shared max-channel shoulder preserves RGB ratios through highlights.
   float peak=max(c.r,max(c.g,c.b));
   c*=1./(1.+peak);
   c=srgb(max(c,vec3(0.)));

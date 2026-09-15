@@ -34,18 +34,23 @@ export function PhotographicSky({ moving }: { moving: boolean }) {
         instance = createRenderer(canvas.current, choice.recipe, state);
       } else {
         const { createSkyRenderer } = await import('../../lib/sky/renderer');
-        const { getSkyRecipe, skySeedToken } = await import('../../lib/sky/presets');
+        const { getSkyRecipe, skySeedToken } = await import(
+          '../../lib/sky/presets'
+        );
         if (!active || !canvas.current) return;
         const recipe = getSkyRecipe();
         canvas.current.dataset.engine = 'g1';
         canvas.current.dataset.scene = recipe.preset.id;
-        canvas.current.dataset.seed = recipe.seed === null ? 'canonical' : skySeedToken(recipe.seed);
+        canvas.current.dataset.seed =
+          recipe.seed === null ? 'canonical' : skySeedToken(recipe.seed);
         instance = createSkyRenderer(canvas.current, state);
       }
       renderer.current = instance;
       instance.setMoving(motion.current);
     }
-    load().catch(() => { if (active) setStatus('fallback'); });
+    load().catch(() => {
+      if (active) setStatus('fallback');
+    });
     return () => {
       active = false;
       renderer.current?.dispose();
@@ -58,10 +63,19 @@ export function PhotographicSky({ moving }: { moving: boolean }) {
       <div className="sky-fallback" data-moving={moving && status !== 'webgl2'}>
         <div className="home-nebula" />
         {starLayers.map((backgroundImage, index) => (
-          <div key={backgroundImage} className={`home-stars home-stars-${index}`} style={{ backgroundImage }} />
+          <div
+            key={backgroundImage}
+            className={`home-stars home-stars-${index}`}
+            style={{ backgroundImage }}
+          />
         ))}
       </div>
-      <canvas ref={canvas} className="home-galaxy" data-renderer={status} tabIndex={-1} />
+      <canvas
+        ref={canvas}
+        className="home-galaxy"
+        data-renderer={status}
+        tabIndex={-1}
+      />
     </div>
   );
 }

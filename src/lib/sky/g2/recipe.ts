@@ -51,7 +51,11 @@ export function familyFrom(value: string | null | undefined) {
 // OKLCH -> linear sRGB. Reduce chroma at fixed lightness/hue, not RGB clipping.
 // This is a bounded chroma-search, not the full CSS local-MINDE gamut mapper.
 // Matrices: W3C CSS Color 4 / Björn Ottosson's Oklab definition.
-export function oklchLinear(lightness: number, chroma: number, hue: number): Vec3 {
+export function oklchLinear(
+  lightness: number,
+  chroma: number,
+  hue: number,
+): Vec3 {
   const angle = (hue * Math.PI) / 180;
   const convert = (c: number): Vec3 => {
     const a = c * Math.cos(angle);
@@ -72,7 +76,9 @@ export function oklchLinear(lightness: number, chroma: number, hue: number): Vec
     if (convert(mid).every((v) => v >= 0 && v <= 1)) low = mid;
     else high = mid;
   }
-  return convert(low).map((v) => Math.max(0, Math.min(1, v))) as unknown as Vec3;
+  return convert(low).map((v) =>
+    Math.max(0, Math.min(1, v)),
+  ) as unknown as Vec3;
 }
 
 // Body / thin rim / filaments / local light. Area and energy have distinct roles.
@@ -89,7 +95,8 @@ export function generate(seed: number, forcedFamily?: Family): Recipe {
   const layout = stream(normalized ^ 0x3181a2e7);
   const color = stream(normalized ^ 0x75ce0843);
   const camera = stream(normalized ^ 0xf9b3d42d);
-  const family = forcedFamily ?? FAMILIES[Math.floor(layout() * FAMILIES.length)];
+  const family =
+    forcedFamily ?? FAMILIES[Math.floor(layout() * FAMILIES.length)];
   const mode = FAMILIES.indexOf(family);
   const signed = () => layout() * 2 - 1;
   const fullness = signed();
@@ -114,20 +121,29 @@ export function generate(seed: number, forcedFamily?: Family): Recipe {
     center: [9.8 + signed() * 1.1, 2.8 + signed() * 0.7, 25],
     scale: [0.95 + layout() * 0.12, 1.02 - fullness * 0.08, 1],
     detail: [signed() * 28, signed() * 28, signed() * 28],
-    roll: signed() * 0.10,
+    roll: signed() * 0.1,
     thickness,
     density: (1 - complexity * 0.035) / thickness,
     curl: 0.88 + layout() * 0.24,
     roughness: 1 + complexity * 0.12,
     // One subordinate ribbon (phase, height, depth, energy), never a second hero.
-    secondary: [layout() * Math.PI * 2, 1.5 + layout() * 2.5, 15 + layout() * 4, 0.20 + layout() * 0.09],
+    secondary: [
+      layout() * Math.PI * 2,
+      1.5 + layout() * 2.5,
+      15 + layout() * 4,
+      0.2 + layout() * 0.09,
+    ],
     light: [5 + layout() * 7, 5.5 + layout() * 2.5, 18 + layout() * 3],
     palette,
     paletteName: harmony.name,
     exposure: 1.9 - fullness * 0.12,
     bloom: 0.13 + color() * 0.06,
     period,
-    travel: [direction * (5.4 + camera() * 0.8), 1.2 + camera() * 0.8, 6.5 + camera() * 0.7],
+    travel: [
+      direction * (5.4 + camera() * 0.8),
+      1.2 + camera() * 0.8,
+      6.5 + camera() * 0.7,
+    ],
     starSeed: (normalized ^ 0xe7543421) >>> 0,
   };
 }
@@ -137,21 +153,40 @@ export function cameraAt(time: number, recipe: Recipe) {
   const [x, y, z] = recipe.travel;
   const yaw = Math.sin(phase) * 0.04 * Math.sign(x);
   const pitch = Math.sin(phase * 2) * 0.015;
-  const cy = Math.cos(yaw), sy = Math.sin(yaw);
-  const cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const cy = Math.cos(yaw),
+    sy = Math.sin(yaw);
+  const cp = Math.cos(pitch),
+    sp = Math.sin(pitch);
   return {
-    origin: new Float32Array([x * Math.sin(phase), y * Math.sin(phase * 2), -12 + z * Math.sin(phase) + 1.8 * (Math.cos(phase) - 1)]),
-    rotation: new Float32Array([cy, 0, -sy, sy * sp, cp, cy * sp, sy * cp, -sp, cy * cp]),
+    origin: new Float32Array([
+      x * Math.sin(phase),
+      y * Math.sin(phase * 2),
+      -12 + z * Math.sin(phase) + 1.8 * (Math.cos(phase) - 1),
+    ]),
+    rotation: new Float32Array([
+      cy,
+      0,
+      -sy,
+      sy * sp,
+      cp,
+      cy * sp,
+      sy * cp,
+      -sp,
+      cy * cp,
+    ]),
   };
 }
 
 // Structural guardrails, not an aesthetic score or an unbounded retry loop.
 export function validComposition(recipe: Recipe) {
   return (
-    recipe.center[0] >= 8.7 && recipe.center[0] <= 10.91 &&
-    recipe.center[1] >= 2.1 && recipe.center[1] <= 3.51 &&
-    recipe.secondary[2] >= 15 && recipe.secondary[2] <= 19 &&
-    recipe.secondary[3] <= 0.30 &&
+    recipe.center[0] >= 8.7 &&
+    recipe.center[0] <= 10.91 &&
+    recipe.center[1] >= 2.1 &&
+    recipe.center[1] <= 3.51 &&
+    recipe.secondary[2] >= 15 &&
+    recipe.secondary[2] <= 19 &&
+    recipe.secondary[3] <= 0.3 &&
     Math.abs(recipe.roll) <= 0.101 &&
     Math.abs(recipe.density * recipe.thickness - 1) <= 0.036 &&
     recipe.palette.flat().every((v) => Number.isFinite(v) && v >= 0 && v <= 1)
@@ -159,14 +194,22 @@ export function validComposition(recipe: Recipe) {
 }
 
 export function frameSize(w: number, h: number, dpr: number, quality = 1) {
-  const width = Math.max(1, w), height = Math.max(1, h);
+  const width = Math.max(1, w),
+    height = Math.max(1, h);
   const q = Math.min(1, Math.max(0.5, quality));
-  const ratio = Math.min(Math.max(1, dpr), 1.6, Math.sqrt(2000000 / (width * height))) * q;
+  const ratio =
+    Math.min(Math.max(1, dpr), 1.6, Math.sqrt(2000000 / (width * height))) * q;
   const cw = Math.max(1, Math.floor(width * ratio));
   const ch = Math.max(1, Math.floor(height * ratio));
   // Quality scales the expensive volume budget as well as the stars.
-  const volume = Math.min(0.6, Math.sqrt(180000 * q * q / (cw * ch)));
-  return { width: cw, height: ch, ratio, cloudWidth: Math.max(1, Math.floor(cw * volume)), cloudHeight: Math.max(1, Math.floor(ch * volume)) };
+  const volume = Math.min(0.6, Math.sqrt((180000 * q * q) / (cw * ch)));
+  return {
+    width: cw,
+    height: ch,
+    ratio,
+    cloudWidth: Math.max(1, Math.floor(cw * volume)),
+    cloudHeight: Math.max(1, Math.floor(ch * volume)),
+  };
 }
 
 export function starsFor(recipe: Recipe, count = 18000) {
@@ -176,11 +219,27 @@ export function starsFor(recipe: Recipe, count = 18000) {
     const group = random();
     const depth = group < 0.015 ? 6 + random() * 17 : 50 + random() * 240;
     const cluster = group > 0.95;
-    const x = cluster ? (recipe.light[0] / 32 + (random() + random() - 1) * 0.13) * depth : (random() * 2 - 1) * depth * 1.8;
-    const y = cluster ? (recipe.light[1] / 32 + (random() + random() - 1) * 0.12) * depth : (random() * 2 - 1) * depth * 1.3;
+    const x = cluster
+      ? (recipe.light[0] / 32 + (random() + random() - 1) * 0.13) * depth
+      : (random() * 2 - 1) * depth * 1.8;
+    const y = cluster
+      ? (recipe.light[1] / 32 + (random() + random() - 1) * 0.12) * depth
+      : (random() * 2 - 1) * depth * 1.3;
     const temperature = random();
     const magnitude = random() ** 7;
-    data.set([x, y, depth, 0.7 + temperature * 0.3, 0.83 + temperature * 0.11, 1 - temperature * 0.4, 0.18 + magnitude * 3.2, 2.2 + magnitude * 16], i * 8);
+    data.set(
+      [
+        x,
+        y,
+        depth,
+        0.7 + temperature * 0.3,
+        0.83 + temperature * 0.11,
+        1 - temperature * 0.4,
+        0.18 + magnitude * 3.2,
+        2.2 + magnitude * 16,
+      ],
+      i * 8,
+    );
   }
   return data;
 }
