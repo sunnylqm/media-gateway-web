@@ -9,8 +9,8 @@ export function CreationEntry() {
   return (
     <section className="creation-entry" aria-labelledby="creation-entry-title">
       <div>
-        <span className="eyebrow">{t('home.eyebrow')}</span>
-        <h2 id="creation-entry-title">{t('home.title')}</h2>
+        <span className="eyebrow">{t('entry.eyebrow')}</span>
+        <h2 id="creation-entry-title">{t('entry.title')}</h2>
         <p>{t('entry.description')}</p>
       </div>
       <Link className="button primary" to={creationPath(studioEnabled)}>
