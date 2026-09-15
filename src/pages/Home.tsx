@@ -53,8 +53,7 @@ export function Home() {
         <div className="home-copy">
           <span className="home-kicker">{t('home.eyebrow')}</span>
           <h1>
-            <span>{t('home.titleLead')}</span>{' '}
-            <span>{t('home.titleEnd')}</span>
+            <span>{t('home.titleLead')}</span> <span>{t('home.titleEnd')}</span>
           </h1>
           <p className="home-intro">{t('home.description')}</p>
           <div className="home-actions">

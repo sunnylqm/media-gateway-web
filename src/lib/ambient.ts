@@ -16,7 +16,11 @@ export function starField(seed: number, count: number): string {
   }).join(', ');
 }
 
-export const starLayers = [starField(17, 38), starField(41, 30), starField(83, 22)];
+export const starLayers = [
+  starField(17, 38),
+  starField(41, 30),
+  starField(83, 22),
+];
 
 // No media request is made until a real source is configured. Root-relative
 // assets and HTTPS sources are both supported; insecure/invalid URLs fall back.
