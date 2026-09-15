@@ -1,14 +1,14 @@
 // Brand copy is shared by the public site, authentication, and workspace.
 // Keep the approved Chinese lines verbatim; English carries the same metaphor.
 export const brandEn = {
-  'app.title': 'mypub.ai — Brew your story into a short film',
+  'app.title': 'mypub.ai — Brew a story you love into a short film',
   'app.description':
     'Good stories deserve to be savored. An AI workspace for turning ideas into images and short films.',
   'brand.name': 'mypub.ai',
   'brand.tagline': 'Good stories deserve to be savored.',
   'brand.home': 'mypub.ai home',
   'auth.storyEyebrow': 'A little pub for big ideas',
-  'auth.storyTitle': 'Brew your story into a short film.',
+  'auth.storyTitle': 'Brew a story you love into a short film.',
   'auth.storyBody':
     'Bring a spark of an idea. Give it a scene, a rhythm, and a voice of its own.',
   'auth.brewNote': 'Your next story starts here.',
@@ -17,7 +17,7 @@ export const brandEn = {
   'home.skip': 'Skip to content',
   'home.navigation': 'Site navigation',
   'home.eyebrow': 'A little pub for big ideas',
-  'home.title': 'Brew your story into a short film.',
+  'home.title': 'Brew a story you love into a short film.',
   'home.description':
     'Start with an idea, find its visual language, and make something worth sharing. Your next story has a place here.',
   'home.create': 'Start creating',
@@ -53,14 +53,14 @@ export const brandEn = {
 export type BrandMessageKey = keyof typeof brandEn;
 
 export const brandZh: Record<BrandMessageKey, string> = {
-  'app.title': 'mypub.ai — 把你的故事，酿成短片。',
+  'app.title': 'mypub.ai — 把你喜欢的故事，酿成短片。',
   'app.description':
     '好故事，值得更多人品尝。用 AI 酝酿灵感，在 mypub.ai 创作画面与短片。',
   'brand.name': 'mypub.ai',
   'brand.tagline': '好故事，值得更多人品尝。',
   'brand.home': 'mypub.ai 首页',
   'auth.storyEyebrow': '一间属于创作者的小酒馆',
-  'auth.storyTitle': '把你的故事，酿成短片。',
+  'auth.storyTitle': '把你喜欢的故事，酿成短片。',
   'auth.storyBody': '带着一点灵感来，让它有画面、有节奏，也有自己的味道。',
   'auth.brewNote': '下一杯灵感，从这里开始。',
   'login.eyebrow': '欢迎来到 mypub.ai',
@@ -68,7 +68,7 @@ export const brandZh: Record<BrandMessageKey, string> = {
   'home.skip': '跳至主要内容',
   'home.navigation': '网站导航',
   'home.eyebrow': '一间属于创作者的小酒馆',
-  'home.title': '把你的故事，酿成短片。',
+  'home.title': '把你喜欢的故事，酿成短片。',
   'home.description':
     '从一个想法开始，找到它的画面与节奏。用 AI 酝酿灵感，让故事慢慢有自己的味道。',
   'home.create': '开始创作',
@@ -96,6 +96,6 @@ export const brandZh: Record<BrandMessageKey, string> = {
     '到作品广场坐坐。看看不同的表达，也许下一个灵感就在这里。',
   'home.galleryAction': '前往作品广场',
   'home.closing': '好故事，值得更多人品尝。',
-  'home.closingBody': '不用急着成为谁，先把你的故事讲出来。',
+  'home.closingBody': '不用急着成为谁，先把你喜欢的故事讲出来。',
   'entry.description': '一个新想法，一幅新画面，一个只有你能讲的故事。',
 };

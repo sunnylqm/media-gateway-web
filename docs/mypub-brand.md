@@ -3,8 +3,8 @@
 ## Approved copy
 
 - Brand lockup: **mypub.ai / 好故事，值得更多人品尝。**
-- Creation entry: **把你的故事，酿成短片。**
-- English: “Good stories deserve to be savored.” / “Brew your story into a short film.”
+- Creation entry: **把你喜欢的故事，酿成短片。**
+- English: “Good stories deserve to be savored.” / “Brew a story you love into a short film.”
 
 The beer mug and play button are a metaphor for brewing and sharing stories.
 The public site does not advertise alcohol, invent user counts, imply automatic
