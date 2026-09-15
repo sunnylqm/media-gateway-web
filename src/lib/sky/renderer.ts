@@ -1,9 +1,9 @@
 import {
-  STAR_COUNT,
-  STAR_STRIDE,
   cameraMatrix,
   createStars,
   renderSize,
+  STAR_COUNT,
+  STAR_STRIDE,
 } from './scene';
 import {
   compositeFragment,
@@ -49,7 +49,9 @@ export function createSkyRenderer(
   let cloudWidth = 1;
   let cloudHeight = 1;
   let pixelRatio = 1;
-  const pointRange = gl.getParameter(gl.ALIASED_POINT_SIZE_RANGE) as Float32Array;
+  const pointRange = gl.getParameter(
+    gl.ALIASED_POINT_SIZE_RANGE,
+  ) as Float32Array;
   const pointMax = pointRange[1];
   const textureMax = gl.getParameter(gl.MAX_TEXTURE_SIZE) as number;
   const stars = createStars();
@@ -223,6 +225,7 @@ export function createSkyRenderer(
     const fov = aspect < 1 ? 0.95 : 0.64;
     const camera = cameraMatrix(elapsed);
     const applyCamera = (p: Pass) => {
+      // biome-ignore lint/correctness/useHookAtTopLevel: WebGL API, not a React hook.
       gl!.useProgram(p.program);
       gl!.uniformMatrix3fv(p.uniforms.u_camera, false, camera);
       gl!.uniform1f(p.uniforms.u_aspect, aspect);
@@ -236,6 +239,7 @@ export function createSkyRenderer(
     gl!.drawArrays(gl!.TRIANGLES, 0, 3);
     gl!.bindFramebuffer(gl!.FRAMEBUFFER, null);
     gl!.viewport(0, 0, width, height);
+    // biome-ignore lint/correctness/useHookAtTopLevel: WebGL API, not a React hook.
     gl!.useProgram(composite.program);
     gl!.activeTexture(gl!.TEXTURE0);
     gl!.bindTexture(gl!.TEXTURE_2D, texture);

@@ -41,7 +41,7 @@ export function createStars(count = STAR_COUNT): Float32Array {
         : 0.92 - (temperature - 0.35) * 0.23;
     stars[offset + 5] =
       temperature < 0.35 ? 1 : 0.82 - (temperature - 0.35) * 0.48;
-    const magnitude = Math.pow(random(), 5);
+    const magnitude = random() ** 5;
     stars[offset + 6] = 0.16 + magnitude * 0.93;
     stars[offset + 7] = 3.2 + magnitude * 12;
   }
@@ -76,6 +76,14 @@ export function cameraMatrix(time: number): Float32Array {
   const sp = Math.sin(pitch);
   // Column-major camera-to-world rotation, shared by clouds and star vertices.
   return new Float32Array([
-    cy, 0, -sy, sy * sp, cp, cy * sp, sy * cp, -sp, cy * cp,
+    cy,
+    0,
+    -sy,
+    sy * sp,
+    cp,
+    cy * sp,
+    sy * cp,
+    -sp,
+    cy * cp,
   ]);
 }

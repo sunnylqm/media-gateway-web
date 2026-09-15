@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { brandEn, brandZh } from '../../i18n/brand';
 import {
-  STAR_COUNT,
-  STAR_STRIDE,
   cameraMatrix,
   createStars,
   renderSize,
+  STAR_COUNT,
+  STAR_STRIDE,
 } from './scene';
 
 describe('photographic sky', () => {
